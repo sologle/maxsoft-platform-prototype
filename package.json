@@ -4,12 +4,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "generate:screens": "node scripts/generate-screen-manifest.mjs",
-    "dev": "npm run generate:screens && vite --host 0.0.0.0",
-    "build": "npm run generate:screens && tsc -b && vite build",
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
     "e2e": "playwright test",
-    "test": "npm run generate:screens && vitest run",
-    "test:watch": "npm run generate:screens && vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {

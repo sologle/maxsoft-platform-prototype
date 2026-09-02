@@ -5,6 +5,7 @@ interface ModalSurfaceProps {
   className: string;
   labelledBy: string;
   onClose: () => void;
+  surfaceRole?: "dialog" | "presentation";
 }
 
 const focusableSelector = [
@@ -16,7 +17,13 @@ const focusableSelector = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(",");
 
-export const ModalSurface = ({ children, className, labelledBy, onClose }: ModalSurfaceProps) => {
+export const ModalSurface = ({
+  children,
+  className,
+  labelledBy,
+  onClose,
+  surfaceRole = "dialog",
+}: ModalSurfaceProps) => {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const focusableElements = () =>
@@ -26,11 +33,19 @@ export const ModalSurface = ({ children, className, labelledBy, onClose }: Modal
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const appRoot = document.getElementById("root");
+    const rootWasInert = appRoot?.hasAttribute("inert") ?? false;
+    const previousAriaHidden = appRoot ? appRoot.getAttribute("aria-hidden") : null;
+    appRoot?.setAttribute("inert", "");
+    appRoot?.setAttribute("aria-hidden", "true");
     const timeout = window.setTimeout(() => {
       (focusableElements()[0] ?? dialogRef.current)?.focus();
     }, 0);
     return () => {
       window.clearTimeout(timeout);
+      if (!rootWasInert) appRoot?.removeAttribute("inert");
+      if (previousAriaHidden === null) appRoot?.removeAttribute("aria-hidden");
+      else if (appRoot) appRoot.setAttribute("aria-hidden", previousAriaHidden);
       if (previousFocus?.isConnected) previousFocus.focus();
     };
   }, []);
@@ -54,15 +69,15 @@ export const ModalSurface = ({ children, className, labelledBy, onClose }: Modal
 
   return (
     <div
-      aria-labelledby={labelledBy}
-      aria-modal="true"
+      aria-labelledby={surfaceRole === "dialog" ? labelledBy : undefined}
+      aria-modal={surfaceRole === "dialog" ? "true" : undefined}
       className={className}
       onKeyDown={handleKeyDown}
       onMouseDown={(event) => {
         if (event.currentTarget === event.target) onClose();
       }}
       ref={dialogRef}
-      role="dialog"
+      role={surfaceRole}
       tabIndex={-1}
     >
       {children}
