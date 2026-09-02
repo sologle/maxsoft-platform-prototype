@@ -14,6 +14,7 @@ import {
 import { useState, type FormEvent } from "react";
 import type { AppPage, UserRole } from "../app/types";
 import { ResponsiveOverlay } from "../components/ResponsiveOverlay";
+import { ThemeToggle } from "../components/Theme";
 import { Button, Field } from "../components/ui";
 
 interface AuthPageProps {
@@ -30,6 +31,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => (
         </span>
         <span className="font-heading text-lg font-extrabold">MaxSoft</span>
         <span className="ml-auto text-xs font-semibold text-[var(--ms-muted)]">Портал клиентов</span>
+        <ThemeToggle />
       </div>
     </header>
     {children}

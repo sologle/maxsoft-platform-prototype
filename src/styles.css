@@ -3,7 +3,13 @@
 :root {
   color: #1a1f26;
   background: #e9eef4;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   --ms-background: #f3f6fa;
@@ -15,6 +21,14 @@
   --ms-primary-soft: #e9f4fb;
   --ms-primary-ring: rgba(20, 120, 189, 0.14);
   --ms-stage: #e9eef4;
+  --ms-surface: #ffffff;
+  --ms-surface-raised: #ffffff;
+  --ms-surface-subtle: #f8fafc;
+  --ms-hover: #f1f5f9;
+  --ms-code-background: #eef2f6;
+  --ms-code-text: #24445f;
+  --ms-article-text: #3d4b59;
+  --ms-article-lead: #2b4053;
   --ms-text: #1a1f26;
   --ms-card-shadow: 0 5px 22px rgba(27, 51, 75, 0.055);
   --ms-card-shadow-hover: 0 14px 36px rgba(20, 120, 189, 0.11);
@@ -35,6 +49,7 @@ body {
   min-height: 100vh;
   margin: 0;
   overflow-x: hidden;
+  background: var(--ms-stage);
 }
 
 #root {
@@ -121,33 +136,65 @@ svg {
 }
 
 @keyframes mobile-nav-in {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes mobile-nav-out {
-  from { transform: translateX(0); }
-  to { transform: translateX(-100%); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
 }
 
 @keyframes bottom-sheet-in {
-  from { opacity: 0; transform: translateY(100%); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes bottom-sheet-out {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(100%); }
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
 }
 
 @keyframes popover-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(7px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes toast-in {
@@ -175,12 +222,15 @@ svg {
   border-radius: 0.75rem;
   background: transparent;
   color: var(--ms-muted);
-  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .icon-button:hover {
   color: var(--ms-text);
-  background: #f1f5f9;
+  background: var(--ms-hover);
 }
 
 .icon-button:active {
@@ -223,7 +273,7 @@ svg {
 }
 
 .menu-action:hover {
-  background: #f1f5f9;
+  background: var(--ms-hover);
 }
 
 .tree-item {
@@ -237,11 +287,13 @@ svg {
   background: transparent;
   padding: 0.625rem 0.75rem;
   color: var(--ms-muted);
-  transition: background-color 160ms ease, color 160ms ease;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
 .tree-item:hover {
-  background: #f1f5f9;
+  background: var(--ms-hover);
   color: var(--ms-text);
 }
 
@@ -254,14 +306,20 @@ svg {
   grid-template-rows: 1fr;
   opacity: 1;
   visibility: visible;
-  transition: grid-template-rows 220ms ease, opacity 180ms ease, visibility 0s linear 0s;
+  transition:
+    grid-template-rows 220ms ease,
+    opacity 180ms ease,
+    visibility 0s linear 0s;
 }
 
 .tree-children[data-open="false"] {
   grid-template-rows: 0fr;
   opacity: 0;
   visibility: hidden;
-  transition: grid-template-rows 220ms ease, opacity 150ms ease, visibility 0s linear 220ms;
+  transition:
+    grid-template-rows 220ms ease,
+    opacity 150ms ease,
+    visibility 0s linear 220ms;
 }
 
 .tree-branch {
@@ -285,11 +343,13 @@ svg {
   gap: 0.75rem;
   border: 1px solid var(--ms-border);
   border-radius: 0.75rem;
-  background: white;
+  background: var(--ms-surface);
   padding: 0.65rem 0.8rem;
   font-size: 0.875rem;
   font-weight: 600;
-  transition: border-color 150ms ease, background-color 150ms ease;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
 }
 
 .option-row:hover {
@@ -314,7 +374,9 @@ svg {
   color: var(--ms-muted);
   font-size: 0.875rem;
   font-weight: 700;
-  transition: background-color 160ms ease, color 160ms ease;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
 .tab-button-active {
@@ -331,12 +393,15 @@ svg {
   border-radius: 0.55rem;
   background: transparent;
   color: var(--ms-muted);
-  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
 }
 
 .editor-tool:hover,
 .editor-tool-active {
-  background: white;
+  background: var(--ms-surface-raised);
   color: var(--ms-primary);
   box-shadow: 0 1px 4px rgba(27, 51, 75, 0.1);
 }
@@ -346,7 +411,7 @@ svg {
 }
 
 .article-content {
-  color: #3d4b59;
+  color: var(--ms-article-text);
   font-size: 1rem;
   line-height: 1.85;
 }
@@ -377,14 +442,14 @@ svg {
 .article-content code {
   overflow-wrap: anywhere;
   border-radius: 0.4rem;
-  background: #eef2f6;
+  background: var(--ms-code-background);
   padding: 0.15rem 0.35rem;
-  color: #24445f;
+  color: var(--ms-code-text);
   font-size: 0.9em;
 }
 
 .article-lead {
-  color: #2b4053;
+  color: var(--ms-article-lead);
   font-size: 1.12rem;
   line-height: 1.75;
 }

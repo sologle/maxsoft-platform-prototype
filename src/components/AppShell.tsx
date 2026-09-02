@@ -17,6 +17,7 @@ import { roleProfile } from "../app/routes";
 import type { AppLocation, AppPage } from "../app/types";
 import { usePresence } from "../hooks/usePresence";
 import { ModalSurface } from "./ModalSurface";
+import { ThemeToggle } from "./Theme";
 
 interface AppShellProps {
   children: ReactNode;
@@ -168,6 +169,8 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
           >
             <Search className="h-5 w-5" aria-hidden="true" />
           </button>
+
+          <ThemeToggle />
 
           <div className="relative">
             <button

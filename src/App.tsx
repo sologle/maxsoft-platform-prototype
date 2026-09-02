@@ -4,6 +4,7 @@ import type { AppLocation, AppPage, UserRole } from "./app/types";
 import { AppShell } from "./components/AppShell";
 import { Launcher } from "./components/Launcher";
 import { ScenarioPanel } from "./components/ScenarioPanel";
+import { ThemeProvider } from "./components/Theme";
 import { Toast } from "./components/Toast";
 import { mockDownload } from "./data/download";
 import { PageRouter } from "./pages/PageRouter";
@@ -33,7 +34,7 @@ const downloadMockFile = () => {
   URL.revokeObjectURL(url);
 };
 
-export const App = () => {
+const PlatformApp = () => {
   const [location, setLocation] = useState<AppLocation | null>(() =>
     hasLocationParams() ? readLocation() : null,
   );
@@ -134,3 +135,9 @@ export const App = () => {
     </>
   );
 };
+
+export const App = () => (
+  <ThemeProvider>
+    <PlatformApp />
+  </ThemeProvider>
+);

@@ -3,16 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (() => {
+        const key = "maxsoft-color-theme";
+        let stored = null;
+        try {
+          stored = window.localStorage.getItem(key);
+        } catch {
+          // Storage is optional for the visual preference.
+        }
+        const theme =
+          stored === "light" || stored === "dark"
+            ? stored
+            : window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Funnel+Sans%3Awght%40300..800&family=Inter%3Awght%40100..900&display=swap"
       rel="stylesheet"
     />
-    <meta
-      name="description"
-      content="Интерактивная платформа базы знаний MaxSoft"
-    />
+    <meta name="description" content="Интерактивная платформа базы знаний MaxSoft" />
     <title>MaxSoft · Прототип портала</title>
   </head>
   <body>

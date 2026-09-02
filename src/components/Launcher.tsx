@@ -11,6 +11,7 @@ import {
 import type { ComponentType } from "react";
 import { roleProfiles } from "../app/routes";
 import type { UserRole } from "../app/types";
+import { ThemeToggle } from "./Theme";
 
 interface LauncherProps {
   onStart: (role: UserRole) => void;
@@ -36,6 +37,7 @@ export const Launcher = ({ onStart }: LauncherProps) => (
         <span className="ml-auto rounded-full bg-[var(--ms-primary-soft)] px-3 py-1 text-xs font-semibold text-[var(--ms-primary)]">
           Интерактивный прототип
         </span>
+        <ThemeToggle />
       </div>
     </header>
 
