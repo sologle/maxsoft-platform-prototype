@@ -4,7 +4,7 @@ import {
   addAdminHomeShortcuts,
   addSearchVideoResult,
   animateMobileDrawer,
-  hideFutureNavigation,
+  removeDeliveryStageCopy,
 } from "../prototype/frame-enhancements";
 import { enhanceFormControls } from "../prototype/form-enhancements";
 import type { UserRole } from "../prototype/navigation";
@@ -122,7 +122,7 @@ export const DesignFrame = ({
 
     addAdminHomeShortcuts(active, screen);
     addSearchVideoResult(active, screen);
-    hideFutureNavigation(active);
+    removeDeliveryStageCopy(active);
     animateMobileDrawer(active, screen);
 
     const setImplicitAction = (selector: string, action: string) => {
@@ -260,25 +260,27 @@ export const DesignFrame = ({
           'button:not([disabled]), select:not([disabled]), [contenteditable="plaintext-only"], [tabindex]:not([tabindex="-1"])',
         ),
       ).filter((node) => node.getClientRects().length > 0 && node.getAttribute("aria-disabled") !== "true");
-    const onClick = (event: MouseEvent) => {
+    const onActionClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
       if (target?.closest('[data-prototype-editable="true"], [data-prototype-select="true"]')) {
         event.stopPropagation();
         return;
       }
-      const node = target?.closest<HTMLElement>(actionSelector);
-      if (!node || !active.contains(node)) {
-        const profileMenu = active.querySelector<HTMLElement>('[data-pencil-name^="Профильное меню"]');
-        if (profileMenu && target && !profileMenu.contains(target)) {
-          event.preventDefault();
-          event.stopPropagation();
-          onAction("ACTION → SHELL-02 Закрыть меню профиля");
-        }
-        return;
-      }
+      const node = event.currentTarget as HTMLElement;
       event.preventDefault();
       event.stopPropagation();
       activate(node);
+    };
+    actionNodes.forEach((node) => node.addEventListener("click", onActionClick));
+    const onClickOutsideAction = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest(actionSelector)) return;
+      const profileMenu = active.querySelector<HTMLElement>('[data-pencil-name^="Профильное меню"]');
+      if (profileMenu && target && !profileMenu.contains(target)) {
+        event.preventDefault();
+        event.stopPropagation();
+        onAction("ACTION → SHELL-02 Закрыть меню профиля");
+      }
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && onDismiss) {
@@ -309,7 +311,7 @@ export const DesignFrame = ({
       event.preventDefault();
       activate(node);
     };
-    document.addEventListener("click", onClick);
+    document.addEventListener("click", onClickOutsideAction);
     document.addEventListener("keydown", onKeyDown);
 
     const measure = () => {

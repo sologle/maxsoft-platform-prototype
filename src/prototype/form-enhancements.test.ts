@@ -87,6 +87,14 @@ describe("интерактивность полей экспортированн
     const screen = render(`
       <svg data-pencil-name="KB-05 НАВИСА Настройка checkbox" data-icon-name="square-check-big"><path /></svg>
       <svg data-pencil-name="KB-05 НАВИСА Установка checkbox" data-icon-name="square"><path /></svg>
+      <div data-pencil-name="SRCH-01 Мини-дерево разделов">
+        <div data-pencil-name="SRCH-01 Узел Вся база знаний">
+          <div data-pencil-name="SRCH-01 Radio Вся база знаний"><div data-pencil-name="SRCH-01 Маркер Вся база знаний"></div></div>
+        </div>
+        <div data-pencil-name="SRCH-01 Узел Интеграции">
+          <div data-pencil-name="SRCH-01 Radio Интеграции выбран"><div data-pencil-name="Inputs/Radio Selected Маркер"></div></div>
+        </div>
+      </div>
       <div data-pencil-name="SRCH-01 Mobile Разделы Radio">
         <div data-pencil-name="SRCH-01 Mobile Раздел Вся база знаний">
           <div data-pencil-name="Inputs/Radio Selected Маркер"></div>
@@ -99,7 +107,12 @@ describe("интерактивность полей экспортированн
       </div>
     `);
     const checkboxes = screen.querySelectorAll<HTMLElement>('[role="checkbox"]');
-    const radios = screen.querySelectorAll<HTMLElement>('[role="radio"]');
+    const mobileRadios = screen.querySelectorAll<HTMLElement>(
+      '[data-pencil-name="SRCH-01 Mobile Разделы Radio"] [role="radio"]',
+    );
+    const desktopRadios = screen.querySelectorAll<HTMLElement>(
+      '[data-pencil-name="SRCH-01 Мини-дерево разделов"] [role="radio"]',
+    );
 
     expect(checkboxes).toHaveLength(2);
     expect(checkboxes[0]).toHaveAttribute("aria-checked", "true");
@@ -109,10 +122,12 @@ describe("интерактивность полей экспортированн
       "role",
       "radiogroup",
     );
-    expect(radios[0]).toHaveAttribute("aria-checked", "true");
-    radios[1].click();
-    expect(radios[0]).toHaveAttribute("aria-checked", "false");
-    expect(radios[1]).toHaveAttribute("aria-checked", "true");
+    expect(desktopRadios).toHaveLength(2);
+    expect(desktopRadios[1]).toHaveAttribute("aria-checked", "true");
+    expect(mobileRadios[0]).toHaveAttribute("aria-checked", "true");
+    mobileRadios[1].click();
+    expect(mobileRadios[0]).toHaveAttribute("aria-checked", "false");
+    expect(mobileRadios[1]).toHaveAttribute("aria-checked", "true");
   });
 
   it("передаёт клик переключателя размеченному действию", () => {

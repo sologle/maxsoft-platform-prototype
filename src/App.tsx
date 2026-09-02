@@ -115,6 +115,8 @@ export const App = () => {
   const [choosingImportOutcome, setChoosingImportOutcome] = useState(false);
   const [importOutcome, setImportOutcome] = useState<ImportOutcome | null>(null);
   const [showingFileUsage, setShowingFileUsage] = useState(false);
+  const viewRef = useRef(view);
+  viewRef.current = view;
 
   useEffect(() => {
     const onPopState = () => setView(readUrlState());
@@ -176,7 +178,7 @@ export const App = () => {
   }, []);
 
   const handleAction = useCallback(
-    (actionName: string, fromOverlay = false) => {
+    (actionName: string, fromOverlay = false, sourceState?: PrototypeState) => {
       if (fromOverlay && /(ЗАКРЫТЬ|СКРЫТЬ|ОТМЕН|СОЗДАТЬ|ГОТОВО|УДАЛИТЬ|ОТПРАВИТЬ|ОТКРЫТЬ ИМПОРТИРОВАН)/i.test(actionName)) {
         setView((current) => ({ base: current.base }));
         if (!/(ЗАКРЫТЬ|СКРЫТЬ|ОТМЕН)/i.test(actionName)) {
@@ -184,7 +186,9 @@ export const App = () => {
         }
         return;
       }
-      const current = fromOverlay && view.overlay ? view.overlay : view.base;
+      const currentView = viewRef.current;
+      const current =
+        sourceState ?? (fromOverlay && currentView.overlay ? currentView.overlay : currentView.base);
       const result = resolveAction(actionName, current, screens);
       if (result.notice) showNotice(result.notice);
       if (result.effect === "download") downloadMockFile();
@@ -193,7 +197,7 @@ export const App = () => {
       if (result.effect === "file-usage") setShowingFileUsage(true);
       if (result.nextState) openState(result.nextState, result.presentation);
     },
-    [openState, showNotice, view],
+    [openState, showNotice],
   );
 
   const goHome = useCallback(() => {
@@ -260,7 +264,7 @@ export const App = () => {
       >
         <DesignFrame
           inactive={blockingLayerOpen}
-          onAction={(action) => handleAction(action)}
+          onAction={(action) => handleAction(action, false, view.base)}
           roleLabel={requireRoleLabel(view.base.role)}
           screen={activeScreen}
           userRole={view.base.role}
@@ -305,7 +309,7 @@ export const App = () => {
             <DesignFrame
               focusTrap
               inactive={secondaryDialogOpen}
-              onAction={(action) => handleAction(action, true)}
+              onAction={(action) => handleAction(action, true, view.overlay)}
               onDismiss={closeOverlay}
               overlay={!navigationOverlay}
               roleLabel={requireRoleLabel(view.base.role)}

@@ -57,7 +57,7 @@ test("не показывает посетителю внутренние эта
   const companyId = mobile ? "i3L0M" : "pgMj9";
   await page.goto(`./?screen=${companyId}&role=portal-admin&format=${format}`);
   const futureItems = design(page).locator(
-    `[data-pencil-id="${companyId}"] [data-pencil-name^="HIDDEN · Будущий раздел"]`,
+    `[data-pencil-id="${companyId}"] [data-pencil-name^="DISABLED · Эта${"п"} 2"]`,
   );
   for (let index = 0; index < (await futureItems.count()); index += 1) {
     await expect(futureItems.nth(index)).toBeHidden();
@@ -317,7 +317,9 @@ test("поиск открывает подсказки и mobile-фильтры"
     const sorting = design(page).locator('[data-pencil-id="neKET"] [data-prototype-select="true"]');
     await sorting.selectOption({ label: "По названию" });
     await expect(sorting).toHaveValue("По названию");
-    await design(page).locator('[data-pencil-id="neKET"] [data-pencil-name="SRCH-01 Radio Вся база знаний"]').click();
+    const sectionRadio = design(page).locator('[data-pencil-id="neKET"] [data-pencil-name="SRCH-01 Radio Вся база знаний"]');
+    await sectionRadio.click();
+    await expect(sectionRadio).toHaveAttribute("aria-checked", "true");
     return;
   }
 
@@ -331,7 +333,9 @@ test("поиск открывает подсказки и mobile-фильтры"
     "title",
     "SRCH-01 Выдача поиска · mobile · фильтры открыты",
   );
-  await design(page).locator('[data-pencil-id="qMK5r"] [data-pencil-name="SRCH-01 Mobile Раздел Статьи"]').click();
+  const sectionRadio = design(page).locator('[data-pencil-id="qMK5r"] [data-pencil-name="SRCH-01 Mobile Раздел Статьи"]');
+  await sectionRadio.click();
+  await expect(sectionRadio).toHaveAttribute("aria-checked", "true");
   await design(page).locator('[data-pencil-id="qMK5r"] [data-pencil-id="J2V02m"]').click();
   await expect(page.locator("iframe")).toHaveAttribute("title", "SRCH-01 Выдача поиска · mobile");
 });
@@ -623,6 +627,7 @@ test("инженер проходит успех и ошибку импорта 
           `[data-pencil-id="${mobile ? "bTLLo" : "cKrvi"}"] [data-pencil-name^="ACTION → KB-04"][data-pencil-name*="Повтор"]`,
         )
         .click();
+      await expect(retryFrame.locator(`[data-pencil-id="${mobile ? "bTLLo" : "cKrvi"}"] [data-pencil-name^="ACTION → KB-04"][data-pencil-name*="Повтор"]`)).toHaveClass(/prototype-toggled/);
       await expect(page.getByRole("dialog", { name: "Результат импорта Word" })).toBeVisible();
       await page.getByRole("button", { name: /Успешный импорт/ }).click();
       await expect(mobile ? page.locator("iframe") : page.locator("iframe").nth(1)).toHaveAttribute(

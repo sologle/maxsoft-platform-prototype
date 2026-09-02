@@ -1,5 +1,6 @@
 import { Building2, Check, Clock3, X } from "lucide-react";
 import type { RegistrationOutcome } from "../prototype/navigation";
+import { ModalSurface } from "./ModalSurface";
 
 interface RegistrationOutcomeDialogProps {
   onCancel: () => void;
@@ -36,11 +37,10 @@ export const RegistrationOutcomeDialog = ({
   onCancel,
   onSelect,
 }: RegistrationOutcomeDialogProps) => (
-  <div
-    aria-labelledby="registration-outcome-title"
-    aria-modal="true"
+  <ModalSurface
     className="fixed inset-0 z-[80] flex items-center justify-center bg-[#0b1726]/60 p-4 backdrop-blur-[2px]"
-    role="dialog"
+    labelledBy="registration-outcome-title"
+    onClose={onCancel}
   >
     <section className="w-full max-w-[560px] animate-[modal-in_180ms_ease-out] rounded-2xl bg-white p-5 shadow-[0_24px_90px_rgba(0,0,0,0.36)] sm:p-6">
       <div className="flex items-start gap-4">
@@ -89,5 +89,5 @@ export const RegistrationOutcomeDialog = ({
         })}
       </div>
     </section>
-  </div>
+  </ModalSurface>
 );

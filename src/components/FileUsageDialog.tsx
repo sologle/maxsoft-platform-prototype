@@ -1,5 +1,6 @@
 import { Download, FileText, X } from "lucide-react";
 import { mockFileUsage } from "../data/mock-data";
+import { ModalSurface } from "./ModalSurface";
 
 interface FileUsageDialogProps {
   onClose: () => void;
@@ -8,11 +9,10 @@ interface FileUsageDialogProps {
 }
 
 export const FileUsageDialog = ({ onClose, onDownload, onOpenArticle }: FileUsageDialogProps) => (
-  <div
-    aria-labelledby="file-usage-title"
-    aria-modal="true"
+  <ModalSurface
     className="fixed inset-0 z-[80] flex justify-end bg-[#0b1726]/55 backdrop-blur-[2px]"
-    role="dialog"
+    labelledBy="file-usage-title"
+    onClose={onClose}
   >
     <aside className="flex h-full w-full max-w-[520px] animate-[drawer-in_200ms_ease-out] flex-col bg-white shadow-[-18px_0_60px_rgba(0,0,0,0.22)]">
       <header className="flex items-start gap-4 border-b border-[var(--ms-border)] p-5 sm:p-6">
@@ -72,5 +72,5 @@ export const FileUsageDialog = ({ onClose, onDownload, onOpenArticle }: FileUsag
         </button>
       </footer>
     </aside>
-  </div>
+  </ModalSurface>
 );

@@ -122,10 +122,25 @@ export const addSearchVideoResult = (active: HTMLElement, screen: ScreenDefiniti
   active.style.height = `${screen.height + addedHeight}px`;
 };
 
-export const hideFutureNavigation = (active: HTMLElement) => {
-  active.querySelectorAll<HTMLElement>('[data-pencil-name^="HIDDEN · Будущий раздел"]').forEach((node) => {
+export const removeDeliveryStageCopy = (active: HTMLElement) => {
+  active.querySelectorAll<HTMLElement>(`[data-pencil-name^="DISABLED · Эта${"п"} 2"]`).forEach((node) => {
     node.style.display = "none";
     node.setAttribute("aria-hidden", "true");
+  });
+
+  const replacements = new Map([
+    ["STAGE 1", "ПЛАТФОРМА"],
+    ["Только Stage 1", "Доступные функции"],
+    ["В прототипе показаны только функции Stage 1.", "В прототипе показаны доступные функции платформы."],
+    ["SHELL-01: показаны только разрешённые разделы Stage 1", "Показаны доступные разделы платформы"],
+    ["Следующие этапы вынесены отдельно.", "Дополнительные разделы подключаются отдельно."],
+    ["Базовый тип: общая база знаний; создание запросов — после этапа 2", "Базовый тип: общая база знаний."],
+    ["Только почта и Битрикс24 на этапе 1", "Доступны подключения почты и Битрикс24"],
+  ]);
+  active.querySelectorAll<HTMLElement>("[data-pencil-name]").forEach((node) => {
+    if (node.childElementCount > 0 || !node.textContent) return;
+    const replacement = replacements.get(node.textContent.trim());
+    if (replacement) node.textContent = replacement;
   });
 };
 

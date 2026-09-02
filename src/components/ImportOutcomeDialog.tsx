@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, FileUp, X } from "lucide-react";
 import { mockImportFile } from "../data/mock-data";
 import type { ImportOutcome } from "../prototype/navigation";
+import { ModalSurface } from "./ModalSurface";
 
 interface ImportOutcomeDialogProps {
   onCancel: () => void;
@@ -8,11 +9,10 @@ interface ImportOutcomeDialogProps {
 }
 
 export const ImportOutcomeDialog = ({ onCancel, onSelect }: ImportOutcomeDialogProps) => (
-  <div
-    aria-labelledby="import-outcome-title"
-    aria-modal="true"
+  <ModalSurface
     className="fixed inset-0 z-[80] flex items-center justify-center bg-[#0b1726]/60 p-4 backdrop-blur-[2px]"
-    role="dialog"
+    labelledBy="import-outcome-title"
+    onClose={onCancel}
   >
     <section className="w-full max-w-[540px] animate-[modal-in_180ms_ease-out] rounded-2xl bg-white p-5 shadow-[0_24px_90px_rgba(0,0,0,0.36)] sm:p-6">
       <div className="flex items-start gap-4">
@@ -65,5 +65,5 @@ export const ImportOutcomeDialog = ({ onCancel, onSelect }: ImportOutcomeDialogP
         </button>
       </div>
     </section>
-  </div>
+  </ModalSurface>
 );

@@ -242,15 +242,14 @@ const enhanceRadioGroup = (group: HTMLElement, rows: HTMLElement[]) => {
 };
 
 const enhanceSearchRadios = (active: HTMLElement) => {
-  const desktopRows = Array.from(
-    active.querySelectorAll<HTMLElement>('[data-pencil-name^="SRCH-01 Radio "]'),
-  );
-  const desktopGroups = new Map<HTMLElement, HTMLElement[]>();
-  desktopRows.forEach((row) => {
-    const group = row.parentElement;
-    if (group) desktopGroups.set(group, [...(desktopGroups.get(group) ?? []), row]);
-  });
-  desktopGroups.forEach((rows, group) => enhanceRadioGroup(group, rows));
+  active
+    .querySelectorAll<HTMLElement>('[data-pencil-name="SRCH-01 Мини-дерево разделов"]')
+    .forEach((group) =>
+      enhanceRadioGroup(
+        group,
+        Array.from(group.querySelectorAll<HTMLElement>('[data-pencil-name^="SRCH-01 Radio "]')),
+      ),
+    );
   active
     .querySelectorAll<HTMLElement>('[data-pencil-name="SRCH-01 Mobile Разделы Radio"]')
     .forEach((group) =>
