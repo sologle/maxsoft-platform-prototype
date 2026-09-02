@@ -85,6 +85,9 @@ test("mobile bottom sheet остаётся внутри viewport", async ({ page
   await expect
     .poll(() => sheet.evaluate((node) => node.parentElement?.parentElement === document.body))
     .toBe(true);
+  await sheet.evaluate(async (node) => {
+    await Promise.all(node.getAnimations().map((animation) => animation.finished));
+  });
   const box = await sheet.boundingBox();
   expect(box).not.toBeNull();
   expect(box!.x).toBeGreaterThanOrEqual(0);
