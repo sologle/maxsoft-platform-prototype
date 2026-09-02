@@ -4,9 +4,10 @@ import { mockFileUsage } from "../data/mock-data";
 interface FileUsageDialogProps {
   onClose: () => void;
   onDownload: () => void;
+  onOpenArticle: (kind: "article" | "video") => void;
 }
 
-export const FileUsageDialog = ({ onClose, onDownload }: FileUsageDialogProps) => (
+export const FileUsageDialog = ({ onClose, onDownload, onOpenArticle }: FileUsageDialogProps) => (
   <div
     aria-labelledby="file-usage-title"
     aria-modal="true"
@@ -39,7 +40,12 @@ export const FileUsageDialog = ({ onClose, onDownload }: FileUsageDialogProps) =
         </p>
         <div className="mt-5 grid gap-3">
           {mockFileUsage.map((item) => (
-            <article className="rounded-xl border border-[var(--ms-border)] p-4" key={item.id}>
+            <button
+              className="w-full rounded-xl border border-[var(--ms-border)] p-4 text-left transition hover:border-[var(--ms-primary)] hover:bg-[var(--ms-primary-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)]"
+              key={item.id}
+              onClick={() => onOpenArticle(item.articleKind)}
+              type="button"
+            >
               <div className="flex items-start gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
                   <FileText className="h-4 w-4" aria-hidden="true" />
@@ -49,7 +55,7 @@ export const FileUsageDialog = ({ onClose, onDownload }: FileUsageDialogProps) =
                   <p className="mt-1 text-xs leading-5 text-[var(--ms-muted)]">{item.path}</p>
                 </div>
               </div>
-            </article>
+            </button>
           ))}
         </div>
       </div>

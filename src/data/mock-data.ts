@@ -12,6 +12,7 @@ export interface FileUsageItem {
   id: string;
   title: string;
   path: string;
+  articleKind: "article" | "video";
 }
 
 export const demoProfiles: DemoProfile[] = [
@@ -70,10 +71,18 @@ export const mockFileUsage: FileUsageItem[] = [
     id: "article-integration-setup",
     title: "Настройка интеграции с САПР-комплексом",
     path: "База знаний / НАВИСА / Настройка",
+    articleKind: "video",
   },
   {
     id: "article-network-license",
     title: "Активация сетевой лицензии",
     path: "База знаний / НАВИСА / Установка",
+    articleKind: "article",
   },
 ];
+
+export const mockImportFile = {
+  id: "document-import-demo",
+  filename: "регламент_интеграции.docx",
+  sizeLabel: "2,4 МБ",
+};

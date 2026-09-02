@@ -315,6 +315,21 @@ test("из поиска открывается найденная статья",
     "title",
     mobile ? "KB-02 Статья · mobile" : "KB-02 Статья",
   );
+
+  await page.goto(`./?screen=${searchId}&role=client-employee&format=${format}`);
+  const videoCard = design(page).locator(
+    `[data-pencil-id="${searchId}"] [data-pencil-name="ACTION → KB-03-${mobile ? "MOBILE" : "DESKTOP"}"]`,
+  );
+  await expect(design(page).locator(`[data-pencil-id="${searchId}"]`)).toContainText(
+    mobile ? "ФАЙЛ · ИНСТРУКЦИИ" : "РЕШЕНИЕ",
+  );
+  await expect(videoCard).toContainText("ВИДЕО");
+  await expect(videoCard).toContainText("Настройка интеграции с САПР-комплексом");
+  await videoCard.click();
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "title",
+    mobile ? "KB-03 Статья с видео и таймкодами · mobile" : "KB-03 Статья с видео и таймкодами",
+  );
 });
 
 test("desktop-реестр открывает drawer мест использования", async ({ page }, testInfo) => {
@@ -327,8 +342,12 @@ test("desktop-реестр открывает drawer мест использов
     .click();
   await expect(page.getByRole("dialog", { name: "Места использования" })).toBeVisible();
   await expect(page.getByRole("dialog")).toContainText("Активация сетевой лицензии");
-  await page.getByRole("button", { name: "Закрыть места использования" }).click();
+  await page.getByRole("button", { name: /Настройка интеграции с САПР-комплексом/ }).click();
   await expect(page.getByRole("dialog", { name: "Места использования" })).toHaveCount(0);
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "title",
+    "KB-03 Статья с видео и таймкодами",
+  );
 });
 
 test("из структуры можно перейти через теги в реестр файлов", async ({ page }, testInfo) => {
@@ -369,6 +388,30 @@ test("администратор открывает компании и карт
   await expect(page.locator("iframe")).toHaveAttribute("title", /ORG-02 Карточка компании/);
 });
 
+test("администратор напрямую открывает типы компаний и структуру БЗ", async ({ page }, testInfo) => {
+  const mobile = testInfo.project.name.startsWith("mobile");
+  const format = mobile ? "mobile" : "desktop";
+  const homeId = mobile ? "NllPS" : "pmHIA";
+
+  await page.goto(`./?screen=${homeId}&role=portal-admin&format=${format}`);
+  await design(page)
+    .locator(`[data-pencil-id="${homeId}"] [data-pencil-name="ACTION → ORG-03${mobile ? " · mobile" : ""}"]`)
+    .click();
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "title",
+    mobile ? "ORG-03 Типы компаний · mobile" : "ORG-03 Типы компаний",
+  );
+
+  await page.goto(`./?screen=${homeId}&role=portal-admin&format=${format}`);
+  await design(page)
+    .locator(`[data-pencil-id="${homeId}"] [data-pencil-name="ACTION → KB-06${mobile ? " · mobile" : ""}"]`)
+    .click();
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "title",
+    mobile ? "KB-06 Настройка структуры БЗ · mobile" : "KB-06 Настройка структуры БЗ",
+  );
+});
+
 test("менеджер остаётся в мобильной ветке", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.startsWith("mobile"));
   const card = page.getByTestId("role-entry").filter({ hasText: "Менеджер" });
@@ -400,25 +443,36 @@ test("администратор клиента открывает сотруд�
   );
 });
 
-test("инженер импортирует DOCX в черновик", async ({ page }, testInfo) => {
-  test.skip(!testInfo.project.name.startsWith("desktop"));
-  const card = page.getByTestId("role-entry").filter({ hasText: "Инженер ТП / автор" });
-  await card.getByRole("button", { name: "Desktop" }).click();
-  await design(page)
-    .locator('[data-pencil-id="w9mzj"] [data-pencil-name="ACTION → KB-04"]')
-    .first()
-    .click();
-  await expect(page.locator("iframe")).toHaveAttribute("title", "KB-04 Редактор статьи");
-  await design(page)
-    .locator('[data-pencil-id="sUjWN"] [data-pencil-name="ACTION → KB-04 Импорт DOCX"]')
-    .click();
-  await expect(page.getByLabel("Модальное состояние прототипа")).toBeVisible();
-  await expect(page.locator("iframe")).toHaveCount(2);
-  await expect(page.locator("iframe").nth(1)).toHaveAttribute(
-    "title",
-    "KB-04 Редактор статьи · импорт завершён",
-    { timeout: 5000 },
-  );
+test("инженер проходит успех и ошибку импорта DOCX", async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  const mobile = testInfo.project.name.startsWith("mobile");
+  const format = mobile ? "mobile" : "desktop";
+  const editorId = mobile ? "lR77f" : "sUjWN";
+  const outcomes = [
+    {
+      button: "Успешный импорт",
+      title: mobile
+        ? "KB-04 Редактор статьи · импорт завершён · mobile"
+        : "KB-04 Редактор статьи · импорт завершён",
+    },
+    {
+      button: "Ошибка импорта",
+      title: mobile
+        ? "KB-04 Редактор статьи · импорт ошибка · mobile"
+        : "KB-04 Редактор статьи · импорт ошибка",
+    },
+  ];
+
+  for (const outcome of outcomes) {
+    await page.goto(`./?screen=${editorId}&role=support-engineer&format=${format}`);
+    await design(page)
+      .locator(`[data-pencil-id="${editorId}"] [data-pencil-name^="ACTION → KB-04 Импорт"]`)
+      .click();
+    await expect(page.getByRole("dialog", { name: "Результат импорта Word" })).toBeVisible();
+    await page.getByRole("button", { name: new RegExp(outcome.button) }).click();
+    const resultFrame = mobile ? page.locator("iframe") : page.locator("iframe").nth(1);
+    await expect(resultFrame).toHaveAttribute("title", outcome.title, { timeout: 5000 });
+  }
 });
 
 test("администратор клиента подтверждает блокировку", async ({ page }, testInfo) => {

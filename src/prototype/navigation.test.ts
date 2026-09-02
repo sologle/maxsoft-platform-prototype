@@ -3,6 +3,8 @@ import { screens } from "../generated/screens";
 import {
   canRoleViewScreen,
   createInitialState,
+  importOutcomeState,
+  importProgressState,
   registrationOutcomeState,
   resolveAction,
   startForRole,
@@ -157,8 +159,29 @@ describe("маршрутизация прототипа этапа 1", () => {
   it("моделирует импорт и скачивание вложения", () => {
     const author = state({ screenId: "sUjWN", role: "support-engineer" });
     const imported = resolveAction("ACTION → KB-04 Импорт DOCX", author, screens);
-    expect(imported.nextState?.screenId).toBe("oCUJK");
-    expect(imported.presentation).toBe("overlay");
+    expect(imported.effect).toBe("import-choice");
+
+    const progress = importProgressState(author, screens);
+    expect(progress.nextState?.screenId).toBe("oCUJK");
+    expect(progress.presentation).toBe("overlay");
+    if (!progress.nextState) throw new Error("TEST_IMPORT_PROGRESS_MISSING");
+    expect(importOutcomeState("success", progress.nextState, screens).screenId).toBe("NHrU4");
+    expect(importOutcomeState("error", progress.nextState, screens).screenId).toBe("cKrvi");
+
+    const mobileProgress = importProgressState(
+      { ...author, screenId: "lR77f", format: "mobile" },
+      screens,
+    );
+    expect(
+      resolveAction(
+        "ACTION → KB-04 Импорт mobile",
+        { ...author, screenId: "lR77f", format: "mobile" },
+        screens,
+      ).effect,
+    ).toBe("import-choice");
+    if (!mobileProgress.nextState) throw new Error("TEST_IMPORT_MOBILE_PROGRESS_MISSING");
+    expect(importOutcomeState("success", mobileProgress.nextState, screens).screenId).toBe("P0rQH0");
+    expect(importOutcomeState("error", mobileProgress.nextState, screens).screenId).toBe("bTLLo");
 
     const download = resolveAction(
       "ACTION → KB-03 Статья / KB-03 Скачать инструкция.pdf",

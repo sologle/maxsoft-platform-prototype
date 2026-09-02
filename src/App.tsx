@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DesignFrame } from "./components/DesignFrame";
 import { FileUsageDialog } from "./components/FileUsageDialog";
+import { ImportOutcomeDialog } from "./components/ImportOutcomeDialog";
 import { Launcher } from "./components/Launcher";
 import { PrototypeToolbar } from "./components/PrototypeToolbar";
 import { RegistrationOutcomeDialog } from "./components/RegistrationOutcomeDialog";
@@ -11,10 +12,13 @@ import {
   createInitialState,
   canRoleViewScreen,
   accessDeniedStateForScreen,
+  importOutcomeState,
+  importProgressState,
   registrationOutcomeState,
   resolveAction,
   startForRole,
   type PrototypeState,
+  type ImportOutcome,
   type UserRole,
 } from "./prototype/navigation";
 
@@ -105,6 +109,8 @@ export const App = () => {
   const [view, setView] = useState<AppViewState>(readUrlState);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [choosingRegistrationOutcome, setChoosingRegistrationOutcome] = useState(false);
+  const [choosingImportOutcome, setChoosingImportOutcome] = useState(false);
+  const [importOutcome, setImportOutcome] = useState<ImportOutcome | null>(null);
   const [showingFileUsage, setShowingFileUsage] = useState(false);
 
   useEffect(() => {
@@ -136,22 +142,28 @@ export const App = () => {
   useEffect(() => {
     const importingOverlay = view.overlay?.screenId === "oCUJK";
     const importingMobile = view.base.screenId === "x9dqAM";
-    if (!importingOverlay && !importingMobile) return;
+    const progressState = importingOverlay ? view.overlay : importingMobile ? view.base : undefined;
+    if (!progressState || !importOutcome) return;
     const timeout = window.setTimeout(() => {
-      if (importingOverlay && view.overlay) {
+      const nextState = importOutcomeState(importOutcome, progressState, screens);
+      if (importingOverlay) {
         setView((current) => ({
           ...current,
-          overlay: { ...view.overlay!, screenId: "NHrU4" },
+          overlay: nextState,
         }));
-      } else if (importingMobile) {
-        const nextState = { ...view.base, screenId: "P0rQH0" };
+      } else {
         setView({ base: nextState });
         writeUrlState(nextState, true);
       }
-      showNotice("Документ импортирован в черновик.");
+      showNotice(
+        importOutcome === "success"
+          ? "Документ импортирован в черновик."
+          : "KB_IMPORT_FAILED: Не удалось импортировать документ. Проверьте файл и попробуйте снова.",
+      );
+      setImportOutcome(null);
     }, 1600);
     return () => window.clearTimeout(timeout);
-  }, [showNotice, view.base, view.overlay]);
+  }, [importOutcome, showNotice, view.base, view.overlay]);
 
   const start = useCallback((role: UserRole, format: ScreenFormat) => {
     const nextState = startForRole(role, format, screens);
@@ -174,6 +186,7 @@ export const App = () => {
       if (result.notice) showNotice(result.notice);
       if (result.effect === "download") downloadMockFile();
       if (result.effect === "registration-choice") setChoosingRegistrationOutcome(true);
+      if (result.effect === "import-choice") setChoosingImportOutcome(true);
       if (result.effect === "file-usage") setShowingFileUsage(true);
       if (result.nextState) openState(result.nextState, result.presentation);
     },
@@ -187,6 +200,7 @@ export const App = () => {
   }, []);
 
   const closeOverlay = useCallback(() => {
+    setImportOutcome(null);
     setView((current) => ({ base: current.base }));
   }, []);
 
@@ -261,12 +275,29 @@ export const App = () => {
           }}
         />
       ) : null}
+      {choosingImportOutcome ? (
+        <ImportOutcomeDialog
+          onCancel={() => setChoosingImportOutcome(false)}
+          onSelect={(outcome) => {
+            const result = importProgressState(view.base, screens);
+            setChoosingImportOutcome(false);
+            setImportOutcome(outcome);
+            if (result.nextState) openState(result.nextState, result.presentation);
+          }}
+        />
+      ) : null}
       {showingFileUsage ? (
         <FileUsageDialog
           onClose={() => setShowingFileUsage(false)}
           onDownload={() => {
             downloadMockFile();
             showNotice("Демонстрационный файл подготовлен к скачиванию.");
+          }}
+          onOpenArticle={(kind) => {
+            setShowingFileUsage(false);
+            handleAction(
+              kind === "video" ? "ACTION → KB-03 Статья с видео" : "ACTION → KB-02 Статья",
+            );
           }}
         />
       ) : null}

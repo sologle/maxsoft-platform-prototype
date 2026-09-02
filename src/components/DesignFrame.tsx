@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ScreenDefinition } from "../generated/screens";
+import { addAdminHomeShortcuts, addSearchVideoResult } from "../prototype/frame-enhancements";
 import type { UserRole } from "../prototype/navigation";
 
 interface DesignFrameProps {
@@ -106,6 +107,9 @@ export const DesignFrame = ({
           node.textContent = "Добавьте доступ к порталу и при необходимости привяжите компанию.";
         });
     }
+
+    addAdminHomeShortcuts(active, screen);
+    addSearchVideoResult(active, screen);
 
     const setImplicitAction = (selector: string, action: string) => {
       active.querySelectorAll<HTMLElement>(selector).forEach((node) => {

@@ -18,10 +18,11 @@ export interface NavigationResult {
   nextState?: PrototypeState;
   notice?: string;
   presentation?: "screen" | "overlay";
-  effect?: "download" | "toggle" | "registration-choice" | "file-usage";
+  effect?: "download" | "toggle" | "registration-choice" | "import-choice" | "file-usage";
 }
 
 export type RegistrationOutcome = "existing-company" | "new-company" | "manual-review";
+export type ImportOutcome = "success" | "error";
 
 type ResponsiveIds = Record<ScreenFormat, string>;
 
@@ -232,6 +233,30 @@ export const registrationOutcomeState = (
   };
   const screen = requireScreen(ids[outcome][current.format], screens);
   return { screenId: screen.id, role: "guest", format: current.format };
+};
+
+export const importProgressState = (
+  current: PrototypeState,
+  screens: ScreenDefinition[],
+): NavigationResult => {
+  if (current.role !== "portal-admin" && current.role !== "support-engineer") {
+    throw new Error("PROTOTYPE_IMPORT_ROLE_INVALID: импорт доступен только автору материала");
+  }
+  return transition(modalStateIds["KB-04:ИМПОРТ"][current.format], current, screens);
+};
+
+export const importOutcomeState = (
+  outcome: ImportOutcome,
+  current: PrototypeState,
+  screens: ScreenDefinition[],
+): PrototypeState => {
+  const progressIds = modalStateIds["KB-04:ИМПОРТ"];
+  if (![progressIds.desktop, progressIds.mobile].includes(current.screenId)) {
+    throw new Error("PROTOTYPE_IMPORT_STATE_INVALID: результат импорта требует состояния обработки");
+  }
+  const stateKey = outcome === "success" ? "KB-04:ИМПОРТ ЗАВЕРШ" : "KB-04:ИМПОРТ ОШИБ";
+  const screen = requireScreen(modalStateIds[stateKey][current.format], screens);
+  return { screenId: screen.id, role: current.role, format: current.format };
 };
 
 const deniedTransition = (
@@ -451,6 +476,14 @@ export const resolveAction = (
     };
   }
   if (!canOpenGroup(group, current.role)) return deniedTransition(group, current, screens);
+
+  if (
+    group === "KB-04" &&
+    ["sUjWN", "lR77f"].includes(current.screenId) &&
+    upper.includes("ИМПОРТ")
+  ) {
+    return { effect: "import-choice" };
+  }
 
   if (group === "AUTH-03" && upper.includes("РЕЗУЛЬТАТ")) {
     return { effect: "registration-choice" };
