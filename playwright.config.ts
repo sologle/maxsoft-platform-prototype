@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const externalBaseUrl = process.env.E2E_BASE_URL;
+const localBaseUrl = "http://127.0.0.1:4173";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -7,7 +10,7 @@ export default defineConfig({
   retries: 0,
   reporter: "line",
   use: {
-    baseURL: "http://127.0.0.1:4173",
+    baseURL: externalBaseUrl ?? localBaseUrl,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },
@@ -21,9 +24,11 @@ export default defineConfig({
       use: { ...devices["iPhone 13"], viewport: { width: 390, height: 844 } },
     },
   ],
-  webServer: {
-    command: "npm run preview -- --port 4173",
-    url: "http://127.0.0.1:4173",
-    reuseExistingServer: false,
-  },
+  webServer: externalBaseUrl
+    ? undefined
+    : {
+        command: "npm run preview -- --port 4173",
+        url: localBaseUrl,
+        reuseExistingServer: false,
+      },
 });

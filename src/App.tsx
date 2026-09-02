@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DesignFrame } from "./components/DesignFrame";
 import { Launcher } from "./components/Launcher";
 import { PrototypeToolbar } from "./components/PrototypeToolbar";
+import { RegistrationOutcomeDialog } from "./components/RegistrationOutcomeDialog";
 import { Toast } from "./components/Toast";
-import { mockDownload } from "./data/mock-data";
+import { demoProfiles, mockDownload } from "./data/mock-data";
 import { screens, type ScreenDefinition, type ScreenFormat } from "./generated/screens";
 import {
   createInitialState,
   canRoleViewScreen,
+  registrationOutcomeState,
   resolveAction,
   startForRole,
   type PrototypeState,
@@ -34,6 +36,12 @@ const requireScreen = (id: string): ScreenDefinition => {
   const screen = screenById.get(id);
   if (!screen) throw new Error(`PROTOTYPE_SCREEN_MISSING: экран ${id} отсутствует`);
   return screen;
+};
+
+const requireRoleLabel = (role: UserRole): string => {
+  const profile = demoProfiles.find((candidate) => candidate.role === role);
+  if (!profile) throw new Error(`PROTOTYPE_ROLE_MISSING: профиль роли ${role} не найден`);
+  return profile.label;
 };
 
 const readUrlState = (): AppViewState => {
@@ -85,6 +93,7 @@ const downloadMockFile = () => {
 export const App = () => {
   const [view, setView] = useState<AppViewState>(readUrlState);
   const [notice, setNotice] = useState("");
+  const [choosingRegistrationOutcome, setChoosingRegistrationOutcome] = useState(false);
 
   useEffect(() => {
     const onPopState = () => setView(readUrlState());
@@ -148,6 +157,7 @@ export const App = () => {
       const result = resolveAction(actionName, current, screens);
       if (result.notice) setNotice(result.notice);
       if (result.effect === "download") downloadMockFile();
+      if (result.effect === "registration-choice") setChoosingRegistrationOutcome(true);
       if (result.nextState) openState(result.nextState, result.presentation);
     },
     [openState, view],
@@ -184,7 +194,12 @@ export const App = () => {
 
   return (
     <main className="min-h-screen bg-[var(--ms-stage)]">
-      <DesignFrame onAction={(action) => handleAction(action)} screen={activeScreen} />
+      <DesignFrame
+        onAction={(action) => handleAction(action)}
+        roleLabel={requireRoleLabel(view.base.role)}
+        screen={activeScreen}
+        userRole={view.base.role}
+      />
 
       {overlayScreen && view.overlay ? (
         <div
@@ -199,7 +214,9 @@ export const App = () => {
             <DesignFrame
               onAction={(action) => handleAction(action, true)}
               overlay
+              roleLabel={requireRoleLabel(view.base.role)}
               screen={overlayScreen}
+              userRole={view.base.role}
             />
           </div>
         </div>
@@ -217,6 +234,16 @@ export const App = () => {
         screen={activeScreen}
         screens={availableScreens}
       />
+      {choosingRegistrationOutcome ? (
+        <RegistrationOutcomeDialog
+          onCancel={() => setChoosingRegistrationOutcome(false)}
+          onSelect={(outcome) => {
+            const nextState = registrationOutcomeState(outcome, view.base, screens);
+            setChoosingRegistrationOutcome(false);
+            openState(nextState);
+          }}
+        />
+      ) : null}
       {notice ? <Toast message={notice} onClose={() => setNotice("")} /> : null}
     </main>
   );

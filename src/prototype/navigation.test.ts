@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { screens } from "../generated/screens";
 import {
+  canRoleViewScreen,
   createInitialState,
+  registrationOutcomeState,
   resolveAction,
   startForRole,
   type PrototypeState,
@@ -16,10 +18,42 @@ const state = (overrides: Partial<PrototypeState> = {}): PrototypeState => ({
 });
 
 describe("маршрутизация прототипа этапа 1", () => {
+  it("не показывает в прямой ссылке и селекторе экраны чужой роли", () => {
+    const adminKnowledgeBase = screens.find((screen) => screen.id === "Fy0nE");
+    const supportCompanies = screens.find((screen) => screen.id === "umm3u");
+    const managerUsers = screens.find((screen) => screen.id === "du8aB");
+    if (!adminKnowledgeBase || !supportCompanies || !managerUsers) {
+      throw new Error("TEST_ROLE_SCREEN_MISSING");
+    }
+
+    expect(canRoleViewScreen(adminKnowledgeBase, "portal-admin")).toBe(true);
+    expect(canRoleViewScreen(adminKnowledgeBase, "client-employee")).toBe(false);
+    expect(canRoleViewScreen(supportCompanies, "manager")).toBe(false);
+    expect(canRoleViewScreen(managerUsers, "support-engineer")).toBe(false);
+  });
+
   it("открывает отдельную desktop/mobile ветку для каждой роли", () => {
     expect(startForRole("portal-admin", "desktop", screens).screenId).toBe("pmHIA");
     expect(startForRole("portal-admin", "mobile", screens).screenId).toBe("NllPS");
     expect(startForRole("guest", "mobile", screens).screenId).toBe("kiGN4");
+  });
+
+  it("отличает мобильный полноэкранный flow от модального фрагмента", () => {
+    const registration = resolveAction(
+      "ACTION → AUTH-03 · mobile",
+      state({ screenId: "kiGN4", role: "guest", format: "mobile" }),
+      screens,
+    );
+    expect(registration.nextState?.screenId).toBe("atKnC");
+    expect(registration.presentation).toBe("screen");
+
+    const structureModal = resolveAction(
+      "ACTION → KB-06 Создание раздела mobile",
+      state({ screenId: "n50Krp", role: "portal-admin", format: "mobile" }),
+      screens,
+    );
+    expect(structureModal.nextState?.screenId).toBe("h89rfQ");
+    expect(structureModal.presentation).toBe("overlay");
   });
 
   it("не переводит mobile-сценарий на desktop-фрейм", () => {
@@ -106,7 +140,7 @@ describe("маршрутизация прототипа этапа 1", () => {
       state({ screenId: "YDq1G", role: "guest" }),
       screens,
     );
-    expect(registration.nextState?.screenId).toBe("Onl5J");
+    expect(registration.effect).toBe("registration-choice");
   });
 
   it("проводит восстановление пароля по шагам", () => {
@@ -132,6 +166,73 @@ describe("маршрутизация прототипа этапа 1", () => {
       screens,
     );
     expect(download.effect).toBe("download");
+
+    const mobileAttachment = resolveAction(
+      "ACTION → KB-08 Файл инструкция_подключения.pdf",
+      { ...author, screenId: "dcJkq", format: "mobile", role: "portal-admin" },
+      screens,
+    );
+    expect(mobileAttachment.effect).toBe("download");
+    expect(mobileAttachment.notice).toContain("файл");
+  });
+
+  it("открывает мобильные места использования файла и отдельно скачивает его", () => {
+    const registry = state({ screenId: "EzOlK", role: "portal-admin", format: "mobile" });
+    expect(
+      resolveAction("ACTION → KB-08 Места использования · mobile", registry, screens).nextState
+        ?.screenId,
+    ).toBe("xqWeH");
+    expect(
+      resolveAction(
+        "ACTION → KB-08 Меню: Скачать / Открыть места использования",
+        registry,
+        screens,
+      ).nextState?.screenId,
+    ).toBe("xqWeH");
+    expect(resolveAction("ACTION → KB-08 Скачать файл", registry, screens).effect).toBe(
+      "download",
+    );
+  });
+
+  it("открывает достижимые состояния перемещения и удаления структуры", () => {
+    const structure = state({ screenId: "CQojg", role: "portal-admin" });
+    expect(
+      resolveAction(
+        "ACTION → KB-06 Настройка структуры БЗ / KB-06 Узел Продукты Drag handle",
+        structure,
+        screens,
+      ).nextState?.screenId,
+    ).toBe("skXOD");
+    expect(
+      resolveAction(
+        "ACTION → KB-06 Настройка структуры БЗ / KB-06 Узел Продукты Удалить",
+        structure,
+        screens,
+      ).nextState?.screenId,
+    ).toBe("QTBXk");
+  });
+
+  it("предлагает выбрать один из трёх бизнес-исходов регистрации", () => {
+    const registration = state({ screenId: "YDq1G", role: "guest" });
+    const result = resolveAction(
+      "ACTION → AUTH-03 РЕЗУЛЬТАТ",
+      registration,
+      screens,
+    );
+    expect(result.effect).toBe("registration-choice");
+    expect(result.nextState).toBeUndefined();
+    expect(registrationOutcomeState("existing-company", registration, screens).screenId).toBe(
+      "Onl5J",
+    );
+    expect(registrationOutcomeState("new-company", registration, screens).screenId).toBe("ljwfR");
+    expect(registrationOutcomeState("manual-review", registration, screens).screenId).toBe("M7poB");
+
+    const newCompanyLogin = resolveAction(
+      "ACTION → SHELL-02",
+      state({ screenId: "ljwfR", role: "guest" }),
+      screens,
+    );
+    expect(newCompanyLogin.nextState?.role).toBe("client-admin");
   });
 
   it("связывает CRUD компании и типа компании", () => {
@@ -175,6 +276,13 @@ describe("маршрутизация прототипа этапа 1", () => {
         screens,
       ).nextState?.screenId,
     ).toBe("nT7Vo");
+    const unblocked = resolveAction(
+      "ACTION → ORG-05 разблокировать mobile / Сидоров Павёл",
+      state({ screenId: "YD7vh", role: "client-admin", format: "mobile" }),
+      screens,
+    );
+    expect(unblocked.nextState).toBeUndefined();
+    expect(unblocked.notice).toContain("разблокирован");
   });
 
   it("открывает подсказки поиска и ошибку проверки интеграции", () => {
@@ -192,6 +300,23 @@ describe("маршрутизация прототипа этапа 1", () => {
         screens,
       ).nextState?.screenId,
     ).toBe("vtcHL");
+    expect(
+      resolveAction(
+        "ACTION INPUT → SRCH-01-EMPTY-DESKTOP",
+        state({ screenId: "Tb3co", role: "client-employee" }),
+        screens,
+      ).nextState?.screenId,
+    ).toBe("c4Kmz");
+  });
+
+  it("открывает черновик менеджеру только для чтения", () => {
+    const result = resolveAction(
+      "ACTION → KB-04 Редактор статьи",
+      state({ screenId: "zmzYb", role: "manager" }),
+      screens,
+    );
+    expect(result.nextState?.screenId).toBe("yretl");
+    expect(result.notice).toContain("режиме просмотра");
   });
 
   it("возвращает из мобильных форм пользователей к спискам после сохранения", () => {

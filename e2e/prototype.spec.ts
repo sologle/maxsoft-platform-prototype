@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
     if (message.type() === "error") errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
+  await page.goto("./");
   await expect(page.getByRole("heading", { name: "Выберите сценарий" })).toBeVisible();
   (page as Page & { prototypeErrors?: string[] }).prototypeErrors = errors;
 });
@@ -19,6 +19,7 @@ test.afterEach(async ({ page }) => {
 });
 
 test("запускает все шесть ролевых точек входа", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
   const mobile = testInfo.project.name.startsWith("mobile");
   const entries = [
     { label: "Гость", desktop: "xlvEx", mobile: "kiGN4" },
@@ -30,7 +31,7 @@ test("запускает все шесть ролевых точек входа"
   ];
 
   for (const entry of entries) {
-    await page.goto("/");
+    await page.goto("./");
     const card = page.getByTestId("role-entry").filter({ hasText: entry.label });
     await card.getByRole("button", { name: mobile ? "Мобильный" : "Desktop" }).click();
     const expected = screens.find((screen) => screen.id === (mobile ? entry.mobile : entry.desktop));
@@ -70,10 +71,205 @@ test("гость проходит мобильную регистрацию", as
   await design(page)
     .locator('[data-pencil-id="atKnC"] [data-pencil-name="ACTION → AUTH-03 РЕЗУЛЬТАТ · mobile"]')
     .click();
+  await expect(page.getByRole("dialog", { name: "Результат регистрации" })).toBeVisible();
+  await page.getByRole("button", { name: /Существующая компания/ }).click();
   await expect(page.locator("iframe")).toHaveAttribute(
     "title",
     "AUTH-03 Результат · существующая компания · mobile",
   );
+});
+
+test("все три исхода регистрации проходятся без панели прототипа", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("desktop"));
+  const outcomes = [
+    {
+      button: /Существующая компания/,
+      title: "AUTH-03 Результат · существующая компания",
+    },
+    { button: /Новая компания/, title: "AUTH-03 Результат · новая компания" },
+    { button: /Ручная проверка/, title: "AUTH-03 Результат · ручная проверка" },
+  ];
+
+  for (const outcome of outcomes) {
+    await page.goto("./?screen=YDq1G&role=guest&format=desktop");
+    await design(page)
+      .locator('[data-pencil-id="YDq1G"] [data-pencil-name="ACTION → AUTH-03 РЕЗУЛЬТАТ"]')
+      .click();
+    await page.getByRole("button", { name: outcome.button }).click();
+    await expect(page.locator("iframe")).toHaveAttribute("title", outcome.title);
+  }
+
+  await design(page)
+    .locator('[data-pencil-id="M7poB"] [data-pencil-name="ACTION → AUTH-02"]')
+    .click();
+  await expect(page.locator("iframe")).toHaveAttribute("title", "AUTH-02 Вход");
+});
+
+test("сотрудник открывает статью, видео и поиск из обычного flow", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("desktop"));
+  const card = page.getByTestId("role-entry").filter({ hasText: "Сотрудник клиента" });
+  await card.getByRole("button", { name: "Desktop" }).click();
+  await design(page)
+    .locator('[data-pencil-id="uLhhN"] [data-pencil-name="ACTION → KB-01"]')
+    .first()
+    .click();
+  await expect(page.locator("iframe")).toHaveAttribute("title", "KB-01 Разделы БЗ");
+
+  await design(page)
+    .locator('[data-pencil-id="Sc4io"] [data-pencil-name="KB-01 Статья 1"]')
+    .click();
+  await expect(page.locator("iframe")).toHaveAttribute("title", "KB-02 Статья");
+  await design(page)
+    .locator('[data-pencil-id="yretl"] [data-pencil-name="ACTION → KB-01-DESKTOP"]')
+    .click();
+  await design(page)
+    .locator('[data-pencil-id="Sc4io"] [data-pencil-name="KB-01 Статья 2"]')
+    .click();
+  await expect(page.locator("iframe")).toHaveAttribute("title", "KB-03 Статья с видео и таймкодами");
+  await design(page)
+    .locator('[data-pencil-id="M6IoTK"] [data-pencil-name="Navigation/Topbar Поиск"]')
+    .click();
+  await expect(page.locator("iframe")).toHaveAttribute("title", "SRCH-01 Выдача поиска");
+});
+
+test("экраны чужой роли недоступны по ссылке и в селекторе", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("desktop"));
+  await page.goto("./?screen=Fy0nE&role=client-employee&format=desktop");
+  await expect(page.getByRole("heading", { name: "Выберите сценарий" })).toBeVisible();
+
+  const card = page.getByTestId("role-entry").filter({ hasText: "Сотрудник клиента" });
+  await card.getByRole("button", { name: "Desktop" }).click();
+  await page.getByRole("button", { name: "Открыть панель прототипа" }).click();
+  await expect(page.locator('#prototype-screen option[value="Fy0nE"]')).toHaveCount(0);
+});
+
+test("шапка всегда показывает активную роль", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("desktop"));
+  const roles = [
+    ["portal-admin", "Администратор портала"],
+    ["support-engineer", "Инженер ТП / автор"],
+    ["manager", "Менеджер"],
+    ["client-admin", "Администратор клиента"],
+    ["client-employee", "Сотрудник клиента"],
+  ] as const;
+  for (const [role, label] of roles) {
+    await page.goto(`./?screen=yretl&role=${role}&format=desktop`);
+    await expect(
+      design(page).locator(
+        '[data-pencil-id="yretl"] [data-pencil-name="Navigation/Topbar Имя"]',
+      ),
+    ).toHaveText(label);
+  }
+});
+
+test("инженер и менеджер не видят опасные действия с пользователями", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("mobile"));
+  for (const [screenId, role] of [
+    ["LtB29", "support-engineer"],
+    ["ZQuca", "manager"],
+  ] as const) {
+    await page.goto(`./?screen=${screenId}&role=${role}&format=mobile`);
+    await expect(
+      design(page).locator(
+        `[data-pencil-id="${screenId}"] [data-pencil-name^="ACTION → ORG-04"][data-pencil-name*="смена роли"]:visible`,
+      ),
+    ).toHaveCount(0);
+    await expect(
+      design(page).locator(
+        `[data-pencil-id="${screenId}"] [data-pencil-name^="ACTION → ORG-04"][data-pencil-name*="удал"]:visible`,
+      ),
+    ).toHaveCount(0);
+  }
+});
+
+test("мобильное изменение структуры открывается поверх основного экрана", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("mobile"));
+  await page.goto("./?screen=n50Krp&role=portal-admin&format=mobile");
+  await design(page)
+    .locator('[data-pencil-id="n50Krp"] [data-pencil-name="ACTION → KB-06 Создание раздела mobile"]')
+    .click();
+  await expect(page.getByLabel("Модальное состояние прототипа")).toBeVisible();
+  await expect(page.locator("iframe")).toHaveCount(2);
+  await expect(page.locator("iframe").nth(1)).toHaveAttribute(
+    "title",
+    "KB-06 Состояние · создание · mobile",
+  );
+});
+
+test("дерево и все карточки staff-базы кликабельны", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("desktop"));
+  await page.goto("./?screen=Fy0nE&role=portal-admin&format=desktop");
+  const frame = design(page).locator('[data-pencil-id="Fy0nE"]');
+
+  for (const index of [1, 2, 3, 4, 5]) {
+    await expect(frame.locator(`[data-pencil-name="KB-01 Статья ${index}"]`)).toHaveAttribute(
+      "role",
+      "button",
+    );
+  }
+  const treeNode = frame.locator('[data-pencil-name="KB-01 Узел Продукты"]');
+  await expect(treeNode).toHaveAttribute("role", "button");
+  await treeNode.click();
+  await expect(page.getByRole("status")).toContainText("Раздел базы знаний выбран");
+
+  await frame.locator('[data-pencil-name="KB-01 Статья 4"]').click();
+  await expect(page.locator("iframe")).toHaveAttribute("title", "KB-04 Редактор статьи");
+});
+
+test("панель статьи меняет публикацию, теги и доступ", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("desktop"));
+  await page.goto("./?screen=sUjWN&role=portal-admin&format=desktop");
+  await design(page)
+    .locator('[data-pencil-id="sUjWN"] [data-pencil-name="ACTION → KB-05 Панель статьи"]')
+    .click();
+  await expect(page.locator("iframe")).toHaveCount(2);
+  await expect(page.locator("iframe").nth(1)).toHaveAttribute("title", "KB-05 Панель управления статьёй");
+  const articlePanel = page.locator("iframe").nth(1).contentFrame();
+
+  await articlePanel
+    .locator('[data-pencil-id="cuZKn"] [data-pencil-name="KB-05 Публикация"]')
+    .click();
+  await expect(page.locator("iframe").nth(1)).toHaveAttribute(
+    "title",
+    "KB-05 Панель управления статьёй · черновик",
+  );
+  await articlePanel
+    .locator('[data-pencil-id="T17CYs"] [data-pencil-name="KB-05 Опция тега 1"]')
+    .click();
+  await expect(page.getByRole("status")).toContainText("Настройка статьи изменена");
+  await articlePanel
+    .locator('[data-pencil-id="T17CYs"] [data-pencil-name="KB-05 Доступ Интеграторы"]')
+    .click();
+  await expect(page.getByRole("status")).toContainText("Настройка статьи изменена");
+});
+
+test("поиск открывает подсказки и mobile-фильтры", async ({ page }, testInfo) => {
+  if (testInfo.project.name.startsWith("desktop")) {
+    await page.goto("./?screen=Tb3co&role=client-employee&format=desktop");
+    await design(page)
+      .locator('[data-pencil-id="Tb3co"] [data-pencil-name="ACTION INPUT → SRCH-01-DESKTOP"]')
+      .click();
+    await expect(page.locator("iframe")).toHaveAttribute(
+      "title",
+      "SRCH-01 Выдача поиска · подсказки тегов",
+    );
+    await design(page)
+      .locator('[data-pencil-id="neKET"] [data-pencil-name="ACTION SELECT → SRCH-01-DESKTOP"]')
+      .click();
+    await expect(page.locator("iframe")).toHaveAttribute("title", "SRCH-01 Выдача поиска");
+    return;
+  }
+
+  await page.goto("./?screen=kVLBy&role=client-employee&format=mobile");
+  await design(page)
+    .locator('[data-pencil-id="kVLBy"] [data-pencil-name="ACTION INPUT → SRCH-01-MOBILE"]')
+    .click();
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "title",
+    "SRCH-01 Выдача поиска · mobile · фильтры открыты",
+  );
+  await design(page).locator('[data-pencil-id="qMK5r"] [data-pencil-id="J2V02m"]').click();
+  await expect(page.locator("iframe")).toHaveAttribute("title", "SRCH-01 Выдача поиска · mobile");
 });
 
 test("администратор открывает компании и карточку", async ({ page }, testInfo) => {
@@ -146,7 +342,7 @@ test("инженер импортирует DOCX в черновик", async ({ 
 
 test("администратор клиента подтверждает блокировку", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.startsWith("mobile"));
-  await page.goto("/?screen=YD7vh&role=client-admin&format=mobile");
+  await page.goto("./?screen=YD7vh&role=client-admin&format=mobile");
   await design(page)
     .locator('[data-pencil-id="YD7vh"] [data-pencil-name*="ORG-05 заблокировать mobile"]')
     .first()
@@ -162,12 +358,35 @@ test("администратор клиента подтверждает бло�
     "title",
     "ORG-05 Пользователи компании · блокировка подтверждена · mobile",
   );
+  await design(page)
+    .locator('[data-pencil-id="VMDAp"] [data-pencil-name*="ORG05 Разблокировать"]')
+    .click();
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "title",
+    "ORG-05 Пользователи компании · mobile",
+  );
+  await expect(page.getByRole("status")).toContainText("Сотрудник разблокирован");
+});
+
+test("мобильное вложение статьи скачивается как файл", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("mobile"));
+  await page.goto("./?screen=dcJkq&role=portal-admin&format=mobile");
+  const downloadPromise = page.waitForEvent("download");
+  await design(page)
+    .locator(
+      '[data-pencil-id="dcJkq"] [data-pencil-name="ACTION → KB-08 Файл инструкция_подключения.pdf"]',
+    )
+    .click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("maxsoft-demo-document.txt");
+  await expect(page.getByRole("status")).toContainText("файл подготовлен");
 });
 
 test("мобильные полноэкранные формы завершают операцию", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
   test.skip(!testInfo.project.name.startsWith("mobile"));
 
-  await page.goto("/?screen=P3UQ6&role=portal-admin&format=mobile");
+  await page.goto("./?screen=P3UQ6&role=portal-admin&format=mobile");
   await design(page)
     .locator('[data-pencil-id="P3UQ6"] [data-pencil-name="ACTION → ORG-04 приглашение отправлено mobile"]')
     .click();
@@ -176,7 +395,7 @@ test("мобильные полноэкранные формы завершаю�
     "ORG-04 Пользователи портала · mobile",
   );
 
-  await page.goto("/?screen=IX8g1&role=client-admin&format=mobile");
+  await page.goto("./?screen=IX8g1&role=client-admin&format=mobile");
   await design(page)
     .locator('[data-pencil-id="IX8g1"] [data-pencil-name="ACTION → ORG-05 сотрудник добавлен mobile"]')
     .click();
@@ -185,7 +404,7 @@ test("мобильные полноэкранные формы завершаю�
     "ORG-05 Пользователи компании · mobile",
   );
 
-  await page.goto("/?screen=h89rfQ&role=portal-admin&format=mobile");
+  await page.goto("./?screen=h89rfQ&role=portal-admin&format=mobile");
   await design(page)
     .locator('[data-pencil-id="h89rfQ"] [data-pencil-name="ACTION → KB-06 создание Создать"]')
     .click();
@@ -194,7 +413,7 @@ test("мобильные полноэкранные формы завершаю�
     "KB-06 Настройка структуры БЗ · mobile",
   );
 
-  await page.goto("/?screen=zdyBM&role=portal-admin&format=mobile");
+  await page.goto("./?screen=zdyBM&role=portal-admin&format=mobile");
   await design(page)
     .locator('[data-pencil-id="zdyBM"] [data-pencil-name*="KB07 Mobile Сохранить"]')
     .click();
@@ -202,6 +421,9 @@ test("мобильные полноэкранные формы завершаю�
     "title",
     "KB-07 Теги и группы тегов · сохранено · mobile",
   );
+  await expect(
+    design(page).locator('[data-pencil-name="SHELL Кнопка помощника"]:visible'),
+  ).toHaveCount(0);
 });
 
 const representativeScreens: Record<ScreenFormat, Array<{ id: string; role: string }>> = {
@@ -265,7 +487,7 @@ test("рендерит представителя каждой экранной 
   for (const entry of representativeScreens[format]) {
     const screen = screens.find((candidate) => candidate.id === entry.id);
     if (!screen) throw new Error(`E2E_SCREEN_MISSING: ${entry.id}`);
-    await page.goto(`/?screen=${entry.id}&role=${entry.role}&format=${format}`);
+    await page.goto(`./?screen=${entry.id}&role=${entry.role}&format=${format}`);
     await expect(page.locator("iframe")).toHaveAttribute("title", screen.name);
     await expect(design(page).locator(`[data-pencil-id="${entry.id}"]`)).toBeVisible();
   }

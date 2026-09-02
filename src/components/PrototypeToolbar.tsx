@@ -35,11 +35,12 @@ export const PrototypeToolbar = ({
     return (
       <button
         aria-label="Открыть панель прототипа"
-        className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#172433] text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] transition hover:-translate-y-0.5 hover:bg-[var(--ms-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)]"
+        className="fixed bottom-4 right-4 z-50 flex h-12 items-center justify-center gap-2 rounded-full bg-[#172433] px-4 text-sm font-semibold text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] transition hover:-translate-y-0.5 hover:bg-[var(--ms-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)]"
         onClick={() => setOpen(true)}
         type="button"
       >
         <Settings2 className="h-5 w-5" aria-hidden="true" />
+        Сценарии
       </button>
     );
   }

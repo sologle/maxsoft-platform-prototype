@@ -15,7 +15,9 @@ const actionsForScreen = (screen: ScreenDefinition): string[] => {
   if (start < 0) throw new Error(`TEST_SCREEN_ROOT_MISSING: ${screen.id}`);
   const next = html.indexOf("\n      <div\n        data-pencil-id=", start + marker.length);
   const root = html.slice(start, next < 0 ? undefined : next);
-  return [...root.matchAll(/data-pencil-name="(ACTION → [^"]+)"/g)].map((match) => match[1]);
+  return [...root.matchAll(/data-pencil-name="(ACTION(?: INPUT| SELECT)? → [^"]+)"/g)].map(
+    (match) => match[1],
+  );
 };
 
 const roleForScreen = (screen: ScreenDefinition): UserRole => {
@@ -40,8 +42,9 @@ describe("полнота интерактивной карты Pencil", () => {
           { screenId: screen.id, role, format: screen.format },
           screens,
         );
+        const changesScreen = result.nextState?.screenId !== screen.id;
         expect(
-          Boolean(result.nextState || result.effect || result.notice),
+          Boolean(changesScreen || result.effect || result.notice),
           `${screen.id} ${screen.name}: ${action}`,
         ).toBe(true);
         if (result.nextState) {

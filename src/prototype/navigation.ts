@@ -18,8 +18,10 @@ export interface NavigationResult {
   nextState?: PrototypeState;
   notice?: string;
   presentation?: "screen" | "overlay";
-  effect?: "download" | "toggle";
+  effect?: "download" | "toggle" | "registration-choice";
 }
+
+export type RegistrationOutcome = "existing-company" | "new-company" | "manual-review";
 
 type ResponsiveIds = Record<ScreenFormat, string>;
 
@@ -37,7 +39,7 @@ const roleKnowledgeBase: Record<Exclude<UserRole, "guest">, ResponsiveIds> = {
   "support-engineer": { desktop: "F8bP1", mobile: "d4RXY" },
   manager: { desktop: "zmzYb", mobile: "EZ9x6" },
   "client-admin": { desktop: "H62Mbt", mobile: "VwXAE" },
-  "client-employee": { desktop: "H62Mbt", mobile: "VwXAE" },
+  "client-employee": { desktop: "Sc4io", mobile: "BQWHW" },
 };
 
 const roleCompanies: Record<"portal-admin" | "support-engineer" | "manager", ResponsiveIds> = {
@@ -107,6 +109,35 @@ const modalStateIds: Record<string, ResponsiveIds> = {
   "KB-07:МЕНЮ": { desktop: "jNhGY", mobile: "fi33Z" },
 };
 
+const mobileOverlayScreenIds = new Set(["h89rfQ", "rXopt", "uzUQh", "t4bJW", "fi33Z"]);
+
+const scopedScreenRoles = new Map<string, ReadonlySet<UserRole>>();
+
+const scopeScreens = (ids: readonly string[], roles: readonly UserRole[]) => {
+  const allowedRoles = new Set(roles);
+  ids.forEach((id) => scopedScreenRoles.set(id, allowedRoles));
+};
+
+scopeScreens(["Ylweo", "BryXu", "pmHIA", "NllPS", "DMuJh", "pSJtI"], ["portal-admin"]);
+scopeScreens(["b9Obtj", "gtRSp", "w9mzj", "QK2cj", "jZ84j", "qxJth"], ["support-engineer"]);
+scopeScreens(["TnjSm", "oB7s3", "oge4c", "bLysq", "WLQ67", "BfGmN"], ["manager"]);
+scopeScreens(["Jv6PU", "HucIi", "uuYrz", "RcJJN", "ZFDsN", "ruCKR"], ["client-admin"]);
+scopeScreens(["vIwka", "BcqPK", "uLhhN", "KvdWU", "t0gHI", "DmOzx"], ["client-employee"]);
+scopeScreens(["Fy0nE", "K4fvbv"], ["portal-admin"]);
+scopeScreens(["F8bP1", "d4RXY"], ["support-engineer"]);
+scopeScreens(["zmzYb", "EZ9x6"], ["manager"]);
+scopeScreens(["H62Mbt", "VwXAE"], ["client-admin"]);
+scopeScreens(["Sc4io", "BQWHW", "O0830", "c96qUa", "X6NhGZ"], ["client-employee"]);
+scopeScreens(["zv0ob", "L6KLB"], ["portal-admin"]);
+scopeScreens(["umm3u", "zjm5M"], ["support-engineer"]);
+scopeScreens(["BTDV4", "e8MOB", "mEUkQ", "ZpU0A"], ["manager"]);
+scopeScreens(["pgMj9", "YIoQc", "i3L0M", "QIcfA"], ["portal-admin"]);
+scopeScreens(["r4zcgI", "F06z1E", "GDzi1", "Nd0qg"], ["support-engineer"]);
+scopeScreens(["mkMbq", "JRC4W", "uwHgl", "vW0ju"], ["manager"]);
+scopeScreens(["cZUol", "FmZWA", "iBe5p", "R7HSg", "XfxSE", "MZaGw"], ["portal-admin"]);
+scopeScreens(["zqEl6", "LtB29"], ["support-engineer"]);
+scopeScreens(["du8aB", "ZQuca"], ["manager"]);
+
 const roleFromTarget = (target: string): UserRole | undefined => {
   const normalized = target.toUpperCase();
   if (normalized.includes("CLIENT-EMPLOYEE")) return "client-employee";
@@ -132,7 +163,11 @@ const transition = (
   role = current.role,
 ): NavigationResult => {
   const screen = requireScreen(id, screens);
-  const overlay = current.format === "desktop" && screen.width < 1000;
+  if (screen.id === current.screenId) {
+    return { notice: "Вы уже на этом экране." };
+  }
+  const overlay =
+    (current.format === "desktop" && screen.width < 1000) || mobileOverlayScreenIds.has(screen.id);
   return {
     nextState: { screenId: screen.id, role, format: current.format },
     presentation: overlay ? "overlay" : "screen",
@@ -158,7 +193,26 @@ const canOpenGroup = (group: string, role: UserRole): boolean => {
 
 export const canRoleViewScreen = (screen: ScreenDefinition, role: UserRole): boolean => {
   const group = targetGroup(screen.name);
-  return group ? canOpenGroup(group, role) : false;
+  if (!group || !canOpenGroup(group, role)) return false;
+  const allowedRoles = scopedScreenRoles.get(screen.id);
+  return allowedRoles ? allowedRoles.has(role) : true;
+};
+
+export const registrationOutcomeState = (
+  outcome: RegistrationOutcome,
+  current: PrototypeState,
+  screens: ScreenDefinition[],
+): PrototypeState => {
+  if (current.role !== "guest") {
+    throw new Error("PROTOTYPE_REGISTRATION_ROLE_INVALID: результат регистрации доступен только гостю");
+  }
+  const ids: Record<RegistrationOutcome, ResponsiveIds> = {
+    "existing-company": { desktop: "Onl5J", mobile: "Ltomq" },
+    "new-company": { desktop: "ljwfR", mobile: "JEpk3" },
+    "manual-review": { desktop: "M7poB", mobile: "XZDAF" },
+  };
+  const screen = requireScreen(ids[outcome][current.format], screens);
+  return { screenId: screen.id, role: "guest", format: current.format };
 };
 
 const deniedTransition = (
@@ -208,9 +262,6 @@ const resolveSpecialState = (
   screens: ScreenDefinition[],
 ): NavigationResult | undefined => {
   const upper = target.toUpperCase();
-  if (group === "AUTH-03" && upper.includes("РЕЗУЛЬТАТ")) {
-    return transition(current.format === "mobile" ? "Ltomq" : "Onl5J", current, screens);
-  }
   if (group === "AUTH-04") {
     if (upper.includes("ШАГ 2")) {
       return transition(current.format === "mobile" ? "PLiQa" : "Dl3Cm", current, screens);
@@ -231,14 +282,17 @@ const resolveSpecialState = (
     }
   }
   if (group === "SRCH-01") {
+    if (upper.includes("EMPTY") || upper.includes("ПУСТ")) {
+      return transition(current.format === "mobile" ? "SooZ1" : "c4Kmz", current, screens);
+    }
+    if (upper.includes("ACTION INPUT") && !upper.includes("EMPTY")) {
+      return transition(current.format === "mobile" ? "qMK5r" : "neKET", current, screens);
+    }
     if (upper.includes("ПОДСКАЗ") || upper.includes("SUGGESTIONS")) {
       return transition("neKET", current, screens);
     }
     if (upper.includes("FILTER") || upper.includes("ФИЛЬТРЫ ОТКР")) {
       return transition(current.format === "mobile" ? "qMK5r" : "Tb3co", current, screens);
-    }
-    if (upper.includes("ПУСТ")) {
-      return transition(current.format === "mobile" ? "SooZ1" : "c4Kmz", current, screens);
     }
   }
   if (group === "KB-07") {
@@ -258,6 +312,17 @@ const resolveSpecialState = (
     }
     if (upper.includes("НОВЫЙ ТЕГ") && !upper.includes("МЕНЮ")) {
       return transition(current.format === "mobile" ? "zdyBM" : "iCoVo", current, screens);
+    }
+  }
+  if (group === "KB-06") {
+    if (upper.includes("DRAG HANDLE")) {
+      return transition(modalStateIds["KB-06:ПЕРЕМЕЩЕН"][current.format], current, screens);
+    }
+    if (upper.includes("ПЕРЕИМЕНОВАТЬ")) {
+      return transition(modalStateIds["KB-06:ПЕРЕИМЕНОВ"][current.format], current, screens);
+    }
+    if (upper.includes("УДАЛИТЬ")) {
+      return transition(modalStateIds["KB-06:УДАЛЕН"][current.format], current, screens);
     }
   }
   const stateKey = Object.keys(modalStateIds).find((groupKey) => {
@@ -309,15 +374,29 @@ export const resolveAction = (
       notice: "Заявка отправлена на ручную проверку. Вход станет доступен после подтверждения.",
     };
   }
+  if (["ljwfR", "JEpk3"].includes(current.screenId) && upper.includes("SHELL-02")) {
+    return transition(roleHome["client-admin"][current.format], current, screens, "client-admin");
+  }
   if (["sj2b0", "z9avSo"].includes(current.screenId) && upper.includes("KB-02")) {
     return transition(fixedScreens["KB-02"][current.format], current, screens, "client-employee");
   }
-  if (/BITRIX24|СКАЧАТЬ|KB-08 ФАЙЛ /.test(upper)) {
+  if (upper.includes("KB-08") && upper.includes("МЕСТА ИСПОЛЬЗОВАНИЯ")) {
+    if (current.format === "mobile") return transition("xqWeH", current, screens);
+    return { notice: "Места использования файла показаны в демонстрационном режиме." };
+  }
+  if (upper.includes("KB-08") && upper.includes("МЕНЮ:")) {
+    if (current.format === "mobile") return transition("xqWeH", current, screens);
+    return { notice: "Действия с файлом открыты в демонстрационном режиме." };
+  }
+  if (upper.includes("BITRIX24")) {
     return {
-      notice: upper.includes("СКАЧАТЬ")
-        ? "Демонстрационный файл подготовлен к скачиванию."
-        : "В демонстрационном режиме внешняя карточка Битрикс24 не открывается.",
-      effect: upper.includes("СКАЧАТЬ") ? "download" : undefined,
+      notice: "В демонстрационном режиме внешняя карточка Битрикс24 не открывается.",
+    };
+  }
+  if (upper.includes("СКАЧАТЬ") || upper.includes("KB-08 ФАЙЛ ")) {
+    return {
+      notice: "Демонстрационный файл подготовлен к скачиванию.",
+      effect: "download",
     };
   }
   if (/PLAT-04 .*\//.test(upper) || /ВСТАВИТЬ |ФИЛЬТР (?:PDF|DOCX|DWG|ZIP|XLSX|ВИДЕО)/.test(upper)) {
@@ -339,7 +418,21 @@ export const resolveAction = (
     const nextState = startForRole("client-employee", current.format, screens);
     return { nextState, presentation: "screen" };
   }
+  if (
+    group === "KB-04" &&
+    current.role === "manager" &&
+    ["zmzYb", "EZ9x6"].includes(current.screenId)
+  ) {
+    return {
+      ...transition(fixedScreens["KB-02"][current.format], current, screens),
+      notice: "Черновик открыт менеджеру в режиме просмотра.",
+    };
+  }
   if (!canOpenGroup(group, current.role)) return deniedTransition(group, current, screens);
+
+  if (group === "AUTH-03" && upper.includes("РЕЗУЛЬТАТ")) {
+    return { effect: "registration-choice" };
+  }
 
   const kbStructureStates = ["ACWsj", "DZOE5", "skXOD", "QTBXk", "h89rfQ", "rXopt", "uzUQh", "t4bJW"];
   if (group === "KB-06" && kbStructureStates.includes(current.screenId)) {
@@ -380,7 +473,33 @@ export const resolveAction = (
   }
   if (group === "KB-01") {
     if (current.role === "guest") return transition(fixedScreens["AUTH-02"][current.format], current, screens);
+    if (upper.includes("ДЕРЕВО") || upper.includes("УЗЕЛ")) {
+      return { notice: "Раздел базы знаний выбран.", effect: "toggle" };
+    }
     return transition(roleKnowledgeBase[current.role][current.format], current, screens);
+  }
+  if (group === "KB-04") {
+    if (upper.includes("НАЗАД")) {
+      return transition(roleKnowledgeBase[current.role as Exclude<UserRole, "guest">][current.format], current, screens);
+    }
+    if (upper.includes("ПРЕДПРОСМОТР")) {
+      return { notice: "Предпросмотр включён в демонстрационном режиме.", effect: "toggle" };
+    }
+  }
+  if (group === "KB-05") {
+    if (upper.includes("ПУБЛИКАЦ")) {
+      const published = ["cuZKn", "U3ek80"].includes(current.screenId);
+      const ids = published ? modalStateIds["KB-05:ЧЕРНОВИК"] : fixedScreens["KB-05"];
+      return {
+        ...transition(ids[current.format], current, screens),
+        notice: published
+          ? "Статья переведена в черновик."
+          : "Статья опубликована в демонстрационном режиме.",
+      };
+    }
+    if (/ВЫБРАТЬ ТЕГ|ИЗМЕНИТЬ ДОСТУП|ИЗМЕНИТЬ РАЗДЕЛ/.test(upper)) {
+      return { notice: "Настройка статьи изменена.", effect: "toggle" };
+    }
   }
   if (group === "ORG-01") {
     const addFormIds = ["rj3oR", "OciI4", "vxEMO", "FMqL5", "RloDv", "Xezct", "mEUkQ", "ZpU0A"];
@@ -473,6 +592,12 @@ export const resolveAction = (
   }
 
   if (group === "ORG-05") {
+    if (upper.includes("РАЗБЛОКИРОВАТЬ") && !["nT7Vo", "VMDAp"].includes(current.screenId)) {
+      return {
+        notice: "Сотрудник разблокирован, история изменения сохранена.",
+        effect: "toggle",
+      };
+    }
     if (["p5YVN1", "zsSXN"].includes(current.screenId) && upper.includes("ПОДТВЕРДИТЬ")) {
       return transition(current.format === "mobile" ? "VMDAp" : "nT7Vo", current, screens);
     }
