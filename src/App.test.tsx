@@ -1,10 +1,13 @@
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { App } from "./App";
 
 describe("оболочка кликабельного прототипа", () => {
-  afterEach(() => window.history.replaceState({}, "", "/"));
+  afterEach(() => {
+    cleanup();
+    window.history.replaceState({}, "", "/");
+  });
 
   it("показывает шесть точек входа и запускает мобильный сценарий менеджера", async () => {
     const user = userEvent.setup();
@@ -28,5 +31,14 @@ describe("оболочка кликабельного прототипа", () =>
     render(<App />);
 
     expect(screen.getByRole("heading", { name: "Выберите сценарий" })).toBeInTheDocument();
+  });
+
+  it("заменяет закрытый экран из прямой ссылки универсальным отказом", () => {
+    window.history.replaceState({}, "", "/?screen=G0ePJ7&role=manager&format=desktop");
+    render(<App />);
+
+    expect(
+      screen.getByTitle("PLAT-01 Главная администрирования · нет доступа"),
+    ).toBeInTheDocument();
   });
 });

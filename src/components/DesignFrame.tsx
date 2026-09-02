@@ -73,6 +73,13 @@ export const DesignFrame = ({
       node.textContent = roleLabel;
     });
 
+    if (userRole !== "portal-admin") {
+      active.querySelectorAll<HTMLElement>('[data-pencil-name^="ACTION → PLAT-"]').forEach((node) => {
+        node.style.display = "none";
+        node.setAttribute("aria-hidden", "true");
+      });
+    }
+
     if (userRole === "support-engineer" || userRole === "manager") {
       active
         .querySelectorAll<HTMLElement>('[data-pencil-name^="ACTION → ORG-04"]')
@@ -83,6 +90,21 @@ export const DesignFrame = ({
             node.setAttribute("aria-hidden", "true");
           }
         });
+      active
+        .querySelectorAll<HTMLElement>(
+          '[data-pencil-name="ORG-04 Роль подпись"], [data-pencil-name="ORG-04 Роль select"], [data-pencil-name="ORG-04 Invite Mobile Роль"]',
+        )
+        .forEach((node) => {
+          node.style.display = "none";
+          node.setAttribute("aria-hidden", "true");
+        });
+      active
+        .querySelectorAll<HTMLElement>(
+          '[data-pencil-name="ORG-04 Диалог описание"], [data-pencil-name="ORG-04 Invite Mobile Описание"]',
+        )
+        .forEach((node) => {
+          node.textContent = "Добавьте доступ к порталу и при необходимости привяжите компанию.";
+        });
     }
 
     const setImplicitAction = (selector: string, action: string) => {
@@ -90,6 +112,34 @@ export const DesignFrame = ({
         if (!node.dataset.pencilName?.startsWith("ACTION →")) node.dataset.prototypeAction = action;
       });
     };
+    if (["CQojg", "n50Krp", "shAHh", "WmKrc"].includes(screen.id)) {
+      const structureScreen = ["CQojg", "n50Krp"].includes(screen.id);
+      const breadcrumbs = active.querySelector<HTMLElement>(
+        structureScreen
+          ? '[data-pencil-name="KB-06 Хлебные крошки"], [data-pencil-name="KB-06 Mobile Breadcrumb"]'
+          : '[data-pencil-name="KB-07 Хлебные крошки"], [data-pencil-name="KB-07 Mobile Breadcrumb"]',
+      );
+      if (!breadcrumbs) {
+        throw new Error(`PROTOTYPE_KB_BREADCRUMBS_MISSING: экран ${screen.id}`);
+      }
+      const nextLink = document.createElement("button");
+      nextLink.type = "button";
+      nextLink.dataset.prototypeAction = structureScreen
+        ? "ACTION → KB-07 Теги и группы"
+        : "ACTION → KB-08 Реестр файлов";
+      nextLink.textContent = structureScreen
+        ? "Теги"
+        : screen.format === "mobile"
+          ? "Файлы"
+          : "Реестр файлов";
+      nextLink.style.marginLeft = "auto";
+      nextLink.style.border = "0";
+      nextLink.style.background = "transparent";
+      nextLink.style.color = "#1478BD";
+      nextLink.style.font = "600 12px Inter, system-ui, sans-serif";
+      nextLink.style.whiteSpace = "nowrap";
+      breadcrumbs.append(nextLink);
+    }
     setImplicitAction(
       '[data-pencil-name="KB-01 Статья 1"], [data-pencil-name="KB-01 Mobile Статья 1"]',
       "ACTION → KB-02 Статья",

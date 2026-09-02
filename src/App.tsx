@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DesignFrame } from "./components/DesignFrame";
+import { FileUsageDialog } from "./components/FileUsageDialog";
 import { Launcher } from "./components/Launcher";
 import { PrototypeToolbar } from "./components/PrototypeToolbar";
 import { RegistrationOutcomeDialog } from "./components/RegistrationOutcomeDialog";
@@ -9,6 +10,7 @@ import { screens, type ScreenDefinition, type ScreenFormat } from "./generated/s
 import {
   createInitialState,
   canRoleViewScreen,
+  accessDeniedStateForScreen,
   registrationOutcomeState,
   resolveAction,
   startForRole,
@@ -19,6 +21,11 @@ import {
 interface AppViewState {
   base: PrototypeState;
   overlay?: PrototypeState;
+}
+
+interface NoticeState {
+  id: number;
+  message: string;
 }
 
 const screenById = new Map(screens.map((screen) => [screen.id, screen]));
@@ -61,8 +68,12 @@ const readUrlState = (): AppViewState => {
   const role = roleParam as UserRole;
   const format = formatParam as ScreenFormat;
   const screen = screenById.get(screenId);
-  if (!screen || screen.format !== format || !canRoleViewScreen(screen, role)) {
+  if (!screen || screen.format !== format) {
     return { base: createInitialState() };
+  }
+  if (!canRoleViewScreen(screen, role)) {
+    const deniedState = accessDeniedStateForScreen(screen, role, format, screens);
+    return deniedState ? { base: deniedState } : { base: createInitialState() };
   }
   return { base: { screenId, role, format } };
 };
@@ -92,8 +103,9 @@ const downloadMockFile = () => {
 
 export const App = () => {
   const [view, setView] = useState<AppViewState>(readUrlState);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<NoticeState | null>(null);
   const [choosingRegistrationOutcome, setChoosingRegistrationOutcome] = useState(false);
+  const [showingFileUsage, setShowingFileUsage] = useState(false);
 
   useEffect(() => {
     const onPopState = () => setView(readUrlState());
@@ -103,9 +115,13 @@ export const App = () => {
 
   useEffect(() => {
     if (!notice) return;
-    const timeout = window.setTimeout(() => setNotice(""), 4200);
+    const timeout = window.setTimeout(() => setNotice(null), 4200);
     return () => window.clearTimeout(timeout);
   }, [notice]);
+
+  const showNotice = useCallback((message: string) => {
+    setNotice((current) => ({ id: (current?.id ?? 0) + 1, message }));
+  }, []);
 
   const openState = useCallback((nextState: PrototypeState, presentation: "screen" | "overlay" = "screen") => {
     if (presentation === "overlay") {
@@ -132,10 +148,10 @@ export const App = () => {
         setView({ base: nextState });
         writeUrlState(nextState, true);
       }
-      setNotice("Документ импортирован в черновик.");
+      showNotice("Документ импортирован в черновик.");
     }, 1600);
     return () => window.clearTimeout(timeout);
-  }, [view.base, view.overlay]);
+  }, [showNotice, view.base, view.overlay]);
 
   const start = useCallback((role: UserRole, format: ScreenFormat) => {
     const nextState = startForRole(role, format, screens);
@@ -149,18 +165,19 @@ export const App = () => {
       if (fromOverlay && /(ЗАКРЫТЬ|СКРЫТЬ|ОТМЕН|СОЗДАТЬ|ГОТОВО|УДАЛИТЬ|ОТПРАВИТЬ|ОТКРЫТЬ ИМПОРТИРОВАН)/i.test(actionName)) {
         setView((current) => ({ base: current.base }));
         if (!/(ЗАКРЫТЬ|СКРЫТЬ|ОТМЕН)/i.test(actionName)) {
-          setNotice("Изменение применено в демонстрационном режиме.");
+          showNotice("Изменение применено в демонстрационном режиме.");
         }
         return;
       }
       const current = fromOverlay && view.overlay ? view.overlay : view.base;
       const result = resolveAction(actionName, current, screens);
-      if (result.notice) setNotice(result.notice);
+      if (result.notice) showNotice(result.notice);
       if (result.effect === "download") downloadMockFile();
       if (result.effect === "registration-choice") setChoosingRegistrationOutcome(true);
+      if (result.effect === "file-usage") setShowingFileUsage(true);
       if (result.nextState) openState(result.nextState, result.presentation);
     },
-    [openState, view],
+    [openState, showNotice, view],
   );
 
   const goHome = useCallback(() => {
@@ -244,7 +261,16 @@ export const App = () => {
           }}
         />
       ) : null}
-      {notice ? <Toast message={notice} onClose={() => setNotice("")} /> : null}
+      {showingFileUsage ? (
+        <FileUsageDialog
+          onClose={() => setShowingFileUsage(false)}
+          onDownload={() => {
+            downloadMockFile();
+            showNotice("Демонстрационный файл подготовлен к скачиванию.");
+          }}
+        />
+      ) : null}
+      {notice ? <Toast key={notice.id} message={notice.message} onClose={() => setNotice(null)} /> : null}
     </main>
   );
 };

@@ -309,6 +309,39 @@ describe("маршрутизация прототипа этапа 1", () => {
     ).toBe("c4Kmz");
   });
 
+  it("обрабатывает все четыре таймкода видео", () => {
+    const video = state({ screenId: "M6IoTK", role: "client-employee" });
+    expect(resolveAction("ACTION → KB-03 Видео 07:12", video, screens)).toMatchObject({
+      effect: "toggle",
+      notice: expect.stringContaining("07:12"),
+    });
+  });
+
+  it("завершает публикацию переходом к статье, а снятие — к редактору", () => {
+    const publishedPanel = state({ screenId: "cuZKn", role: "portal-admin" });
+    expect(resolveAction("ACTION → KB-05 Публикация", publishedPanel, screens)).toMatchObject({
+      nextState: { screenId: "sUjWN", format: "desktop" },
+      notice: expect.stringContaining("снята с публикации"),
+    });
+
+    const draftPanel = state({
+      screenId: "Q5hjgX",
+      role: "portal-admin",
+      format: "mobile",
+    });
+    expect(resolveAction("ACTION → KB-05 Публикация", draftPanel, screens)).toMatchObject({
+      nextState: { screenId: "FYI4I", format: "mobile" },
+      notice: expect.stringContaining("опубликована"),
+    });
+  });
+
+  it("разрешает авторизованным ролям универсальные экраны отказа", () => {
+    const platformDenied = screens.find((screen) => screen.id === "ka4TG");
+    if (!platformDenied) throw new Error("TEST_DENIED_SCREEN_MISSING");
+    expect(canRoleViewScreen(platformDenied, "manager")).toBe(true);
+    expect(canRoleViewScreen(platformDenied, "guest")).toBe(false);
+  });
+
   it("открывает черновик менеджеру только для чтения", () => {
     const result = resolveAction(
       "ACTION → KB-04 Редактор статьи",

@@ -135,10 +135,7 @@ test("сотрудник открывает статью, видео и поис
 test("экраны чужой роли недоступны по ссылке и в селекторе", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.startsWith("desktop"));
   await page.goto("./?screen=Fy0nE&role=client-employee&format=desktop");
-  await expect(page.getByRole("heading", { name: "Выберите сценарий" })).toBeVisible();
-
-  const card = page.getByTestId("role-entry").filter({ hasText: "Сотрудник клиента" });
-  await card.getByRole("button", { name: "Desktop" }).click();
+  await expect(page.locator("iframe")).toHaveAttribute("title", "KB-02 Статья · нет доступа");
   await page.getByRole("button", { name: "Открыть панель прототипа" }).click();
   await expect(page.locator('#prototype-screen option[value="Fy0nE"]')).toHaveCount(0);
 });
@@ -163,23 +160,49 @@ test("шапка всегда показывает активную роль", a
 });
 
 test("инженер и менеджер не видят опасные действия с пользователями", async ({ page }, testInfo) => {
-  test.skip(!testInfo.project.name.startsWith("mobile"));
-  for (const [screenId, role] of [
-    ["LtB29", "support-engineer"],
-    ["ZQuca", "manager"],
+  const mobile = testInfo.project.name.startsWith("mobile");
+  for (const [listId, inviteId, role] of [
+    [mobile ? "LtB29" : "zqEl6", mobile ? "P3UQ6" : "vRMWJ", "support-engineer"],
+    [mobile ? "ZQuca" : "du8aB", mobile ? "P3UQ6" : "vRMWJ", "manager"],
   ] as const) {
-    await page.goto(`./?screen=${screenId}&role=${role}&format=mobile`);
+    const format = mobile ? "mobile" : "desktop";
+    await page.goto(`./?screen=${listId}&role=${role}&format=${format}`);
     await expect(
       design(page).locator(
-        `[data-pencil-id="${screenId}"] [data-pencil-name^="ACTION → ORG-04"][data-pencil-name*="смена роли"]:visible`,
+        `[data-pencil-id="${listId}"] [data-pencil-name^="ACTION → ORG-04"][data-pencil-name*="смена роли"]:visible`,
       ),
     ).toHaveCount(0);
     await expect(
       design(page).locator(
-        `[data-pencil-id="${screenId}"] [data-pencil-name^="ACTION → ORG-04"][data-pencil-name*="удал"]:visible`,
+        `[data-pencil-id="${listId}"] [data-pencil-name^="ACTION → ORG-04"][data-pencil-name*="удал"]:visible`,
       ),
     ).toHaveCount(0);
+
+    await page.goto(`./?screen=${inviteId}&role=${role}&format=${format}`);
+    await expect(
+      design(page).locator(
+        `[data-pencil-id="${inviteId}"] [data-pencil-name*="Роль"]:visible`,
+      ),
+    ).toHaveCount(0);
+    await expect(design(page).locator(`[data-pencil-id="${inviteId}"]`)).not.toContainText(
+      "Назначьте роль",
+    );
   }
+});
+
+test("инженер не видит административный раздел в общей форме компании", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("desktop"));
+  await page.goto("./?screen=rj3oR&role=support-engineer&format=desktop");
+  await expect(
+    design(page).locator(
+      '[data-pencil-id="rj3oR"] [data-pencil-name^="ACTION → PLAT-"]:visible',
+    ),
+  ).toHaveCount(0);
+  await expect(
+    design(page).locator(
+      '[data-pencil-id="rj3oR"] [data-pencil-name="Navigation/Topbar Имя"]',
+    ),
+  ).toHaveText("Инженер ТП / автор");
 });
 
 test("мобильное изменение структуры открывается поверх основного экрана", async ({ page }, testInfo) => {
@@ -227,20 +250,25 @@ test("панель статьи меняет публикацию, теги и �
   const articlePanel = page.locator("iframe").nth(1).contentFrame();
 
   await articlePanel
+    .locator('[data-pencil-id="cuZKn"] [data-pencil-name="KB-05 Опция тега 1"]')
+    .click();
+  await expect(page.getByRole("status")).toContainText("Настройка статьи изменена");
+  await articlePanel
+    .locator('[data-pencil-id="cuZKn"] [data-pencil-name="KB-05 Доступ Интеграторы"]')
+    .click();
+  await expect(page.getByRole("status")).toContainText("Настройка статьи изменена");
+
+  await articlePanel
     .locator('[data-pencil-id="cuZKn"] [data-pencil-name="KB-05 Публикация"]')
     .click();
-  await expect(page.locator("iframe").nth(1)).toHaveAttribute(
-    "title",
-    "KB-05 Панель управления статьёй · черновик",
-  );
-  await articlePanel
-    .locator('[data-pencil-id="T17CYs"] [data-pencil-name="KB-05 Опция тега 1"]')
+  await expect(page.locator("iframe")).toHaveCount(1);
+  await expect(page.locator("iframe")).toHaveAttribute("title", "KB-04 Редактор статьи");
+
+  await page.goto("./?screen=T17CYs&role=portal-admin&format=desktop");
+  await design(page)
+    .locator('[data-pencil-id="T17CYs"] [data-pencil-name="KB-05 Публикация"]')
     .click();
-  await expect(page.getByRole("status")).toContainText("Настройка статьи изменена");
-  await articlePanel
-    .locator('[data-pencil-id="T17CYs"] [data-pencil-name="KB-05 Доступ Интеграторы"]')
-    .click();
-  await expect(page.getByRole("status")).toContainText("Настройка статьи изменена");
+  await expect(page.locator("iframe")).toHaveAttribute("title", "KB-02 Статья");
 });
 
 test("поиск открывает подсказки и mobile-фильтры", async ({ page }, testInfo) => {
@@ -270,6 +298,59 @@ test("поиск открывает подсказки и mobile-фильтры"
   );
   await design(page).locator('[data-pencil-id="qMK5r"] [data-pencil-id="J2V02m"]').click();
   await expect(page.locator("iframe")).toHaveAttribute("title", "SRCH-01 Выдача поиска · mobile");
+});
+
+test("из поиска открывается найденная статья", async ({ page }, testInfo) => {
+  const mobile = testInfo.project.name.startsWith("mobile");
+  const format = mobile ? "mobile" : "desktop";
+  const searchId = mobile ? "kVLBy" : "Tb3co";
+  const articleAction = mobile ? "ACTION → KB-02-MOBILE" : "ACTION → KB-02-DESKTOP";
+
+  await page.goto(`./?screen=${searchId}&role=client-employee&format=${format}`);
+  await design(page)
+    .locator(`[data-pencil-id="${searchId}"] [data-pencil-name="${articleAction}"]`)
+    .first()
+    .click();
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "title",
+    mobile ? "KB-02 Статья · mobile" : "KB-02 Статья",
+  );
+});
+
+test("desktop-реестр открывает drawer мест использования", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("desktop"));
+  await page.goto("./?screen=IG8L8&role=portal-admin&format=desktop");
+  await design(page)
+    .locator(
+      '[data-pencil-id="IG8L8"] [data-pencil-name="Table/Usage инструкция_активации.pdf"]',
+    )
+    .click();
+  await expect(page.getByRole("dialog", { name: "Места использования" })).toBeVisible();
+  await expect(page.getByRole("dialog")).toContainText("Активация сетевой лицензии");
+  await page.getByRole("button", { name: "Закрыть места использования" }).click();
+  await expect(page.getByRole("dialog", { name: "Места использования" })).toHaveCount(0);
+});
+
+test("из структуры можно перейти через теги в реестр файлов", async ({ page }, testInfo) => {
+  const mobile = testInfo.project.name.startsWith("mobile");
+  const format = mobile ? "mobile" : "desktop";
+  const structureId = mobile ? "n50Krp" : "CQojg";
+  const tagsId = mobile ? "WmKrc" : "shAHh";
+  await page.goto(`./?screen=${structureId}&role=portal-admin&format=${format}`);
+  await design(page)
+    .locator(`[data-pencil-id="${structureId}"] [data-prototype-action="ACTION → KB-07 Теги и группы"]`)
+    .click();
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "title",
+    mobile ? "KB-07 Теги и группы тегов · mobile" : "KB-07 Теги и группы тегов",
+  );
+  await design(page)
+    .locator(`[data-pencil-id="${tagsId}"] [data-prototype-action="ACTION → KB-08 Реестр файлов"]`)
+    .click();
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "title",
+    mobile ? "KB-08 Реестр файлов · mobile" : "KB-08 Реестр файлов",
+  );
 });
 
 test("администратор открывает компании и карточку", async ({ page }, testInfo) => {

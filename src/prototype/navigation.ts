@@ -18,7 +18,7 @@ export interface NavigationResult {
   nextState?: PrototypeState;
   notice?: string;
   presentation?: "screen" | "overlay";
-  effect?: "download" | "toggle" | "registration-choice";
+  effect?: "download" | "toggle" | "registration-choice" | "file-usage";
 }
 
 export type RegistrationOutcome = "existing-company" | "new-company" | "manual-review";
@@ -96,6 +96,10 @@ const accessDenied: Record<"KB" | "ORG" | "PLAT", ResponsiveIds> = {
   ORG: { desktop: "PXXY1", mobile: "tJX8b" },
   PLAT: { desktop: "ka4TG", mobile: "jh2Xv" },
 };
+
+const accessDeniedScreenIds = new Set(
+  Object.values(accessDenied).flatMap((ids) => [ids.desktop, ids.mobile]),
+);
 
 const modalStateIds: Record<string, ResponsiveIds> = {
   "KB-04:ИМПОРТ": { desktop: "oCUJK", mobile: "x9dqAM" },
@@ -192,10 +196,25 @@ const canOpenGroup = (group: string, role: UserRole): boolean => {
 };
 
 export const canRoleViewScreen = (screen: ScreenDefinition, role: UserRole): boolean => {
+  if (accessDeniedScreenIds.has(screen.id)) return role !== "guest";
   const group = targetGroup(screen.name);
   if (!group || !canOpenGroup(group, role)) return false;
   const allowedRoles = scopedScreenRoles.get(screen.id);
   return allowedRoles ? allowedRoles.has(role) : true;
+};
+
+export const accessDeniedStateForScreen = (
+  screen: ScreenDefinition,
+  role: UserRole,
+  format: ScreenFormat,
+  screens: ScreenDefinition[],
+): PrototypeState | undefined => {
+  if (role === "guest") return undefined;
+  const group = targetGroup(screen.name);
+  if (!group || group.startsWith("AUTH-") || group.startsWith("SHELL-")) return undefined;
+  const area = group.startsWith("ORG-") ? "ORG" : group.startsWith("PLAT-") ? "PLAT" : "KB";
+  const deniedScreen = requireScreen(accessDenied[area][format], screens);
+  return { screenId: deniedScreen.id, role, format };
 };
 
 export const registrationOutcomeState = (
@@ -271,6 +290,9 @@ const resolveSpecialState = (
     }
   }
   if (group === "KB-03") {
+    if (upper.includes("07:12")) {
+      return { notice: "Видео перемотано к таймкоду 07:12.", effect: "toggle" };
+    }
     const timestamp = upper.match(/(?:00:00|02:15|14:40)/)?.[0];
     if (timestamp) {
       const ids: Record<string, ResponsiveIds> = {
@@ -382,7 +404,7 @@ export const resolveAction = (
   }
   if (upper.includes("KB-08") && upper.includes("МЕСТА ИСПОЛЬЗОВАНИЯ")) {
     if (current.format === "mobile") return transition("xqWeH", current, screens);
-    return { notice: "Места использования файла показаны в демонстрационном режиме." };
+    return { effect: "file-usage" };
   }
   if (upper.includes("KB-08") && upper.includes("МЕНЮ:")) {
     if (current.format === "mobile") return transition("xqWeH", current, screens);
@@ -489,11 +511,11 @@ export const resolveAction = (
   if (group === "KB-05") {
     if (upper.includes("ПУБЛИКАЦ")) {
       const published = ["cuZKn", "U3ek80"].includes(current.screenId);
-      const ids = published ? modalStateIds["KB-05:ЧЕРНОВИК"] : fixedScreens["KB-05"];
+      const ids = published ? fixedScreens["KB-04"] : fixedScreens["KB-02"];
       return {
         ...transition(ids[current.format], current, screens),
         notice: published
-          ? "Статья переведена в черновик."
+          ? "Статья снята с публикации и открыта в редакторе."
           : "Статья опубликована в демонстрационном режиме.",
       };
     }

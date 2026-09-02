@@ -8,6 +8,12 @@ export interface DemoProfile {
   capabilities: string[];
 }
 
+export interface FileUsageItem {
+  id: string;
+  title: string;
+  path: string;
+}
+
 export const demoProfiles: DemoProfile[] = [
   {
     role: "guest",
@@ -58,3 +64,16 @@ export const mockDownload = {
   content:
     "Демонстрационный файл прототипа MaxSoft. В рабочей версии здесь будет доступен исходный документ с проверкой прав.",
 };
+
+export const mockFileUsage: FileUsageItem[] = [
+  {
+    id: "article-integration-setup",
+    title: "Настройка интеграции с САПР-комплексом",
+    path: "База знаний / НАВИСА / Настройка",
+  },
+  {
+    id: "article-network-license",
+    title: "Активация сетевой лицензии",
+    path: "База знаний / НАВИСА / Установка",
+  },
+];
