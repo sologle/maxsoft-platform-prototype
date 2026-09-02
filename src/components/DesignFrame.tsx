@@ -4,7 +4,7 @@ import {
   addAdminHomeShortcuts,
   addSearchVideoResult,
   animateMobileDrawer,
-  removeDeliveryStageCopy,
+  hideFutureNavigation,
 } from "../prototype/frame-enhancements";
 import { enhanceFormControls } from "../prototype/form-enhancements";
 import type { UserRole } from "../prototype/navigation";
@@ -12,6 +12,9 @@ import type { UserRole } from "../prototype/navigation";
 interface DesignFrameProps {
   screen: ScreenDefinition;
   onAction: (actionName: string) => void;
+  onDismiss?: () => void;
+  focusTrap?: boolean;
+  inactive?: boolean;
   overlay?: boolean;
   roleLabel: string;
   userRole: UserRole;
@@ -27,6 +30,9 @@ const provisionalHeight = 900;
 export const DesignFrame = ({
   screen,
   onAction,
+  onDismiss,
+  focusTrap = false,
+  inactive = false,
   overlay = false,
   roleLabel,
   userRole,
@@ -116,7 +122,7 @@ export const DesignFrame = ({
 
     addAdminHomeShortcuts(active, screen);
     addSearchVideoResult(active, screen);
-    removeDeliveryStageCopy(active);
+    hideFutureNavigation(active);
     animateMobileDrawer(active, screen);
 
     const setImplicitAction = (selector: string, action: string) => {
@@ -192,12 +198,11 @@ export const DesignFrame = ({
     setImplicitAction('[data-pencil-name^="KB-05 Доступ "]', "ACTION → KB-05 Изменить доступ");
     setImplicitAction('[data-pencil-name="KB-05 Создать тег"]', "ACTION → KB-07 Новый тег");
     active
-      .querySelectorAll<HTMLElement>('[data-pencil-name^="KB-05 НАВИСА "], [data-pencil-name^="KB-05 Кейсы внедрения "]')
+      .querySelectorAll<HTMLElement>(
+        '[data-pencil-name="KB-05 НАВИСА Настройка checkbox"], [data-pencil-name="KB-05 НАВИСА Установка checkbox"], [data-pencil-name="KB-05 Кейсы внедрения checkbox"]',
+      )
       .forEach((node) => {
-        const name = node.dataset.pencilName;
-        if (name && /(checked|unchecked)$/.test(name)) {
-          node.dataset.prototypeAction = "ACTION → KB-05 Изменить раздел";
-        }
+        node.dataset.prototypeAction = "ACTION → KB-05 Изменить раздел";
       });
     setImplicitAction('[data-pencil-name^="KB-08 Фильтр "]', "ACTION → KB-08 Фильтр PDF");
     setImplicitAction('[data-pencil-name^="Table/Usage "]', "ACTION → KB-08 Места использования");
@@ -249,9 +254,15 @@ export const DesignFrame = ({
       }
       onAction(actionName);
     };
+    const focusableElements = () =>
+      Array.from(
+        active.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), select:not([disabled]), [contenteditable="plaintext-only"], [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((node) => node.getClientRects().length > 0 && node.getAttribute("aria-disabled") !== "true");
     const onClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
-      if (target?.closest('[data-prototype-editable="true"]')) {
+      if (target?.closest('[data-prototype-editable="true"], [data-prototype-select="true"]')) {
         event.stopPropagation();
         return;
       }
@@ -270,8 +281,30 @@ export const DesignFrame = ({
       activate(node);
     };
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && onDismiss) {
+        event.preventDefault();
+        event.stopPropagation();
+        onDismiss();
+        return;
+      }
+      if (event.key === "Tab" && focusTrap) {
+        const focusable = focusableElements();
+        const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+        const nextIndex = event.shiftKey ? currentIndex - 1 : currentIndex + 1;
+        if (currentIndex === -1 || nextIndex < 0 || nextIndex >= focusable.length) {
+          event.preventDefault();
+          focusable[event.shiftKey ? focusable.length - 1 : 0]?.focus();
+        }
+        return;
+      }
+      const target = event.target as Element | null;
+      if (target?.closest('[data-prototype-select="true"]')) return;
+      const editable = target?.closest<HTMLElement>('[data-prototype-editable="true"]');
+      if (editable && (event.key !== "Enter" || editable.getAttribute("aria-multiline") === "true")) {
+        return;
+      }
       if (event.key !== "Enter" && event.key !== " ") return;
-      const node = (event.target as Element | null)?.closest<HTMLElement>(actionSelector);
+      const node = target?.closest<HTMLElement>(actionSelector);
       if (!node || !active.contains(node)) return;
       event.preventDefault();
       activate(node);
@@ -285,8 +318,9 @@ export const DesignFrame = ({
     };
     measure();
     void document.fonts?.ready.then(measure);
+    if (focusTrap) window.setTimeout(() => focusableElements()[0]?.focus(), 0);
     setReadyScreenId(screen.id);
-  }, [onAction, roleLabel, screen, userRole]);
+  }, [focusTrap, onAction, onDismiss, roleLabel, screen, userRole]);
 
   const availableWidth = overlay ? Math.min(viewportWidth - 32, 760) : viewportWidth;
   const scale = Math.min(1, availableWidth / size.width);
@@ -300,12 +334,14 @@ export const DesignFrame = ({
       style={{ width: displayedWidth, height: displayedHeight }}
     >
       <iframe
+        aria-hidden={inactive || undefined}
         className="absolute left-0 top-0 border-0 bg-transparent"
         key={screen.id}
         data-prototype-ready={readyScreenId === screen.id ? "true" : "false"}
         onLoad={prepareFrame}
         ref={iframeRef}
         src={source}
+        tabIndex={inactive ? -1 : 0}
         style={{
           width: size.width,
           height: size.height,

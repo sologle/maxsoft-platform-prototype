@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DesignFrame } from "./components/DesignFrame";
 import { FileUsageDialog } from "./components/FileUsageDialog";
 import { ImportOutcomeDialog } from "./components/ImportOutcomeDialog";
@@ -106,6 +106,9 @@ const downloadMockFile = () => {
 };
 
 export const App = () => {
+  const baseLayerRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const hadDesignOverlay = useRef(false);
   const [view, setView] = useState<AppViewState>(readUrlState);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [choosingRegistrationOutcome, setChoosingRegistrationOutcome] = useState(false);
@@ -221,30 +224,76 @@ export const App = () => {
     [view.base.format, view.base.role],
   );
   const navigationOverlay = overlayScreen?.name.startsWith("SHELL-01") ?? false;
+  const secondaryDialogOpen = choosingRegistrationOutcome || choosingImportOutcome || showingFileUsage;
+  const blockingLayerOpen = Boolean(
+    overlayScreen || secondaryDialogOpen,
+  );
+
+  useEffect(() => {
+    if (overlayScreen) {
+      hadDesignOverlay.current = true;
+      window.requestAnimationFrame(() => overlayRef.current?.focus());
+    } else if (hadDesignOverlay.current) {
+      hadDesignOverlay.current = false;
+      baseLayerRef.current?.focus();
+    }
+  }, [overlayScreen]);
+
+  useEffect(() => {
+    if (!overlayScreen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeOverlay();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [closeOverlay, overlayScreen]);
 
   if (!activeScreen) return <Launcher onStart={start} />;
 
   return (
     <main className="min-h-screen bg-[var(--ms-stage)]">
-      <DesignFrame
-        onAction={(action) => handleAction(action)}
-        roleLabel={requireRoleLabel(view.base.role)}
-        screen={activeScreen}
-        userRole={view.base.role}
-      />
+      <div
+        aria-hidden={blockingLayerOpen || undefined}
+        inert={blockingLayerOpen || undefined}
+        ref={baseLayerRef}
+        tabIndex={-1}
+      >
+        <DesignFrame
+          inactive={blockingLayerOpen}
+          onAction={(action) => handleAction(action)}
+          roleLabel={requireRoleLabel(view.base.role)}
+          screen={activeScreen}
+          userRole={view.base.role}
+        />
+        <PrototypeToolbar
+          format={view.base.format}
+          onBack={() => window.history.back()}
+          onHome={goHome}
+          onOpenScreen={(screenId) => openState({ ...view.base, screenId }, "screen")}
+          onRestart={start}
+          role={view.base.role}
+          screen={activeScreen}
+          screens={availableScreens}
+        />
+      </div>
 
       {overlayScreen && view.overlay ? (
         <div
+          aria-hidden={secondaryDialogOpen || undefined}
+          aria-modal="true"
           aria-label={navigationOverlay ? "Навигационное меню" : "Модальное состояние прототипа"}
           className={
             navigationOverlay
-              ? "fixed inset-0 z-40 overflow-auto bg-transparent"
-              : "fixed inset-0 z-40 flex items-center justify-center overflow-auto bg-[#0b1726]/55 p-4 backdrop-blur-[2px]"
+              ? "fixed inset-0 z-[70] overflow-auto bg-transparent"
+              : "fixed inset-0 z-[70] flex items-center justify-center overflow-auto bg-[#0b1726]/55 p-4 backdrop-blur-[2px]"
           }
           onMouseDown={(event) => {
             if (event.currentTarget === event.target) closeOverlay();
           }}
-          role="presentation"
+          ref={overlayRef}
+          role="dialog"
+          tabIndex={-1}
+          inert={secondaryDialogOpen || undefined}
         >
           <div
             className={
@@ -254,7 +303,10 @@ export const App = () => {
             }
           >
             <DesignFrame
+              focusTrap
+              inactive={secondaryDialogOpen}
               onAction={(action) => handleAction(action, true)}
+              onDismiss={closeOverlay}
               overlay={!navigationOverlay}
               roleLabel={requireRoleLabel(view.base.role)}
               screen={overlayScreen}
@@ -263,19 +315,6 @@ export const App = () => {
           </div>
         </div>
       ) : null}
-
-      <PrototypeToolbar
-        format={view.base.format}
-        onBack={() => window.history.back()}
-        onHome={goHome}
-        onOpenScreen={(screenId) =>
-          openState({ ...view.base, screenId }, "screen")
-        }
-        onRestart={start}
-        role={view.base.role}
-        screen={activeScreen}
-        screens={availableScreens}
-      />
       {choosingRegistrationOutcome ? (
         <RegistrationOutcomeDialog
           onCancel={() => setChoosingRegistrationOutcome(false)}

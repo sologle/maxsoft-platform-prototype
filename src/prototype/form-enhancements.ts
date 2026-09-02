@@ -11,6 +11,8 @@ const editableValueSelector = [
 const disabledAncestor = (node: HTMLElement) =>
   node.closest<HTMLElement>('[data-pencil-name*="DISABLED"], [aria-disabled="true"]');
 
+const svgNamespace = "http://www.w3.org/2000/svg";
+
 const fieldLabel = (node: HTMLElement) => {
   let current: HTMLElement | null = node.parentElement;
   while (current) {
@@ -129,6 +131,7 @@ const enhanceBinaryControl = (
   const disabled = Boolean(disabledAncestor(node));
   const action = node.closest<HTMLElement>("[data-pencil-name^='ACTION '], [data-prototype-action]");
   node.setAttribute("role", role);
+  node.setAttribute("aria-label", fieldLabel(node).replace(/ checkbox$/i, ""));
   node.setAttribute("aria-checked", String(checked));
   node.setAttribute("aria-disabled", String(disabled));
   if (!disabled) node.tabIndex = 0;
@@ -139,6 +142,28 @@ const enhanceBinaryControl = (
       node.style.background = next ? "#1478BD" : "#CBD5E1";
       const thumb = node.querySelector<HTMLElement>('[data-pencil-name*="Thumb"]');
       if (thumb) thumb.style.transform = next ? "translateX(16px)" : "translateX(0)";
+    }
+    if (role === "checkbox" && node.namespaceURI === svgNamespace) {
+      const box = node.ownerDocument.createElementNS(svgNamespace, "rect");
+      box.setAttribute("x", "1");
+      box.setAttribute("y", "1");
+      box.setAttribute("width", "12");
+      box.setAttribute("height", "12");
+      box.setAttribute("rx", "2");
+      box.setAttribute("fill", next ? "#1478BD" : "#FFFFFF");
+      box.setAttribute("stroke", next ? "#1478BD" : "#667280");
+      node.replaceChildren(box);
+      if (next) {
+        const check = node.ownerDocument.createElementNS(svgNamespace, "path");
+        check.dataset.prototypeBinaryCheck = "true";
+        check.setAttribute("d", "M3.4 7.2 5.8 9.4 10.8 4.5");
+        check.setAttribute("fill", "none");
+        check.setAttribute("stroke", "#FFFFFF");
+        check.setAttribute("stroke-width", "1.7");
+        check.setAttribute("stroke-linecap", "round");
+        check.setAttribute("stroke-linejoin", "round");
+        node.append(check);
+      }
     }
   };
   const toggle = () => {
@@ -159,13 +184,104 @@ const enhanceBinaryControl = (
   render(checked);
 };
 
+const radioMarkerSelector = [
+  '[data-pencil-name="Inputs/Radio Selected Маркер"]',
+  '[data-pencil-name^="SRCH-01 Маркер "]',
+  '[data-pencil-name^="SRCH-01 Mobile Раздел "][data-pencil-name$=" Маркер"]',
+].join(",");
+
+const enhanceRadioGroup = (group: HTMLElement, rows: HTMLElement[]) => {
+  if (rows.length < 2) return;
+  group.setAttribute("role", "radiogroup");
+  group.setAttribute("aria-label", "Раздел базы знаний");
+  const selectedIndex = Math.max(
+    0,
+    rows.findIndex((row) => row.querySelector('[data-pencil-name="Inputs/Radio Selected Маркер"]')),
+  );
+  const render = (activeIndex: number) => {
+    rows.forEach((row, index) => {
+      const checked = index === activeIndex;
+      const marker = row.querySelector<HTMLElement>(radioMarkerSelector);
+      const label = row.querySelector<HTMLElement>('[data-pencil-name*="Текст"], [data-pencil-name*="Название"]');
+      row.setAttribute("role", "radio");
+      row.setAttribute("aria-checked", String(checked));
+      row.tabIndex = checked ? 0 : -1;
+      row.style.cursor = "pointer";
+      row.style.backgroundColor = checked ? "#EAF4FB" : "#FFFFFF";
+      if (marker) {
+        marker.style.backgroundColor = checked ? "#1478BD" : "#FFFFFF";
+        marker.style.outline = checked ? "6px solid #1478BD" : "1px solid #D7E0EA";
+        marker.style.outlineOffset = checked ? "-3px" : "-0.5px";
+      }
+      if (label) label.style.fontWeight = checked ? "600" : "400";
+    });
+  };
+  const choose = (index: number) => {
+    render(index);
+    rows[index]?.focus();
+  };
+  rows.forEach((row, index) => {
+    row.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      choose(index);
+    });
+    row.addEventListener("keydown", (event) => {
+      const direction = ["ArrowRight", "ArrowDown"].includes(event.key)
+        ? 1
+        : ["ArrowLeft", "ArrowUp"].includes(event.key)
+          ? -1
+          : 0;
+      if (event.key !== " " && event.key !== "Enter" && direction === 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      choose(direction === 0 ? index : (index + direction + rows.length) % rows.length);
+    });
+  });
+  render(selectedIndex);
+};
+
+const enhanceSearchRadios = (active: HTMLElement) => {
+  const desktopRows = Array.from(
+    active.querySelectorAll<HTMLElement>('[data-pencil-name^="SRCH-01 Radio "]'),
+  );
+  const desktopGroups = new Map<HTMLElement, HTMLElement[]>();
+  desktopRows.forEach((row) => {
+    const group = row.parentElement;
+    if (group) desktopGroups.set(group, [...(desktopGroups.get(group) ?? []), row]);
+  });
+  desktopGroups.forEach((rows, group) => enhanceRadioGroup(group, rows));
+  active
+    .querySelectorAll<HTMLElement>('[data-pencil-name="SRCH-01 Mobile Разделы Radio"]')
+    .forEach((group) =>
+      enhanceRadioGroup(
+        group,
+        Array.from(group.children).filter(
+          (child): child is HTMLElement =>
+            child instanceof active.ownerDocument.defaultView!.HTMLElement &&
+            child.dataset.pencilName?.startsWith("SRCH-01 Mobile Раздел ") === true,
+        ),
+      ),
+    );
+};
+
 const enhanceBinaryControls = (active: HTMLElement) => {
+  active
+    .querySelectorAll<HTMLElement>(
+      '[data-pencil-name="KB-05 Кейсы внедрения checkbox"], [data-pencil-name="KB-05 НАВИСА Настройка checkbox"], [data-pencil-name="KB-05 НАВИСА Установка checkbox"]',
+    )
+    .forEach((node) =>
+      enhanceBinaryControl(node, "checkbox", node.dataset.iconName?.includes("check") === true),
+    );
+  enhanceSearchRadios(active);
   active
     .querySelectorAll<HTMLElement>('[data-pencil-name="Inputs/Checkbox Checked Маркер"]')
     .forEach((node) => enhanceBinaryControl(node, "checkbox", true));
   active
     .querySelectorAll<HTMLElement>('[data-pencil-name="Inputs/Radio Selected Маркер"]')
-    .forEach((node) => enhanceBinaryControl(node, "radio", true));
+    .forEach((node) => {
+      if (!node.closest('[role="radiogroup"]')) enhanceBinaryControl(node, "radio", true);
+    });
   active
     .querySelectorAll<HTMLElement>(
       '[data-pencil-name="Inputs/Switch On Трек"], [data-pencil-name="Inputs/Switch Off Трек"]',

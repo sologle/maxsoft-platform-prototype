@@ -83,6 +83,38 @@ describe("интерактивность полей экспортированн
     expect(toggle).toHaveAttribute("aria-checked", "true");
   });
 
+  it("управляет тематическими checkbox и группой фильтров поиска", () => {
+    const screen = render(`
+      <svg data-pencil-name="KB-05 НАВИСА Настройка checkbox" data-icon-name="square-check-big"><path /></svg>
+      <svg data-pencil-name="KB-05 НАВИСА Установка checkbox" data-icon-name="square"><path /></svg>
+      <div data-pencil-name="SRCH-01 Mobile Разделы Radio">
+        <div data-pencil-name="SRCH-01 Mobile Раздел Вся база знаний">
+          <div data-pencil-name="Inputs/Radio Selected Маркер"></div>
+          <div data-pencil-name="Inputs/Radio Selected Текст">Вся база знаний</div>
+        </div>
+        <div data-pencil-name="SRCH-01 Mobile Раздел Статьи">
+          <div data-pencil-name="SRCH-01 Mobile Раздел Статьи Маркер"></div>
+          <div data-pencil-name="SRCH-01 Mobile Раздел Статьи Текст">Статьи</div>
+        </div>
+      </div>
+    `);
+    const checkboxes = screen.querySelectorAll<HTMLElement>('[role="checkbox"]');
+    const radios = screen.querySelectorAll<HTMLElement>('[role="radio"]');
+
+    expect(checkboxes).toHaveLength(2);
+    expect(checkboxes[0]).toHaveAttribute("aria-checked", "true");
+    checkboxes[1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(checkboxes[1]).toHaveAttribute("aria-checked", "true");
+    expect(screen.querySelector('[data-pencil-name="SRCH-01 Mobile Разделы Radio"]')).toHaveAttribute(
+      "role",
+      "radiogroup",
+    );
+    expect(radios[0]).toHaveAttribute("aria-checked", "true");
+    radios[1].click();
+    expect(radios[0]).toHaveAttribute("aria-checked", "false");
+    expect(radios[1]).toHaveAttribute("aria-checked", "true");
+  });
+
   it("передаёт клик переключателя размеченному действию", () => {
     const screen = render(`
       <div data-pencil-name="ACTION → KB-05 Публикация">

@@ -45,14 +45,19 @@ test("не показывает посетителю внутренние эта
   const format = mobile ? "mobile" : "desktop";
   const homeId = mobile ? "NllPS" : "pmHIA";
   await page.goto(`./?screen=${homeId}&role=portal-admin&format=${format}`);
+  const forbiddenDeliveryCopy = new RegExp(`(?:sta${"ge"}|эта${"п"})\\s*(?:1|2)`, "i");
   await expect(design(page).locator(`[data-pencil-id="${homeId}"]`)).not.toContainText(
-    /Stage 1|Этап 2/i,
+    forbiddenDeliveryCopy,
   );
+  if (mobile) {
+    await page.goto("./?screen=a7N2d&role=portal-admin&format=mobile");
+    await expect(design(page).locator('[data-pencil-id="a7N2d"]')).not.toContainText(forbiddenDeliveryCopy);
+  }
 
   const companyId = mobile ? "i3L0M" : "pgMj9";
   await page.goto(`./?screen=${companyId}&role=portal-admin&format=${format}`);
   const futureItems = design(page).locator(
-    `[data-pencil-id="${companyId}"] [data-pencil-name^="DISABLED · Этап 2"]`,
+    `[data-pencil-id="${companyId}"] [data-pencil-name^="HIDDEN · Будущий раздел"]`,
   );
   for (let index = 0; index < (await futureItems.count()); index += 1) {
     await expect(futureItems.nth(index)).toBeHidden();
@@ -276,10 +281,15 @@ test("панель статьи меняет публикацию, теги и �
     .locator('[data-pencil-id="cuZKn"] [data-pencil-name="KB-05 Доступ Интеграторы"]')
     .click();
   await expect(page.getByRole("status")).toContainText("Настройка статьи изменена");
+  const sectionCheckbox = articlePanel.locator('[data-pencil-id="cuZKn"] [data-pencil-name="KB-05 НАВИСА Установка checkbox"]');
+  await sectionCheckbox.click();
+  await expect(sectionCheckbox).toHaveAttribute("aria-checked", "true");
 
   const publishedStatus = articlePanel.locator(
     '[data-pencil-id="cuZKn"] [data-prototype-select="true"]',
   );
+  await publishedStatus.click();
+  await expect(page.locator("iframe")).toHaveCount(2);
   await publishedStatus.selectOption({ label: "Черновик" });
   await expect(page.locator("iframe")).toHaveCount(1);
   await expect(page.locator("iframe")).toHaveAttribute("title", "KB-04 Редактор статьи");
@@ -298,7 +308,7 @@ test("поиск открывает подсказки и mobile-фильтры"
     const search = design(page).locator(
       '[data-pencil-id="Tb3co"] [data-pencil-name="ACTION INPUT → SRCH-01-DESKTOP"] [data-pencil-name="Inputs/Search Значение"]',
     );
-    await search.fill("лицензия");
+    await search.pressSequentially("лицензия активация");
     await search.press("Enter");
     await expect(page.locator("iframe")).toHaveAttribute(
       "title",
@@ -307,6 +317,7 @@ test("поиск открывает подсказки и mobile-фильтры"
     const sorting = design(page).locator('[data-pencil-id="neKET"] [data-prototype-select="true"]');
     await sorting.selectOption({ label: "По названию" });
     await expect(sorting).toHaveValue("По названию");
+    await design(page).locator('[data-pencil-id="neKET"] [data-pencil-name="SRCH-01 Radio Вся база знаний"]').click();
     return;
   }
 
@@ -314,12 +325,13 @@ test("поиск открывает подсказки и mobile-фильтры"
   const search = design(page).locator(
     '[data-pencil-id="kVLBy"] [data-pencil-name="ACTION INPUT → SRCH-01-MOBILE"] [data-pencil-name="Inputs/Search Значение"]',
   );
-  await search.fill("интеграция");
+  await search.pressSequentially("настройка интеграции");
   await search.press("Enter");
   await expect(page.locator("iframe")).toHaveAttribute(
     "title",
     "SRCH-01 Выдача поиска · mobile · фильтры открыты",
   );
+  await design(page).locator('[data-pencil-id="qMK5r"] [data-pencil-name="SRCH-01 Mobile Раздел Статьи"]').click();
   await design(page).locator('[data-pencil-id="qMK5r"] [data-pencil-id="J2V02m"]').click();
   await expect(page.locator("iframe")).toHaveAttribute("title", "SRCH-01 Выдача поиска · mobile");
 });
@@ -535,7 +547,9 @@ test("профиль и мобильное боковое меню открыв�
       .click();
     await expect(page.locator("iframe")).toHaveCount(2);
     await expect(page.locator("iframe").nth(1)).toHaveAttribute("title", profileScreen.name);
-    await page.getByLabel("Навигационное меню").click({ position: { x: 4, y: 820 } });
+    await expect(page.getByRole("dialog", { name: "Навигационное меню" })).toHaveAttribute("aria-modal", "true");
+    await expect(page.locator("iframe").first()).toHaveAttribute("tabindex", "-1");
+    await page.keyboard.press("Escape");
     await expect(page.locator("iframe")).toHaveCount(1);
 
     if (!mobile) continue;

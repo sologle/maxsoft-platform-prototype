@@ -122,24 +122,10 @@ export const addSearchVideoResult = (active: HTMLElement, screen: ScreenDefiniti
   active.style.height = `${screen.height + addedHeight}px`;
 };
 
-export const removeDeliveryStageCopy = (active: HTMLElement) => {
-  active.querySelectorAll<HTMLElement>('[data-pencil-name^="DISABLED · Этап 2"]').forEach((node) => {
+export const hideFutureNavigation = (active: HTMLElement) => {
+  active.querySelectorAll<HTMLElement>('[data-pencil-name^="HIDDEN · Будущий раздел"]').forEach((node) => {
     node.style.display = "none";
     node.setAttribute("aria-hidden", "true");
-  });
-
-  active.querySelectorAll<HTMLElement>("[data-pencil-name]").forEach((node) => {
-    if (node.childElementCount > 0 || !node.textContent) return;
-    const text = node.textContent.trim();
-    if (/^STAGE 1$/i.test(text)) node.textContent = "ПЛАТФОРМА";
-    else if (/^Только Stage 1$/i.test(text)) node.textContent = "Доступные функции";
-    else if (/В прототипе показаны только функции Stage 1\./i.test(text)) {
-      node.textContent = "В прототипе показаны доступные функции платформы.";
-    } else if (/SHELL-01: показаны только разрешённые разделы Stage 1/i.test(text)) {
-      node.textContent = "Показаны доступные разделы платформы";
-    } else if (/Базовый тип: общая база знаний; создание запросов — после этапа 2/i.test(text)) {
-      node.textContent = "Базовый тип: общая база знаний.";
-    }
   });
 };
 

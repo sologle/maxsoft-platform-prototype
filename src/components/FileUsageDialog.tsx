@@ -11,7 +11,7 @@ export const FileUsageDialog = ({ onClose, onDownload, onOpenArticle }: FileUsag
   <div
     aria-labelledby="file-usage-title"
     aria-modal="true"
-    className="fixed inset-0 z-[60] flex justify-end bg-[#0b1726]/55 backdrop-blur-[2px]"
+    className="fixed inset-0 z-[80] flex justify-end bg-[#0b1726]/55 backdrop-blur-[2px]"
     role="dialog"
   >
     <aside className="flex h-full w-full max-w-[520px] animate-[drawer-in_200ms_ease-out] flex-col bg-white shadow-[-18px_0_60px_rgba(0,0,0,0.22)]">

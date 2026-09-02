@@ -11,7 +11,7 @@ export const ImportOutcomeDialog = ({ onCancel, onSelect }: ImportOutcomeDialogP
   <div
     aria-labelledby="import-outcome-title"
     aria-modal="true"
-    className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0b1726]/60 p-4 backdrop-blur-[2px]"
+    className="fixed inset-0 z-[80] flex items-center justify-center bg-[#0b1726]/60 p-4 backdrop-blur-[2px]"
     role="dialog"
   >
     <section className="w-full max-w-[540px] animate-[modal-in_180ms_ease-out] rounded-2xl bg-white p-5 shadow-[0_24px_90px_rgba(0,0,0,0.36)] sm:p-6">
