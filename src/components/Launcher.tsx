@@ -34,7 +34,7 @@ export const Launcher = ({ onStart }: LauncherProps) => (
         <span className="h-7 w-7 rounded bg-[var(--ms-primary)]" aria-hidden="true" />
         <span className="font-heading text-lg font-bold">MaxSoft</span>
         <span className="ml-auto rounded-full bg-[var(--ms-primary-soft)] px-3 py-1 text-xs font-semibold text-[var(--ms-primary)]">
-          Прототип · этап 1
+          Интерактивный прототип
         </span>
       </div>
     </header>

@@ -40,6 +40,25 @@ test("запускает все шесть ролевых точек входа"
   }
 });
 
+test("не показывает посетителю внутренние этапы разработки", async ({ page }, testInfo) => {
+  const mobile = testInfo.project.name.startsWith("mobile");
+  const format = mobile ? "mobile" : "desktop";
+  const homeId = mobile ? "NllPS" : "pmHIA";
+  await page.goto(`./?screen=${homeId}&role=portal-admin&format=${format}`);
+  await expect(design(page).locator(`[data-pencil-id="${homeId}"]`)).not.toContainText(
+    /Stage 1|Этап 2/i,
+  );
+
+  const companyId = mobile ? "i3L0M" : "pgMj9";
+  await page.goto(`./?screen=${companyId}&role=portal-admin&format=${format}`);
+  const futureItems = design(page).locator(
+    `[data-pencil-id="${companyId}"] [data-pencil-name^="DISABLED · Этап 2"]`,
+  );
+  for (let index = 0; index < (await futureItems.count()); index += 1) {
+    await expect(futureItems.nth(index)).toBeHidden();
+  }
+});
+
 test("гость проходит с главной ко входу", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.startsWith("desktop"));
   const card = page.getByTestId("role-entry").filter({ hasText: "Гость" });
@@ -258,40 +277,45 @@ test("панель статьи меняет публикацию, теги и �
     .click();
   await expect(page.getByRole("status")).toContainText("Настройка статьи изменена");
 
-  await articlePanel
-    .locator('[data-pencil-id="cuZKn"] [data-pencil-name="KB-05 Публикация"]')
-    .click();
+  const publishedStatus = articlePanel.locator(
+    '[data-pencil-id="cuZKn"] [data-prototype-select="true"]',
+  );
+  await publishedStatus.selectOption({ label: "Черновик" });
   await expect(page.locator("iframe")).toHaveCount(1);
   await expect(page.locator("iframe")).toHaveAttribute("title", "KB-04 Редактор статьи");
 
   await page.goto("./?screen=T17CYs&role=portal-admin&format=desktop");
-  await design(page)
-    .locator('[data-pencil-id="T17CYs"] [data-pencil-name="KB-05 Публикация"]')
-    .click();
+  const draftStatus = design(page).locator(
+    '[data-pencil-id="T17CYs"] [data-prototype-select="true"]',
+  );
+  await draftStatus.selectOption({ label: "Опубликована" });
   await expect(page.locator("iframe")).toHaveAttribute("title", "KB-02 Статья");
 });
 
 test("поиск открывает подсказки и mobile-фильтры", async ({ page }, testInfo) => {
   if (testInfo.project.name.startsWith("desktop")) {
     await page.goto("./?screen=Tb3co&role=client-employee&format=desktop");
-    await design(page)
-      .locator('[data-pencil-id="Tb3co"] [data-pencil-name="ACTION INPUT → SRCH-01-DESKTOP"]')
-      .click();
+    const search = design(page).locator(
+      '[data-pencil-id="Tb3co"] [data-pencil-name="ACTION INPUT → SRCH-01-DESKTOP"] [data-pencil-name="Inputs/Search Значение"]',
+    );
+    await search.fill("лицензия");
+    await search.press("Enter");
     await expect(page.locator("iframe")).toHaveAttribute(
       "title",
       "SRCH-01 Выдача поиска · подсказки тегов",
     );
-    await design(page)
-      .locator('[data-pencil-id="neKET"] [data-pencil-name="ACTION SELECT → SRCH-01-DESKTOP"]')
-      .click();
-    await expect(page.locator("iframe")).toHaveAttribute("title", "SRCH-01 Выдача поиска");
+    const sorting = design(page).locator('[data-pencil-id="neKET"] [data-prototype-select="true"]');
+    await sorting.selectOption({ label: "По названию" });
+    await expect(sorting).toHaveValue("По названию");
     return;
   }
 
   await page.goto("./?screen=kVLBy&role=client-employee&format=mobile");
-  await design(page)
-    .locator('[data-pencil-id="kVLBy"] [data-pencil-name="ACTION INPUT → SRCH-01-MOBILE"]')
-    .click();
+  const search = design(page).locator(
+    '[data-pencil-id="kVLBy"] [data-pencil-name="ACTION INPUT → SRCH-01-MOBILE"] [data-pencil-name="Inputs/Search Значение"]',
+  );
+  await search.fill("интеграция");
+  await search.press("Enter");
   await expect(page.locator("iframe")).toHaveAttribute(
     "title",
     "SRCH-01 Выдача поиска · mobile · фильтры открыты",
@@ -341,8 +365,8 @@ test("desktop-реестр открывает drawer мест использов
     )
     .click();
   await expect(page.getByRole("dialog", { name: "Места использования" })).toBeVisible();
-  await expect(page.getByRole("dialog")).toContainText("Активация сетевой лицензии");
-  await page.getByRole("button", { name: /Настройка интеграции с САПР-комплексом/ }).click();
+  await expect(page.getByRole("dialog")).toContainText("Настройка интеграции с САПР-комплексом");
+  await page.getByRole("button", { name: /Видео: Настройка интеграции/ }).click();
   await expect(page.getByRole("dialog", { name: "Места использования" })).toHaveCount(0);
   await expect(page.locator("iframe")).toHaveAttribute(
     "title",
@@ -430,6 +454,110 @@ test("менеджер остаётся в мобильной ветке", async
   await expect(page.locator("body")).not.toHaveCSS("overflow-x", "scroll");
 });
 
+test("поля, списки и переключатели доступны для демонстрации", async ({ page }, testInfo) => {
+  const mobile = testInfo.project.name.startsWith("mobile");
+  const format = mobile ? "mobile" : "desktop";
+  const registrationId = mobile ? "atKnC" : "YDq1G";
+  await page.goto(`./?screen=${registrationId}&role=guest&format=${format}`);
+  const registration = design(page).locator(`[data-pencil-id="${registrationId}"]`);
+  const editable = registration.locator('[data-prototype-editable="true"]').first();
+  await editable.fill("demo@maxsoft.ru");
+  await expect(editable).toHaveText("demo@maxsoft.ru");
+
+  const companyTypeId = mobile ? "OciI4" : "rj3oR";
+  await page.goto(`./?screen=${companyTypeId}&role=portal-admin&format=${format}`);
+  const companyType = design(page).locator(`[data-pencil-id="${companyTypeId}"]`);
+  const select = companyType.getByRole("combobox").first();
+  const options = await select.locator("option").allTextContents();
+  await select.selectOption({ label: options[1] });
+  await expect(select).toHaveValue(options[1]);
+
+  const settingsId = mobile ? "f8cxdc" : "gjiKL";
+  await page.goto(`./?screen=${settingsId}&role=portal-admin&format=${format}`);
+  const toggle = design(page)
+    .locator(`[data-pencil-id="${settingsId}"]`)
+    .getByRole("switch")
+    .first();
+  const initial = await toggle.getAttribute("aria-checked");
+  await toggle.press(" ");
+  await expect(toggle).toHaveAttribute("aria-checked", initial === "true" ? "false" : "true");
+});
+
+test("профиль и мобильное боковое меню открываются и закрываются у каждой роли", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(90_000);
+  const mobile = testInfo.project.name.startsWith("mobile");
+  const format = mobile ? "mobile" : "desktop";
+  const cases = [
+    {
+      role: "portal-admin",
+      home: mobile ? "NllPS" : "pmHIA",
+      profile: mobile ? "pSJtI" : "DMuJh",
+      menu: "BryXu",
+    },
+    {
+      role: "support-engineer",
+      home: mobile ? "QK2cj" : "w9mzj",
+      profile: mobile ? "qxJth" : "jZ84j",
+      menu: "gtRSp",
+    },
+    {
+      role: "manager",
+      home: mobile ? "bLysq" : "oge4c",
+      profile: mobile ? "BfGmN" : "WLQ67",
+      menu: "oB7s3",
+    },
+    {
+      role: "client-admin",
+      home: mobile ? "RcJJN" : "uuYrz",
+      profile: mobile ? "ruCKR" : "ZFDsN",
+      menu: "HucIi",
+    },
+    {
+      role: "client-employee",
+      home: mobile ? "KvdWU" : "uLhhN",
+      profile: mobile ? "DmOzx" : "t0gHI",
+      menu: "BcqPK",
+    },
+  ];
+
+  for (const entry of cases) {
+    const profileScreen = screens.find((screen) => screen.id === entry.profile);
+    if (!profileScreen) throw new Error(`E2E_PROFILE_SCREEN_MISSING: ${entry.profile}`);
+    await page.goto(`./?screen=${entry.home}&role=${entry.role}&format=${format}`);
+    await page
+      .locator("iframe")
+      .first()
+      .contentFrame()
+      .locator(`[data-pencil-id="${entry.home}"] [data-pencil-name*="меню профиля"]`)
+      .first()
+      .click();
+    await expect(page.locator("iframe")).toHaveCount(2);
+    await expect(page.locator("iframe").nth(1)).toHaveAttribute("title", profileScreen.name);
+    await page.getByLabel("Навигационное меню").click({ position: { x: 4, y: 820 } });
+    await expect(page.locator("iframe")).toHaveCount(1);
+
+    if (!mobile) continue;
+    const menuScreen = screens.find((screen) => screen.id === entry.menu);
+    if (!menuScreen) throw new Error(`E2E_MENU_SCREEN_MISSING: ${entry.menu}`);
+    await page
+      .locator("iframe")
+      .contentFrame()
+      .locator(`[data-pencil-id="${entry.home}"] [data-pencil-name^="SHELL-02 Mobile меню"]`)
+      .click();
+    await expect(page.locator("iframe")).toHaveCount(2);
+    await expect(page.locator("iframe").nth(1)).toHaveAttribute("title", menuScreen.name);
+    await page
+      .locator("iframe")
+      .nth(1)
+      .contentFrame()
+      .locator(`[data-pencil-id="${entry.menu}"] [data-pencil-name="DISABLED · меню открыто для демонстрации"]`)
+      .click();
+    await expect(page.locator("iframe")).toHaveCount(1);
+  }
+});
+
 test("администратор клиента открывает сотрудников своей компании", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.startsWith("mobile"));
   const card = page.getByTestId("role-entry").filter({ hasText: "Администратор клиента" });
@@ -460,6 +588,7 @@ test("инженер проходит успех и ошибку импорта 
       title: mobile
         ? "KB-04 Редактор статьи · импорт ошибка · mobile"
         : "KB-04 Редактор статьи · импорт ошибка",
+      retry: true,
     },
   ];
 
@@ -472,6 +601,24 @@ test("инженер проходит успех и ошибку импорта 
     await page.getByRole("button", { name: new RegExp(outcome.button) }).click();
     const resultFrame = mobile ? page.locator("iframe") : page.locator("iframe").nth(1);
     await expect(resultFrame).toHaveAttribute("title", outcome.title, { timeout: 5000 });
+    if (outcome.retry) {
+      await expect(resultFrame).toHaveAttribute("data-prototype-ready", "true");
+      const retryFrame = resultFrame.contentFrame();
+      await retryFrame
+        .locator(
+          `[data-pencil-id="${mobile ? "bTLLo" : "cKrvi"}"] [data-pencil-name^="ACTION → KB-04"][data-pencil-name*="Повтор"]`,
+        )
+        .click();
+      await expect(page.getByRole("dialog", { name: "Результат импорта Word" })).toBeVisible();
+      await page.getByRole("button", { name: /Успешный импорт/ }).click();
+      await expect(mobile ? page.locator("iframe") : page.locator("iframe").nth(1)).toHaveAttribute(
+        "title",
+        mobile
+          ? "KB-04 Редактор статьи · импорт завершён · mobile"
+          : "KB-04 Редактор статьи · импорт завершён",
+        { timeout: 5000 },
+      );
+    }
   }
 });
 
@@ -616,7 +763,7 @@ const representativeScreens: Record<ScreenFormat, Array<{ id: string; role: stri
   ],
 };
 
-test("рендерит представителя каждой экранной группы этапа 1", async ({ page }, testInfo) => {
+test("рендерит представителя каждой экранной группы платформы", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   const format: ScreenFormat = testInfo.project.name.startsWith("mobile") ? "mobile" : "desktop";
   for (const entry of representativeScreens[format]) {

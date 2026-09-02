@@ -41,6 +41,7 @@ export const FileUsageDialog = ({ onClose, onDownload, onOpenArticle }: FileUsag
         <div className="mt-5 grid gap-3">
           {mockFileUsage.map((item) => (
             <button
+              aria-label={`${item.articleKind === "video" ? "Видео" : "Статья"}: ${item.title}`}
               className="w-full rounded-xl border border-[var(--ms-border)] p-4 text-left transition hover:border-[var(--ms-primary)] hover:bg-[var(--ms-primary-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)]"
               key={item.id}
               onClick={() => onOpenArticle(item.articleKind)}

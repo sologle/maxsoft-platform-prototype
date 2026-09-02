@@ -220,6 +220,7 @@ export const App = () => {
       ),
     [view.base.format, view.base.role],
   );
+  const navigationOverlay = overlayScreen?.name.startsWith("SHELL-01") ?? false;
 
   if (!activeScreen) return <Launcher onStart={start} />;
 
@@ -234,17 +235,27 @@ export const App = () => {
 
       {overlayScreen && view.overlay ? (
         <div
-          aria-label="Модальное состояние прототипа"
-          className="fixed inset-0 z-40 flex items-center justify-center overflow-auto bg-[#0b1726]/55 p-4 backdrop-blur-[2px]"
+          aria-label={navigationOverlay ? "Навигационное меню" : "Модальное состояние прототипа"}
+          className={
+            navigationOverlay
+              ? "fixed inset-0 z-40 overflow-auto bg-transparent"
+              : "fixed inset-0 z-40 flex items-center justify-center overflow-auto bg-[#0b1726]/55 p-4 backdrop-blur-[2px]"
+          }
           onMouseDown={(event) => {
             if (event.currentTarget === event.target) closeOverlay();
           }}
           role="presentation"
         >
-          <div className="animate-[modal-in_180ms_ease-out] overflow-hidden rounded-xl shadow-[0_24px_90px_rgba(0,0,0,0.36)]">
+          <div
+            className={
+              navigationOverlay
+                ? "overflow-hidden"
+                : "animate-[modal-in_180ms_ease-out] overflow-hidden rounded-xl shadow-[0_24px_90px_rgba(0,0,0,0.36)]"
+            }
+          >
             <DesignFrame
               onAction={(action) => handleAction(action, true)}
-              overlay
+              overlay={!navigationOverlay}
               roleLabel={requireRoleLabel(view.base.role)}
               screen={overlayScreen}
               userRole={view.base.role}

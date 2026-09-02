@@ -406,7 +406,7 @@ export const resolveAction = (
 
   if (!target) return { notice: "У действия не задан целевой экран." };
   if (/DISABLED|НЕДОСТУПНЫЙ ПУНКТ|НЕ ПОДКЛЮЧЕНО/.test(upper)) {
-    return { notice: "Этот пункт не входит в этап 1." };
+    return { notice: "Этот раздел пока не включён в демонстрацию." };
   }
   if (
     (current.role === "support-engineer" || current.role === "manager") &&
@@ -479,8 +479,8 @@ export const resolveAction = (
 
   if (
     group === "KB-04" &&
-    ["sUjWN", "lR77f"].includes(current.screenId) &&
-    upper.includes("ИМПОРТ")
+    ["sUjWN", "lR77f", "cKrvi", "bTLLo"].includes(current.screenId) &&
+    (upper.includes("ИМПОРТ") || upper.includes("ПОВТОР"))
   ) {
     return { effect: "import-choice" };
   }
@@ -521,7 +521,10 @@ export const resolveAction = (
   if (group === "SHELL-01") {
     if (current.role === "guest") return transition(fixedScreens["AUTH-02"][current.format], current, screens);
     const mapping = upper.includes("ПРОФИЛ") ? roleProfileMenu : roleShellMenu;
-    return transition(mapping[current.role][current.format], current, screens);
+    return {
+      ...transition(mapping[current.role][current.format], current, screens),
+      presentation: "overlay",
+    };
   }
   if (group === "SHELL-02") {
     return transition(roleHome[current.role][current.format], current, screens);

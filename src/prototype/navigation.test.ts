@@ -19,7 +19,7 @@ const state = (overrides: Partial<PrototypeState> = {}): PrototypeState => ({
   ...overrides,
 });
 
-describe("маршрутизация прототипа этапа 1", () => {
+describe("маршрутизация прототипа платформы", () => {
   it("не показывает в прямой ссылке и селекторе экраны чужой роли", () => {
     const adminKnowledgeBase = screens.find((screen) => screen.id === "Fy0nE");
     const supportCompanies = screens.find((screen) => screen.id === "umm3u");
@@ -38,6 +38,38 @@ describe("маршрутизация прототипа этапа 1", () => {
     expect(startForRole("portal-admin", "desktop", screens).screenId).toBe("pmHIA");
     expect(startForRole("portal-admin", "mobile", screens).screenId).toBe("NllPS");
     expect(startForRole("guest", "mobile", screens).screenId).toBe("kiGN4");
+  });
+
+  it("открывает основное меню и меню профиля каждой авторизованной роли", () => {
+    const cases = [
+      ["portal-admin", "pmHIA", "Ylweo", "DMuJh", "NllPS", "BryXu", "pSJtI"],
+      ["support-engineer", "w9mzj", "b9Obtj", "jZ84j", "QK2cj", "gtRSp", "qxJth"],
+      ["manager", "oge4c", "TnjSm", "WLQ67", "bLysq", "oB7s3", "BfGmN"],
+      ["client-admin", "uuYrz", "Jv6PU", "ZFDsN", "RcJJN", "HucIi", "ruCKR"],
+      ["client-employee", "uLhhN", "vIwka", "t0gHI", "KvdWU", "BcqPK", "DmOzx"],
+    ] as const;
+
+    for (const [role, desktopHome, desktopMenu, desktopProfile, mobileHome, mobileMenu, mobileProfile] of cases) {
+      const desktop = state({ screenId: desktopHome, role, format: "desktop" });
+      expect(resolveAction("ACTION → SHELL-01", desktop, screens).nextState?.screenId).toBe(
+        desktopMenu,
+      );
+      const desktopProfileResult = resolveAction("ACTION → SHELL-01 меню профиля", desktop, screens);
+      expect(desktopProfileResult.nextState?.screenId).toBe(desktopProfile);
+      expect(desktopProfileResult.presentation).toBe("overlay");
+
+      const mobile = state({ screenId: mobileHome, role, format: "mobile" });
+      expect(resolveAction("ACTION → SHELL-01-MOBILE-MENU", mobile, screens).nextState?.screenId).toBe(
+        mobileMenu,
+      );
+      const mobileProfileResult = resolveAction(
+        "ACTION → SHELL-01 меню профиля · mobile",
+        mobile,
+        screens,
+      );
+      expect(mobileProfileResult.nextState?.screenId).toBe(mobileProfile);
+      expect(mobileProfileResult.presentation).toBe("overlay");
+    }
   });
 
   it("отличает мобильный полноэкранный flow от модального фрагмента", () => {
@@ -179,9 +211,23 @@ describe("маршрутизация прототипа этапа 1", () => {
         screens,
       ).effect,
     ).toBe("import-choice");
+    expect(
+      resolveAction(
+        "ACTION → KB-04 Mobile Повторить",
+        { ...author, screenId: "bTLLo", format: "mobile" },
+        screens,
+      ).effect,
+    ).toBe("import-choice");
     if (!mobileProgress.nextState) throw new Error("TEST_IMPORT_MOBILE_PROGRESS_MISSING");
     expect(importOutcomeState("success", mobileProgress.nextState, screens).screenId).toBe("P0rQH0");
     expect(importOutcomeState("error", mobileProgress.nextState, screens).screenId).toBe("bTLLo");
+    expect(
+      resolveAction(
+        "ACTION → KB-04 Повторить импорт DOCX",
+        { ...author, screenId: "cKrvi" },
+        screens,
+      ).effect,
+    ).toBe("import-choice");
 
     const download = resolveAction(
       "ACTION → KB-03 Статья / KB-03 Скачать инструкция.pdf",

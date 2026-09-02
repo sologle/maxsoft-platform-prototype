@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ScreenDefinition } from "../generated/screens";
-import { addAdminHomeShortcuts, addSearchVideoResult } from "../prototype/frame-enhancements";
+import {
+  addAdminHomeShortcuts,
+  addSearchVideoResult,
+  animateMobileDrawer,
+  removeDeliveryStageCopy,
+} from "../prototype/frame-enhancements";
+import { enhanceFormControls } from "../prototype/form-enhancements";
 import type { UserRole } from "../prototype/navigation";
 
 interface DesignFrameProps {
@@ -110,6 +116,8 @@ export const DesignFrame = ({
 
     addAdminHomeShortcuts(active, screen);
     addSearchVideoResult(active, screen);
+    removeDeliveryStageCopy(active);
+    animateMobileDrawer(active, screen);
 
     const setImplicitAction = (selector: string, action: string) => {
       active.querySelectorAll<HTMLElement>(selector).forEach((node) => {
@@ -174,6 +182,11 @@ export const DesignFrame = ({
         }
       });
     setImplicitAction('[data-pencil-name="Navigation/Topbar Поиск"]', "ACTION → SRCH-01");
+    setImplicitAction('[data-pencil-name^="SHELL-02 Mobile меню"]', "ACTION → SHELL-01-MOBILE-MENU");
+    setImplicitAction(
+      '[data-pencil-name="DISABLED · меню открыто для демонстрации"]',
+      "ACTION → SHELL-02 Закрыть меню",
+    );
     setImplicitAction('[data-pencil-name="KB-05 Публикация"]', "ACTION → KB-05 Публикация");
     setImplicitAction('[data-pencil-name^="KB-05 Опция тега "]', "ACTION → KB-05 Выбрать тег");
     setImplicitAction('[data-pencil-name^="KB-05 Доступ "]', "ACTION → KB-05 Изменить доступ");
@@ -200,6 +213,17 @@ export const DesignFrame = ({
       [data-pencil-name="SHELL Кнопка помощника"],
       [data-pencil-name^="SHELL/Floating AI Assistant"] { display: none !important; pointer-events: none !important; visibility: hidden !important; }
       .prototype-toggled { filter: saturate(1.25) brightness(0.94) !important; }
+      .prototype-control-active { box-shadow: 0 0 0 3px rgba(20, 120, 189, 0.25) !important; }
+      .prototype-binary-off { filter: grayscale(0.8) opacity(0.58) !important; }
+      .prototype-native-select {
+        position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%;
+        appearance: none; border: 0; background: transparent; color: transparent; cursor: pointer;
+      }
+      .prototype-native-select option { color: #1b334b; }
+      @keyframes prototype-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+      @keyframes prototype-drawer-out { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+      .prototype-drawer-open { animation: prototype-drawer-in 180ms ease-out both; }
+      .prototype-drawer-closing { animation: prototype-drawer-out 160ms ease-in both; }
     `;
     document.head.append(interactionStyles);
 
@@ -211,15 +235,36 @@ export const DesignFrame = ({
       const actionName = node.dataset.prototypeAction ?? node.dataset.pencilName;
       node.setAttribute("aria-label", actionName?.replace("ACTION →", "Перейти:") ?? "Действие");
     });
+    enhanceFormControls(active, onAction);
 
     const activate = (node: HTMLElement) => {
       node.classList.toggle("prototype-toggled");
       const actionName = node.dataset.prototypeAction ?? node.dataset.pencilName;
-      if (actionName) onAction(actionName);
+      if (!actionName) return;
+      if (actionName.includes("SHELL-02 Закрыть меню")) {
+        const drawer = active.querySelector<HTMLElement>('[data-pencil-name^="Открытое мобильное меню"]');
+        drawer?.classList.add("prototype-drawer-closing");
+        window.setTimeout(() => onAction(actionName), 160);
+        return;
+      }
+      onAction(actionName);
     };
     const onClick = (event: MouseEvent) => {
-      const node = (event.target as Element | null)?.closest<HTMLElement>(actionSelector);
-      if (!node || !active.contains(node)) return;
+      const target = event.target as Element | null;
+      if (target?.closest('[data-prototype-editable="true"]')) {
+        event.stopPropagation();
+        return;
+      }
+      const node = target?.closest<HTMLElement>(actionSelector);
+      if (!node || !active.contains(node)) {
+        const profileMenu = active.querySelector<HTMLElement>('[data-pencil-name^="Профильное меню"]');
+        if (profileMenu && target && !profileMenu.contains(target)) {
+          event.preventDefault();
+          event.stopPropagation();
+          onAction("ACTION → SHELL-02 Закрыть меню профиля");
+        }
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       activate(node);

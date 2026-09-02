@@ -1,4 +1,5 @@
 import type { ScreenDefinition } from "../generated/screens";
+import { mockSearchVideo } from "../data/mock-data";
 
 const clearDuplicatePencilIds = (node: HTMLElement) => {
   node.removeAttribute("data-pencil-id");
@@ -78,18 +79,18 @@ export const addSearchVideoResult = (active: HTMLElement, screen: ScreenDefiniti
     clearDuplicatePencilIds(video);
     video.dataset.pencilName = "ACTION → KB-03-DESKTOP";
     video.dataset.prototypeAction = "ACTION → KB-03 Статья с видео";
-    setText(video, '[data-pencil-name="SRCH-01 Результат 1 тип текст"]', "ВИДЕО");
+    setText(video, '[data-pencil-name="SRCH-01 Результат 1 тип текст"]', mockSearchVideo.type);
     setText(
       video,
       '[data-pencil-name="SRCH-01 Результат 1 название"]',
-      "Настройка интеграции с САПР-комплексом",
+      mockSearchVideo.title,
     );
-    setText(video, '[data-pencil-name="SRCH-01 Результат 1 сниппет начало"]', "Видео: ");
-    setText(video, '[data-pencil-name="SRCH-01 Результат 1 совпадение"]', "интеграция");
+    setText(video, '[data-pencil-name="SRCH-01 Результат 1 сниппет начало"]', mockSearchVideo.snippetStart);
+    setText(video, '[data-pencil-name="SRCH-01 Результат 1 совпадение"]', mockSearchVideo.matchedText);
     setText(
       video,
       '[data-pencil-name="SRCH-01 Результат 1 сниппет конец"]',
-      "с САПР по шагам и таймкодам.",
+      mockSearchVideo.snippetEnd,
     );
     lastResult.after(video);
     active.style.height = `${screen.height + addedHeight}px`;
@@ -106,17 +107,44 @@ export const addSearchVideoResult = (active: HTMLElement, screen: ScreenDefiniti
   clearDuplicatePencilIds(video);
   video.dataset.pencilName = "ACTION → KB-03-MOBILE";
   video.dataset.prototypeAction = "ACTION → KB-03 Статья с видео";
-  setText(video, '[data-pencil-name="SRCH-01 Mobile Результат 1 Тип"]', "ВИДЕО · НАВИСА");
+  setText(video, '[data-pencil-name="SRCH-01 Mobile Результат 1 Тип"]', mockSearchVideo.mobileType);
   setText(
     video,
     '[data-pencil-name="SRCH-01 Mobile Результат 1 Заголовок"]',
-    "Настройка интеграции с САПР-комплексом",
+    mockSearchVideo.title,
   );
   setText(
     video,
     '[data-pencil-name="SRCH-01 Mobile Результат 1 Сниппет"]',
-    "Видеоинструкция с быстрыми переходами по ключевым этапам настройки.",
+    mockSearchVideo.mobileSnippet,
   );
   file.after(video);
   active.style.height = `${screen.height + addedHeight}px`;
+};
+
+export const removeDeliveryStageCopy = (active: HTMLElement) => {
+  active.querySelectorAll<HTMLElement>('[data-pencil-name^="DISABLED · Этап 2"]').forEach((node) => {
+    node.style.display = "none";
+    node.setAttribute("aria-hidden", "true");
+  });
+
+  active.querySelectorAll<HTMLElement>("[data-pencil-name]").forEach((node) => {
+    if (node.childElementCount > 0 || !node.textContent) return;
+    const text = node.textContent.trim();
+    if (/^STAGE 1$/i.test(text)) node.textContent = "ПЛАТФОРМА";
+    else if (/^Только Stage 1$/i.test(text)) node.textContent = "Доступные функции";
+    else if (/В прототипе показаны только функции Stage 1\./i.test(text)) {
+      node.textContent = "В прототипе показаны доступные функции платформы.";
+    } else if (/SHELL-01: показаны только разрешённые разделы Stage 1/i.test(text)) {
+      node.textContent = "Показаны доступные разделы платформы";
+    } else if (/Базовый тип: общая база знаний; создание запросов — после этапа 2/i.test(text)) {
+      node.textContent = "Базовый тип: общая база знаний.";
+    }
+  });
+};
+
+export const animateMobileDrawer = (active: HTMLElement, screen: ScreenDefinition) => {
+  if (screen.format !== "mobile" || !screen.name.startsWith("SHELL-01 Каркас ·")) return;
+  const drawer = active.querySelector<HTMLElement>('[data-pencil-name^="Открытое мобильное меню"]');
+  if (drawer) drawer.classList.add("prototype-drawer-open");
 };
