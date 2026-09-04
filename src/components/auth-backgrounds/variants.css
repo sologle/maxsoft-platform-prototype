@@ -99,17 +99,17 @@
   background: radial-gradient(at 75% 25%, #abd7ef60, transparent 75%), #f9fcff;
 }
 
-.auth-swatch-field {
-  background: repeating-linear-gradient(135deg, transparent 0 5px, #1478bd50 5px 6px, transparent 6px 11px), #f2faff;
+.auth-swatch-echo {
+  background: repeating-radial-gradient(circle at 60% 60%, transparent 0 5px, #1478bd50 6px 7px, transparent 8px 12px), #f2faff;
+}
+.auth-swatch-silk {
+  background: repeating-linear-gradient(165deg, transparent 0 4px, #1478bd50 5px 6px, transparent 7px 11px), #f2faff;
+}
+.auth-swatch-ribbon {
+  background: linear-gradient(35deg, transparent 35%, #2a85cf80 38% 40%, transparent 43%), linear-gradient(145deg, transparent 45%, #1dadb970 48% 51%, transparent 54%), #f2faff;
 }
 .auth-swatch-living-field {
   background: repeating-conic-gradient(from 15deg, #1478bd50 0deg 5deg, transparent 5deg 40deg), #f2faff;
-}
-.auth-swatch-swarm {
-  background: radial-gradient(circle at 32% 30%, #1478bd 0 1px, transparent 2px), radial-gradient(circle at 65% 55%, #24abc1 0 2px, transparent 3px), radial-gradient(circle at 40% 75%, #1478bd80 0 1px, transparent 2px), #edf9fc;
-}
-.auth-swatch-signal {
-  background: radial-gradient(circle at center, #1478bd 0 2px, transparent 3px), linear-gradient(35deg, transparent 49%, #1478bd50 50% 51%, transparent 52%), linear-gradient(135deg, transparent 49%, #1478bd50 50% 51%, transparent 52%), #eaf6fd;
 }
 .auth-reactive-canvas {
   display: block;
@@ -118,26 +118,16 @@
   width: 100%;
   height: 100%;
 }
-.portal-auth-backdrop[data-background="field"],
-.portal-auth-backdrop[data-background="living-field"] {
-  background: radial-gradient(ellipse at 85% 20%, #bce6f51a, transparent 60%), var(--ms-surface);
+.portal-auth-backdrop[data-background="living-field"],
+.portal-auth-backdrop[data-background="echo"],
+.portal-auth-backdrop[data-background="silk"],
+.portal-auth-backdrop[data-background="ribbon"] {
+  background: var(--ms-surface);
 }
-.portal-auth-backdrop[data-background="swarm"] {
-  background: radial-gradient(ellipse at 10% 70%, #a0e3ed30, transparent 55%), radial-gradient(ellipse at 90% 15%, #b9dff831, transparent 50%), var(--ms-surface);
-}
-.portal-auth-backdrop[data-background="signal"] {
-  background: radial-gradient(ellipse at 80% 20%, #c1e5fa24, transparent 60%), var(--ms-surface);
-}
-html[data-theme="dark"] .portal-auth-backdrop[data-background="field"],
-html[data-theme="dark"] .portal-auth-backdrop[data-background="living-field"] {
-  background: #0c1722;
-}
-html[data-theme="dark"] .portal-auth-backdrop[data-background="swarm"] {
-  background: radial-gradient(ellipse at 10% 70%, #10455645, transparent 55%), #0b1823;
-}
-html[data-theme="dark"] .portal-auth-backdrop[data-background="signal"] {
-  background: radial-gradient(ellipse at 80% 20%, #14395630, transparent 55%), #0b1520;
-}
+html[data-theme="dark"] .portal-auth-backdrop[data-background="living-field"] { background: #0c1722; }
+html[data-theme="dark"] .portal-auth-backdrop[data-background="echo"] { background: #0d1825; }
+html[data-theme="dark"] .portal-auth-backdrop[data-background="silk"] { background: #101c29; }
+html[data-theme="dark"] .portal-auth-backdrop[data-background="ribbon"] { background: #0c1724; }
 @media (max-width: 800px) {
   .auth-background-swatch { display: none; }
 }

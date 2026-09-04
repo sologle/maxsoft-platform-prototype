@@ -1,10 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 test("сравнение фонов сохраняет форму входа и выбранный вариант при навигации", async ({ page }) => {
   await page.goto("./?page=login&role=guest&background=minimal");
+  await expect(page.getByRole("group", { name: "Варианты фона" }).getByRole("button")).toHaveCount(5);
+  await expect(page.getByRole("button", { name: /Поле|Рой|Сигнал/ })).toHaveCount(0);
   const email = page.getByLabel("Электронная почта");
   await email.fill("preview@maxsoft.ru");
-  for (const [name, value] of [["Живое", "living-field"], ["Поле", "field"], ["Рой", "swarm"], ["Сигнал", "signal"], ["Тишина", "minimal"]]) {
+  for (const [name, value] of [["Живое", "living-field"], ["Эхо", "echo"], ["Шёлк", "silk"], ["След", "ribbon"], ["Тишина", "minimal"]]) {
     const button = page.getByRole("button", { name: new RegExp(name) });
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");
@@ -12,13 +14,13 @@ test("сравнение фонов сохраняет форму входа и 
     await expect(email).toHaveValue("preview@maxsoft.ru");
     await expect(page).toHaveURL(new RegExp(`background=${value}`));
   }
-  await page.getByRole("button", { name: /Рой/ }).click();
+  await page.getByRole("button", { name: /След/ }).click();
   await page.getByRole("button", { name: "Не помню пароль" }).click();
-  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "swarm");
+  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "ribbon");
   await page.getByRole("button", { name: "Вернуться ко входу" }).click();
-  await expect(page.getByRole("button", { name: /Рой/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: /След/ })).toHaveAttribute("aria-pressed", "true");
   await page.reload();
-  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "swarm");
+  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "ribbon");
   await page.getByRole("button", { name: "Войти", exact: true }).click();
   await expect(page).toHaveURL(/role=client-employee/);
   await expect(page).not.toHaveURL(/background=/);
@@ -34,8 +36,8 @@ test("обычный вход не показывает панель сравн�
 
 test("фоны учитывают системное ограничение движения", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("./?page=login&role=guest&background=signal");
-  for (const name of ["Сигнал", "Рой", "Поле", "Живое", "Тишина"]) {
+  await page.goto("./?page=login&role=guest&background=echo");
+  for (const name of ["Эхо", "Шёлк", "След", "Живое", "Тишина"]) {
     await page.getByRole("button", { name: new RegExp(name) }).click();
     await expect.poll(() => page.getByTestId("portal-auth-backdrop").evaluate((element) =>
       element.getAnimations({ subtree: true }).filter((animation) => animation.playState === "running").length,
@@ -52,42 +54,78 @@ test("фоны учитывают системное ограничение дв
 });
 
 
-test("поле деформируется у курсора, сохраняя дальние элементы неподвижными", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto("./?page=login&role=guest&background=field");
-  const canvas = page.getByTestId("auth-reactive-canvas");
-  await expect(canvas).toBeVisible();
-  await page.mouse.move(720, 500);
-  const pixels = () => canvas.evaluate((element) => {
-    const canvas = element as HTMLCanvasElement;
-    const context = canvas.getContext("2d")!;
-    const ratio = canvas.width / canvas.clientWidth;
-    const sample = (x: number, y: number) => Array.from(context.getImageData(x * ratio, y * ratio, 70 * ratio, 70 * ratio).data);
-    return { near: sample(145, 165), far: sample(1290, 135) };
-  });
-  const before = await pixels();
-  await page.mouse.move(180, 200);
-  await expect.poll(async () => (await pixels()).near).not.toEqual(before.near);
-  expect((await pixels()).far).toEqual(before.far);
+test("живое поле продолжает вращаться без указателя", async ({ page }) => {
+  await page.goto("./?page=login&role=guest&background=living-field");
+  await expect(page.getByTestId("auth-reactive-canvas")).toBeVisible();
+  await expect(page.getByRole("button", { name: /05.*Живое/ })).toHaveAttribute("aria-pressed", "true");
+  const before = await scenePixels(page);
+  await expect.poll(() => scenePixels(page)).not.toEqual(before);
 });
 
+const scenePixels = (page: Page) => page.getByTestId("auth-reactive-canvas").evaluate((element) => {
+  const sample = document.createElement("canvas");
+  sample.width = 192;
+  sample.height = 128;
+  sample.getContext("2d")!.drawImage(element as HTMLCanvasElement, 0, 0, sample.width, sample.height);
+  return sample.toDataURL();
+});
 
-test("живое поле вращается без указателя и доступно рядом с исходным полем", async ({ page }) => {
-  await page.goto("./?page=login&role=guest&background=field");
-  const canvas = page.getByTestId("auth-reactive-canvas");
-  const pixels = () => canvas.evaluate((element) => {
-    const canvas = element as HTMLCanvasElement;
-    const ratio = canvas.width / canvas.clientWidth;
-    return Array.from(canvas.getContext("2d")!.getImageData(20 * ratio, 140 * ratio, 70 * ratio, 70 * ratio).data);
+for (const [variant, label] of [["echo", "Эхо"], ["silk", "Шёлк"], ["ribbon", "След"]]) {
+  test(`${variant}: мышь меняет рисунок независимо от фонового движения`, async ({ page, browser, baseURL }) => {
+    const settings = test.info().project.use;
+    const control = await browser.newPage({
+      viewport: page.viewportSize()!, deviceScaleFactor: settings.deviceScaleFactor,
+      isMobile: settings.isMobile, hasTouch: settings.hasTouch,
+    });
+    try {
+      for (const target of [page, control]) {
+        await target.goto(new URL("?page=login&role=guest&background=minimal", baseURL).href);
+        await target.clock.install({ time: 0 });
+        await target.clock.pauseAt(1000);
+        // Align creation to a virtual frame boundary; installation has a different performance.now origin per page.
+        await target.clock.runFor(16 - (await target.evaluate(() => performance.now()) % 16));
+        await target.getByRole("button", { name: new RegExp(label) }).evaluate((button: HTMLButtonElement) => button.click());
+        await expect(target.getByTestId("auth-reactive-canvas")).toBeVisible();
+        // Let the initial ResizeObserver notification settle while virtual time is paused.
+        await target.waitForTimeout(100);
+        await target.clock.runFor(64);
+      }
+      expect(await scenePixels(page) === await scenePixels(control), "Начальные кадры двух сцен совпадают").toBe(true);
+      await page.mouse.move(110, 190);
+      await page.clock.runFor(1200);
+      await control.clock.runFor(1200);
+      // Remove the pointer halo: the wave, deformation or trail must persist in the scene itself.
+      await page.mouse.move(-1, -1);
+      await page.clock.runFor(160);
+      await control.clock.runFor(160);
+      expect(await scenePixels(page) === await scenePixels(control), "Указатель изменил кадр относительно контрольной сцены").toBe(false);
+    } finally {
+      await control.close();
+    }
   });
-  const original = await pixels();
-  await page.waitForTimeout(200);
-  expect(await pixels()).toEqual(original);
-  await page.getByRole("button", { name: /Живое/ }).click();
-  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "living-field");
-  await page.mouse.move(-1, -1);
-  const before = await pixels();
-  await expect.poll(pixels).not.toEqual(before);
-  await page.getByRole("button", { name: /Поле/ }).click();
-  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "field");
+}
+
+test("След сохраняет ленты после изменения размера окна", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("./?page=login&role=guest&background=ribbon");
+  await page.clock.runFor(4000);
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+  const viewport = page.viewportSize()!;
+  await page.setViewportSize({ width: viewport.width - 20, height: viewport.height - 20 });
+  await page.waitForTimeout(150);
+  const inkColumns = () => page.getByTestId("auth-reactive-canvas").evaluate((element) => {
+    const sample = document.createElement("canvas");
+    sample.width = 192;
+    sample.height = 128;
+    const context = sample.getContext("2d")!;
+    context.drawImage(element as HTMLCanvasElement, 0, 0, 192, 128);
+    const pixels = context.getImageData(0, 0, 192, 128).data;
+    const columns = new Set<number>();
+    for (let pixel = 0; pixel < pixels.length; pixel += 4) {
+      if (pixels[pixel] < 248 && pixels[pixel + 2] - pixels[pixel] > 4) columns.add((pixel / 4) % 192);
+    }
+    return columns.size;
+  });
+  // Full ribbons occupy many columns; isolated heads and their soft halos do not.
+  await expect.poll(inkColumns).toBeGreaterThan(40);
 });
