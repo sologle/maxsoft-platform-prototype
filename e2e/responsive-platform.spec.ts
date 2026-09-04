@@ -9,15 +9,11 @@ const expectNoRuntimeErrors = (page: Page) => {
   return () => expect(errors).toEqual([]);
 };
 
-test("роль запускается одним действием и интерфейс не использует canvas iframe", async ({ page }) => {
+test("гость входит в портал без технического лаунчера и iframe", async ({ page }) => {
   const verifyErrors = expectNoRuntimeErrors(page);
   await page.goto("./");
-
-  const admin = page.getByTestId("role-entry").filter({ hasText: "Администратор портала" });
-  await expect(admin.getByRole("button", { name: "Открыть платформу" })).toBeVisible();
-  await expect(admin.getByRole("button", { name: /Desktop|Мобильный/ })).toHaveCount(0);
-  await admin.getByRole("button", { name: "Открыть платформу" }).click();
-
+  await page.getByRole("button", { name: "Вход", exact: true }).click();
+  await page.getByRole("button", { name: "Войти", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Рабочее пространство" })).toBeVisible();
   await expect(page.locator("iframe")).toHaveCount(0);
   verifyErrors();

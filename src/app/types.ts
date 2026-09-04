@@ -22,6 +22,7 @@ export type AppPage =
   | "users"
   | "client-users"
   | "administration"
+  | "access-settings"
   | "integrations"
   | "audit"
   | "fields"

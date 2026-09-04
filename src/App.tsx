@@ -9,7 +9,6 @@ import {
 } from "./app/routes";
 import type { AppLocation, AppPage, Authenticate, UserRole } from "./app/types";
 import { AppShell } from "./components/AppShell";
-import { Launcher } from "./components/Launcher";
 import { ScenarioPanel } from "./components/ScenarioPanel";
 import { ThemeProvider } from "./components/Theme";
 import { Toast } from "./components/Toast";
@@ -20,11 +19,6 @@ interface NoticeState {
   id: number;
   message: string;
 }
-
-const hasLocationParams = () => {
-  const params = new URLSearchParams(window.location.search);
-  return params.has("page") || params.has("role");
-};
 
 const clearLocation = () => {
   const url = new URL(window.location.href);
@@ -42,13 +36,11 @@ const downloadMockFile = () => {
 };
 
 const PlatformApp = () => {
-  const [location, setLocation] = useState<AppLocation | null>(() =>
-    hasLocationParams() ? readLocation() : null,
-  );
+  const [location, setLocation] = useState<AppLocation>(() => readLocation());
   const [notice, setNotice] = useState<NoticeState | null>(null);
 
   useEffect(() => {
-    const onPopState = () => setLocation(hasLocationParams() ? readLocation() : null);
+    const onPopState = () => setLocation(readLocation());
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
@@ -63,24 +55,9 @@ const PlatformApp = () => {
     setNotice((current) => ({ id: (current?.id ?? 0) + 1, message }));
   }, []);
 
-  const openLocation = useCallback((next: AppLocation, replace = false) => {
-    setLocation(next);
-    writeLocation(next, replace);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
-  const start = useCallback(
-    (role: UserRole) => {
-      setActiveClientCompany(role);
-      openLocation({ ...companyContextForRole(role), page: startPageForRole(role), role });
-    },
-    [openLocation],
-  );
-
   const navigate = useCallback(
     (page: AppPage, resource?: string) => {
       setLocation((current) => {
-        if (!current) return current;
         const next: AppLocation = {
           companyId: current.companyId,
           companyType: current.companyType,
@@ -129,12 +106,10 @@ const PlatformApp = () => {
   );
 
   const exit = useCallback(() => {
-    setLocation(null);
+    setLocation({ page: "landing", role: "guest" });
     clearLocation();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
-
-  if (!location) return <Launcher onStart={start} />;
 
   const page = (
     <PageRouter

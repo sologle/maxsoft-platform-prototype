@@ -2,6 +2,7 @@ import { ArrowLeft, LogOut, PanelRightClose, Settings2 } from "lucide-react";
 import { useState } from "react";
 import { pageDefinitions, pagesForRole, roleProfile, roleProfiles } from "../app/routes";
 import type { AppLocation, AppPage, Navigate, UserRole } from "../app/types";
+import { SelectField } from "./ui";
 
 interface ScenarioPanelProps {
   location: AppLocation;
@@ -51,43 +52,35 @@ export const ScenarioPanel = ({ location, onBack, onExit, onNavigate, onRoleChan
         </button>
       </div>
 
-      <label
-        className="mt-4 block text-[11px] font-bold uppercase tracking-[.12em] text-white/55"
-        htmlFor="scenario-role"
-      >
-        Роль
-      </label>
-      <select
-        className="mt-1.5 h-10 w-full rounded-lg border border-white/15 bg-white/10 px-3 text-sm font-medium outline-none transition focus:border-[#54b4f2]"
+      <SelectField
+        className="mt-4"
         id="scenario-role"
+        label="Роль"
         onChange={(event) => onRoleChange(event.target.value as UserRole)}
         value={location.role}
+        variant="dark"
       >
         {roleProfiles.map((candidate) => (
           <option className="bg-[#172b42]" key={candidate.role} value={candidate.role}>
             {candidate.shortLabel}
           </option>
         ))}
-      </select>
+      </SelectField>
 
-      <label
-        className="mt-3 block text-[11px] font-bold uppercase tracking-[.12em] text-white/55"
-        htmlFor="scenario-page"
-      >
-        Экран
-      </label>
-      <select
-        className="mt-1.5 h-10 w-full rounded-lg border border-white/15 bg-white/10 px-3 text-sm font-medium outline-none transition focus:border-[#54b4f2]"
+      <SelectField
+        className="mt-3"
         id="scenario-page"
+        label="Экран"
         onChange={(event) => onNavigate(event.target.value as AppPage)}
         value={location.page}
+        variant="dark"
       >
         {pagesForRole(location.role).map((page) => (
           <option className="bg-[#172b42]" key={page.id} value={page.id}>
             {page.label}
           </option>
         ))}
-      </select>
+      </SelectField>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button

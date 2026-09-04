@@ -1,9 +1,9 @@
+import { demoResources } from "../../app/demo-resources";
 import {
   ArrowLeft,
   Download,
   ExternalLink,
   Eye,
-  FileArchive,
   FileText,
   Filter,
   Grid2X2,
@@ -15,9 +15,11 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Navigate, UserRole } from "../../app/types";
+import { FileTypeIcon } from "../../components/FileTypeIcon";
+import { canPreviewFile } from "../../data/file-types";
 import { ActionMenu } from "../../components/ActionMenu";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
-import { Badge, Breadcrumbs, Button, EmptyState, PageHeading } from "../../components/ui";
+import { Badge, Breadcrumbs, Button, EmptyState, PageHeading, SelectField } from "../../components/ui";
 import { articles, canRoleAccessArticle, files } from "../../data/platform-data";
 import { getArticleSections } from "../../data/prototype-entities";
 
@@ -29,13 +31,6 @@ interface FilesPageProps {
   resource?: string;
   role: UserRole;
 }
-
-const FileIcon = ({ kind, className = "h-5 w-5" }: { className?: string; kind: string }) =>
-  kind === "ZIP" ? (
-    <FileArchive className={className} aria-hidden="true" />
-  ) : (
-    <FileText className={className} aria-hidden="true" />
-  );
 
 const usesLabel = (uses: number) =>
   `${uses} ${uses === 1 ? "статья" : uses < 5 ? "статьи" : "статей"}`;
@@ -66,9 +61,10 @@ export const FilesPage = ({ onDownload, onNavigate, onNotice }: FilesPageProps) 
     onNotice("Демонстрационный файл подготовлен к скачиванию.");
     setMenu(null);
   };
-  const preview = (file: (typeof files)[number]) => {
+  const openFile = (file: (typeof files)[number]) => {
     setMenu(null);
-    onNavigate("file-preview", file.name);
+    if (canPreviewFile(file)) onNavigate("file-preview", file.name);
+    else download();
   };
   return (
     <>
@@ -112,17 +108,13 @@ export const FilesPage = ({ onDownload, onNavigate, onNotice }: FilesPageProps) 
             value={query}
           />
         </label>
-        <label className="relative sm:w-48">
-          <span className="sr-only">Тип файла</span>
-          <Filter className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-          <select className="h-11 w-full rounded-xl border border-[var(--ms-border-strong)] bg-white pl-10 text-sm font-medium outline-none focus:border-[var(--ms-primary)]" onChange={(event) => setType(event.target.value)} value={type}>
+        <SelectField className="sm:w-48" label="Тип файла" labelHidden leadingIcon={<Filter className="h-4 w-4" aria-hidden="true" />} onChange={(event) => setType(event.target.value)} value={type}>
             <option value="all">Все типы</option>
             <option value="PDF">PDF</option>
             <option value="DOCX">DOCX</option>
             <option value="DWG">DWG</option>
             <option value="ZIP">ZIP</option>
-          </select>
-        </label>
+        </SelectField>
       </div>
 
       {!visible.length ? (
@@ -143,8 +135,8 @@ export const FilesPage = ({ onDownload, onNavigate, onNotice }: FilesPageProps) 
               {visible.map((file) => (
                 <tr className="border-b border-[var(--ms-border)] last:border-0 hover:bg-slate-50" key={file.name}>
                   <td className="px-5 py-4">
-                    <button className="flex min-w-0 items-center gap-3 font-semibold hover:text-[var(--ms-primary)]" onClick={() => preview(file)} type="button">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]"><FileIcon kind={file.type} /></span><span className="truncate">{file.name}</span>
+                    <button className="flex min-w-0 items-center gap-3 font-semibold hover:text-[var(--ms-primary)]" onClick={() => openFile(file)} type="button">
+                      <FileTypeIcon type={file.type} /><span className="truncate">{file.name}</span>
                     </button>
                   </td>
                   <td className="px-5 py-4"><Badge tone="slate">{file.type}</Badge></td><td className="px-5 py-4 text-[var(--ms-muted)]">{file.size}</td><td className="px-5 py-4 text-[var(--ms-muted)]">{getArticleSections(primaryArticleForFile(file)).join(" · ")}</td>
@@ -152,7 +144,7 @@ export const FilesPage = ({ onDownload, onNavigate, onNotice }: FilesPageProps) 
                   <td className="px-5 py-4 text-[var(--ms-muted)]">{file.updated}</td>
                   <td className="px-3">
                     <ActionMenu label={`Действия: ${file.name}`} onOpenChange={(open) => setMenu(open ? file.name : null)} open={menu === file.name}>
-                      <button className="menu-action" onClick={() => preview(file)} role="menuitem" type="button"><Eye className="h-4 w-4" aria-hidden="true" />Просмотреть</button>
+                      {canPreviewFile(file) ? <button className="menu-action" onClick={() => openFile(file)} role="menuitem" type="button"><Eye className="h-4 w-4" aria-hidden="true" />Просмотреть</button> : null}
                       <button className="menu-action" onClick={download} role="menuitem" type="button"><Download className="h-4 w-4" aria-hidden="true" />Скачать</button>
                       <button className="menu-action" onClick={() => { setSelected(file); setMenu(null); }} role="menuitem" type="button"><ExternalLink className="h-4 w-4" aria-hidden="true" />Места использования</button>
                     </ActionMenu>
@@ -166,8 +158,8 @@ export const FilesPage = ({ onDownload, onNavigate, onNotice }: FilesPageProps) 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" data-testid="files-card-view">
           {visible.map((file) => (
             <article className="group flex min-w-0 flex-col rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--ms-primary)] hover:shadow-[var(--ms-card-shadow-hover)]" key={file.name}>
-              <button aria-label={`Просмотреть файл: ${file.name}`} className="min-w-0 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ms-primary)]" onClick={() => preview(file)} type="button">
-                <span className="grid h-16 w-16 place-items-center rounded-2xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)] transition group-hover:scale-105"><FileIcon className="h-8 w-8" kind={file.type} /></span>
+              <button aria-label={`${canPreviewFile(file) ? "Просмотреть" : "Скачать"} файл: ${file.name}`} className="min-w-0 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ms-primary)]" onClick={() => openFile(file)} type="button">
+                <FileTypeIcon type={file.type} large />
                 <span className="mt-5 block break-words font-heading text-lg font-bold leading-snug">{file.name}</span><span className="mt-2 block text-sm text-[var(--ms-muted)]">{file.type} · {file.size} · {file.updated}</span><span className="mt-3 block text-xs font-semibold text-[var(--ms-primary)]">База знаний / {getArticleSections(primaryArticleForFile(file)).join(" · ")}</span>
               </button>
               <div className="mt-auto grid grid-cols-2 gap-2 pt-5">
@@ -203,7 +195,20 @@ export const FilePreviewPage = ({
 }: FilesPageProps) => {
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0);
-  const file = files.find((candidate) => candidate.name === (resource ?? "инструкция_активации.pdf"))!;
+  const file = files.find((candidate) => candidate.name === (resource ?? demoResources.file))!;
+  const backPage = role === "portal-admin" ? "files" : "knowledge";
+  if (!canPreviewFile(file)) {
+    return (
+      <>
+        <PageHeading eyebrow="Файл" title={file.name} subtitle={`${file.type} · ${file.size}`} onBack={() => onNavigate(backPage)} />
+        <EmptyState
+          title="Скачайте файл для работы с ним"
+          text="Предпросмотр доступен для PDF и DOCX. Этот файл можно открыть на вашем устройстве."
+          action={<Button icon={<Download className="h-4 w-4" aria-hidden="true" />} onClick={() => { onDownload(); onNotice("Демонстрационный файл подготовлен к скачиванию."); }}>Скачать файл</Button>}
+        />
+      </>
+    );
+  }
   const relatedArticles = articles.filter(
     (article) =>
       file.relatedArticleIds.includes(article.id) &&
@@ -213,7 +218,6 @@ export const FilePreviewPage = ({
   const primarySection = getArticleSections(primaryArticle)[0];
   if (!primarySection)
     throw new Error(`KB_ARTICLE_SECTION_MISSING: у статьи ${primaryArticle.id} не задан раздел`);
-  const backPage = role === "portal-admin" ? "files" : "knowledge";
   const documentTitle = file.name.replace(/\.[^.]+$/, "").replaceAll("_", " ");
   const download = () => {
     onDownload();

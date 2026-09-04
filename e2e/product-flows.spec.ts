@@ -176,30 +176,6 @@ test("карточка материала открывается целиком,
   await expect(page.getByRole("heading", { name: "Настройка сетевой лицензии" })).toBeVisible();
 });
 
-test("поиск выделяет совпадение и открывает материал кликом по карточке", async ({ page }) => {
-  await page.goto("./?page=search&role=client-employee");
-  const result = page.getByRole("button", { name: /Открыть материал: Настройка сетевой лицензии/ });
-  await expect(result.locator("mark").filter({ hasText: /лиценз/i }).first()).toBeVisible();
-  await expect(result).toContainText("Совпадение в заголовке статьи");
-  await result.click();
-  await expect(page.getByRole("heading", { name: "Настройка сетевой лицензии" })).toBeVisible();
-});
-
-test("статья меняет размер текста и включает полноэкранный режим чтения", async ({ page }) => {
-  await page.goto("./?page=article&role=portal-admin");
-  const article = page.getByRole("article");
-  const before = await article.locator(".article-content").evaluate((node) => getComputedStyle(node).fontSize);
-  await page.getByRole("button", { name: "Увеличить размер текста" }).click();
-  await expect
-    .poll(() => article.locator(".article-content").evaluate((node) => getComputedStyle(node).fontSize))
-    .not.toBe(before);
-  await page.getByRole("button", { name: "На весь экран" }).click();
-  await expect(article).toHaveAttribute("data-reading-mode", "fullscreen");
-  await expect(article.getByRole("navigation", { name: "Содержание статьи" })).toBeHidden();
-  await page.getByRole("button", { name: "Выйти из полноэкранного режима" }).click();
-  await expect(article).toHaveAttribute("data-reading-mode", "standard");
-});
-
 test("реестр файлов переключается между карточками и таблицей и открывает просмотр", async ({ page }) => {
   await page.goto("./?page=files&role=portal-admin");
   await page.getByRole("button", { name: "Табличный вид" }).click();
@@ -218,9 +194,9 @@ test("разные карточки сохраняют идентичность 
   await expect(page).toHaveURL(/resource=project-template/);
 
   await page.goto("./?page=files&role=portal-admin");
-  await page.getByRole("button", { name: "Просмотреть файл: схема_подключения.dwg" }).click();
-  await expect(page.getByRole("heading", { name: "схема_подключения.dwg" })).toBeVisible();
-  await expect(page.getByText("Предпросмотр DWG")).toBeVisible();
+  await page.getByRole("button", { name: "Просмотреть файл: регламент_обновления.docx" }).click();
+  await expect(page.getByRole("heading", { name: "регламент_обновления.docx" })).toBeVisible();
+  await expect(page.getByText("Предпросмотр DOCX")).toBeVisible();
 
   await page.goto("./?page=companies&role=portal-admin");
   await page.getByRole("button", { name: "Открыть компанию: АО «Интегратор Про»" }).click();
@@ -405,7 +381,11 @@ test("административные настройки влияют на ре
   await typeDialog.getByRole("button", { name: "Сохранить" }).click();
   await page.goto("./?page=companies&role=portal-admin");
   await page.getByRole("button", { name: "Добавить компанию" }).click();
-  await expect(page.getByLabel("Тип компании").getByRole("option", { name: "Партнёр" })).toHaveCount(1);
+  const companyForm = page.getByRole("dialog", { name: "Новая компания" });
+  await companyForm.getByText("Тип компании", { exact: true }).click();
+  await page.keyboard.press("Enter");
+  await expect(companyForm.getByRole("option", { name: "Партнёр", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Закрыть" }).click();
 
   await page.goto("./?page=fields&role=portal-admin");

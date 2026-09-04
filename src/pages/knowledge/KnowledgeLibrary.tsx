@@ -1,11 +1,12 @@
-import { ArrowRight, FileText, Filter, FolderTree, Plus, Search, Video } from "lucide-react";
+import { Filter, FolderTree, LayoutGrid, List, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Navigate, UserRole } from "../../app/types";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
-import { Badge, Button, EmptyState, PageHeading } from "../../components/ui";
-import { articles, canRoleAccessArticle, isArticlePublished } from "../../data/platform-data";
+import { Button, EmptyState, PageHeading, SelectField } from "../../components/ui";
+import { articles, canRoleAccessArticle, canRoleAccessFile, files, isArticlePublished } from "../../data/platform-data";
 import { getArticleSections, getArticleTags } from "../../data/prototype-entities";
 import { KnowledgeTree } from "./KnowledgeTree";
+import { KnowledgeResults, type KnowledgeView } from "./KnowledgeResults";
 
 interface KnowledgeLibraryProps {
   companyType?: string;
@@ -29,6 +30,7 @@ export const KnowledgeLibrary = ({ companyType, onNavigate, role }: KnowledgeLib
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("updated");
   const [treeOpen, setTreeOpen] = useState(false);
+  const [view, setView] = useState<KnowledgeView>("table");
   const canEdit = role === "portal-admin" || role === "support-engineer";
   const visibleArticles = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -52,7 +54,10 @@ export const KnowledgeLibrary = ({ companyType, onNavigate, role }: KnowledgeLib
       ? [...filtered].sort((left, right) => left.title.localeCompare(right.title, "ru"))
       : filtered;
   }, [canEdit, companyType, query, role, section, sort]);
+  const attachedFile = files.find((file) => file.name === "инструкция_активации.pdf");
+  if (!attachedFile) throw new Error("KB_FILE_MISSING: файл инструкции не найден");
   const showAttachedFile =
+    canRoleAccessFile(attachedFile, role, companyType) &&
     ["all", "navisa", "installation"].includes(section) &&
     (!query.trim() || "инструкция активации pdf лицензия".includes(query.trim().toLowerCase()));
 
@@ -65,14 +70,20 @@ export const KnowledgeLibrary = ({ companyType, onNavigate, role }: KnowledgeLib
     <>
       <PageHeading
         actions={
-          canEdit ? (
+          <>
+            <div className="inline-flex rounded-xl border border-[var(--ms-border-strong)] bg-white p-1" role="group" aria-label="Вид материалов">
+              <button aria-label="Табличный вид" aria-pressed={view === "table"} className={`icon-button !h-9 !w-9 ${view === "table" ? "bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]" : ""}`} onClick={() => setView("table")} type="button"><List className="h-4 w-4" aria-hidden="true" /></button>
+              <button aria-label="Крупные карточки" aria-pressed={view === "cards"} className={`icon-button !h-9 !w-9 ${view === "cards" ? "bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]" : ""}`} onClick={() => setView("cards")} type="button"><LayoutGrid className="h-4 w-4" aria-hidden="true" /></button>
+            </div>
+            {canEdit ? (
             <Button
               icon={<Plus className="h-4 w-4" aria-hidden="true" />}
               onClick={() => onNavigate("editor")}
             >
               Новая статья
             </Button>
-          ) : undefined
+            ) : null}
+          </>
         }
         backLabel="Вернуться ко всем материалам"
         eyebrow="База знаний"
@@ -113,101 +124,21 @@ export const KnowledgeLibrary = ({ companyType, onNavigate, role }: KnowledgeLib
                 value={query}
               />
             </label>
-            <label className="relative min-w-0 sm:w-52">
-              <span className="sr-only">Сортировка</span>
-              <Filter
-                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                aria-hidden="true"
-              />
-              <select
-                className="h-11 w-full appearance-none rounded-xl border border-[var(--ms-border-strong)] bg-white pl-10 pr-3 text-sm font-medium outline-none focus:border-[var(--ms-primary)]"
-                onChange={(event) => setSort(event.target.value)}
-                value={sort}
-              >
+            <SelectField
+              className="min-w-0 sm:w-52"
+              label="Сортировка"
+              labelHidden
+              leadingIcon={<Filter className="h-4 w-4" aria-hidden="true" />}
+              onChange={(event) => setSort(event.target.value)}
+              value={sort}
+            >
                 <option value="updated">Сначала обновлённые</option>
                 <option value="title">По названию</option>
-              </select>
-            </label>
+            </SelectField>
           </div>
 
           {visibleArticles.length || showAttachedFile ? (
-            <div className="grid min-w-0 gap-3 lg:grid-cols-2">
-              {visibleArticles.map((article) => (
-                <button
-                  aria-label={`Открыть материал: ${article.title}`}
-                  className="group flex min-w-0 flex-col rounded-2xl border border-[var(--ms-border)] bg-white p-5 text-left shadow-[var(--ms-card-shadow)] transition duration-200 hover:-translate-y-0.5 hover:border-[var(--ms-primary)] hover:shadow-[var(--ms-card-shadow-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)]"
-                  key={article.id}
-                  onClick={() =>
-                    onNavigate(
-                      !isArticlePublished(article)
-                        ? "editor"
-                        : article.kind === "video"
-                          ? "video"
-                          : "article",
-                      article.id,
-                    )
-                  }
-                  type="button"
-                >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
-                      {article.kind === "video" ? (
-                        <Video className="h-5 w-5" aria-hidden="true" />
-                      ) : (
-                        <FileText className="h-5 w-5" aria-hidden="true" />
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-semibold text-[var(--ms-muted)]">
-                          {getArticleSections(article).join(" · ")}
-                        </span>
-                        {!isArticlePublished(article) ? <Badge tone="amber">Черновик</Badge> : null}
-                      </div>
-                      <h2 className="mt-2 font-heading text-lg font-bold leading-snug">{article.title}</h2>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-[var(--ms-muted)]">{article.description}</p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {getArticleTags(article).map((tag) => (
-                      <Badge key={tag}>{tag}</Badge>
-                    ))}
-                  </div>
-                  <div className="mt-auto flex items-center justify-between gap-3 pt-5">
-                    <span className="text-xs text-slate-400">Обновлено: {article.updated}</span>
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--ms-primary)] transition group-hover:translate-x-1 group-hover:bg-[var(--ms-primary-soft)]">
-                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                  </div>
-                </button>
-              ))}
-              {showAttachedFile ? (
-                <button
-                  aria-label="Просмотреть файл: инструкция_активации.pdf"
-                  className="group flex min-w-0 flex-col rounded-2xl border border-[var(--ms-border)] bg-white p-5 text-left shadow-[var(--ms-card-shadow)] transition duration-200 hover:-translate-y-0.5 hover:border-[var(--ms-primary)] hover:shadow-[var(--ms-card-shadow-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)]"
-                  onClick={() => onNavigate("file-preview", "инструкция_активации.pdf")}
-                  type="button"
-                >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-50 text-red-600">
-                      <FileText className="h-5 w-5" aria-hidden="true" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-semibold text-[var(--ms-muted)]">НАВИСА / Установка</span>
-                        <Badge tone="red">PDF</Badge>
-                      </div>
-                      <h2 className="mt-2 break-words font-heading text-lg font-bold leading-snug">инструкция_активации.pdf</h2>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-[var(--ms-muted)]">Инструкция по активации сетевой лицензии. Файл наследует доступ связанной статьи.</p>
-                  <div className="mt-auto flex items-center justify-between gap-3 pt-5">
-                    <span className="text-xs text-slate-400">PDF · 2,4 МБ · обновлено сегодня</span>
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--ms-primary)] transition group-hover:translate-x-1 group-hover:bg-[var(--ms-primary-soft)]"><ArrowRight className="h-4 w-4" aria-hidden="true" /></span>
-                  </div>
-                </button>
-              ) : null}
-            </div>
+            <KnowledgeResults articles={visibleArticles} onNavigate={onNavigate} showAttachedFile={showAttachedFile} view={view} />
           ) : (
             <EmptyState
               action={

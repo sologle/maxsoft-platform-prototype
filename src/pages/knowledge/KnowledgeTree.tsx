@@ -7,11 +7,11 @@ interface KnowledgeTreeProps {
 }
 
 const branches = [
-  { id: "installation", label: "Установка", count: 12, color: "text-sky-500" },
-  { id: "settings", label: "Настройка", count: 18, color: "text-violet-500" },
-  { id: "updates", label: "Обновление", count: 9, color: "text-emerald-500" },
-  { id: "cases", label: "Кейсы внедрения", count: 7, color: "text-orange-500" },
-  { id: "administration", label: "Администрирование", count: 11, color: "text-rose-500" },
+  { id: "installation", label: "Установка", count: 12 },
+  { id: "settings", label: "Настройка", count: 18 },
+  { id: "updates", label: "Обновление", count: 9 },
+  { id: "cases", label: "Кейсы внедрения", count: 7 },
+  { id: "administration", label: "Администрирование", count: 11 },
 ];
 
 export const KnowledgeTree = ({ onSelect, selected }: KnowledgeTreeProps) => {
@@ -96,7 +96,7 @@ export const KnowledgeTree = ({ onSelect, selected }: KnowledgeTreeProps) => {
                     onClick={() => onSelect(branch.id)}
                     type="button"
                   >
-                    <Folder className={`h-4 w-4 shrink-0 ${branch.color}`} aria-hidden="true" />
+                    <Folder className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
                     <span className="min-w-0 flex-1 truncate text-left">{branch.label}</span>
                     <span className="text-xs text-slate-400">{branch.count}</span>
                   </button>

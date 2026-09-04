@@ -13,6 +13,7 @@ import { TagsPage } from "./knowledge/TagsPage";
 import { CompaniesPage, CompanyPage, CompanyTypesPage } from "./organizations/CompaniesPages";
 import { ClientUsersPage, UsersPage } from "./organizations/UsersPages";
 import { AdministrationPage, AuditPage, FieldsPage, IntegrationsPage } from "./platform/PlatformPages";
+import { AccessSettingsPage } from "./platform/AccessSettingsPage";
 
 interface PageRouterProps {
   location: AppLocation;
@@ -145,6 +146,8 @@ export const PageRouter = ({
       );
     case "administration":
       return <AdministrationPage onNavigate={onNavigate} onNotice={onNotice} />;
+    case "access-settings":
+      return <AccessSettingsPage onNavigate={onNavigate} onNotice={onNotice} />;
     case "integrations":
       return <IntegrationsPage onNavigate={onNavigate} onNotice={onNotice} />;
     case "audit":

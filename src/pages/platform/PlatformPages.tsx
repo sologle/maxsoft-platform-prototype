@@ -12,6 +12,7 @@ import {
   Mail,
   Search,
   Settings2,
+  ShieldCheck,
   Tags,
   UsersRound,
 } from "lucide-react";
@@ -33,56 +34,54 @@ export const AdministrationPage = ({ onNavigate }: PlatformProps) => {
       icon: FolderTree,
       label: "Структура базы знаний",
       page: "structure" as AppPage,
-      tone: "bg-amber-50 text-amber-700",
     },
     {
       description: "Группы тегов и их использование",
       icon: Tags,
       label: "Теги и группы",
       page: "tags" as AppPage,
-      tone: "bg-violet-50 text-violet-700",
     },
     {
       description: "Все документы и связанные статьи",
       icon: Database,
       label: "Реестр файлов",
       page: "files" as AppPage,
-      tone: "bg-sky-50 text-sky-700",
+    },
+    {
+      description: "Какие материалы доступны компаниям и их пользователям",
+      icon: ShieldCheck,
+      label: "Доступ к материалам",
+      page: "access-settings" as AppPage,
     },
     {
       description: "Почта и связь с Битрикс24",
       icon: Link2,
       label: "Интеграции",
       page: "integrations" as AppPage,
-      tone: "bg-blue-50 text-blue-600",
     },
     {
       description: "Обязательность и доступность данных",
       icon: Settings2,
       label: "Поля компании",
       page: "fields" as AppPage,
-      tone: "bg-emerald-50 text-emerald-700",
     },
     {
       description: "События и изменения в системе",
       icon: FileClock,
       label: "Журнал действий",
       page: "audit" as AppPage,
-      tone: "bg-slate-100 text-slate-700",
     },
     {
       description: "Типы доступа клиентских организаций",
       icon: Building2,
       label: "Типы компаний",
       page: "company-types" as AppPage,
-      tone: "bg-orange-50 text-orange-700",
     },
     {
       description: "Роли и аккаунты портала",
       icon: UsersRound,
       label: "Пользователи",
       page: "users" as AppPage,
-      tone: "bg-rose-50 text-rose-700",
     },
   ];
   return (
@@ -93,14 +92,14 @@ export const AdministrationPage = ({ onNavigate }: PlatformProps) => {
         title="Администрирование"
       />
       <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {sections.map(({ description, icon: Icon, label, page, tone }) => (
+        {sections.map(({ description, icon: Icon, label, page }) => (
           <button
             className="group flex min-h-44 min-w-0 flex-col items-start rounded-2xl border border-[var(--ms-border)] bg-white p-5 text-left shadow-[var(--ms-card-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--ms-primary)] hover:shadow-[var(--ms-card-shadow-hover)]"
             key={page}
             onClick={() => onNavigate(page)}
             type="button"
           >
-            <span className={`grid h-11 w-11 place-items-center rounded-xl transition group-hover:scale-105 ${tone}`}>
+            <span className="grid h-11 w-11 place-items-center rounded-xl bg-slate-100 text-slate-600 transition group-hover:scale-105 group-hover:bg-[var(--ms-primary-soft)] group-hover:text-[var(--ms-primary)]">
               <Icon className="h-5 w-5" aria-hidden="true" />
             </span>
             <span className="mt-5 flex w-full min-w-0 items-center gap-2">
@@ -277,9 +276,10 @@ export const AuditPage = ({ onNavigate }: PlatformProps) => {
             value={query}
           />
         </label>
-        <select
-          aria-label="Тип события"
-          className="h-11 rounded-xl border border-[var(--ms-border-strong)] bg-white px-3 text-sm sm:w-52"
+        <SelectField
+          className="sm:w-52"
+          label="Тип события"
+          labelHidden
           onChange={(event) => setType(event.target.value)}
           value={type}
         >
@@ -289,7 +289,7 @@ export const AuditPage = ({ onNavigate }: PlatformProps) => {
           <option value="company">Компании</option>
           <option value="user">Пользователи</option>
           <option value="system">Системные события</option>
-        </select>
+        </SelectField>
       </div>
       {visible.length ? (
         <div className="overflow-hidden rounded-2xl border border-[var(--ms-border)] bg-white shadow-[var(--ms-card-shadow)]">

@@ -14,7 +14,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { AppPage, Navigate, UserRole } from "../../app/types";
 import { ActionMenu } from "../../components/ActionMenu";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
-import { Badge, Breadcrumbs, Button, EmptyState, Field, PageHeading } from "../../components/ui";
+import { Badge, Breadcrumbs, Button, EmptyState, Field, PageHeading, SelectField } from "../../components/ui";
 import { companyTypes as initialCompanyTypes, type AuditEvent, type CompanyRecord } from "../../data/platform-data";
 import {
   countCompanyTypeReferences,
@@ -83,9 +83,10 @@ export const CompaniesPage = ({ onNavigate, onNotice, role }: OrganizationProps)
             value={query}
           />
         </label>
-        <select
-          aria-label="Тип компании"
-          className="h-11 rounded-xl border border-[var(--ms-border-strong)] bg-white px-3 text-sm font-medium outline-none focus:border-[var(--ms-primary)] sm:w-48"
+        <SelectField
+          className="sm:w-48"
+          label="Тип компании"
+          labelHidden
           onChange={(event) => setTypeFilter(event.target.value)}
           value={typeFilter}
         >
@@ -93,17 +94,18 @@ export const CompaniesPage = ({ onNavigate, onNotice, role }: OrganizationProps)
           {availableCompanyTypes.map((type) => (
             <option key={type.name} value={type.name}>{type.name}</option>
           ))}
-        </select>
-        <select
-          aria-label="Статус компании"
-          className="h-11 rounded-xl border border-[var(--ms-border-strong)] bg-white px-3 text-sm font-medium outline-none focus:border-[var(--ms-primary)] sm:w-52"
+        </SelectField>
+        <SelectField
+          className="sm:w-52"
+          label="Статус компании"
+          labelHidden
           onChange={(event) => setStatus(event.target.value)}
           value={status}
         >
           <option value="all">Все статусы</option>
           <option value="Активна">Активные</option>
           <option value="Приостановлена">Приостановленные</option>
-        </select>
+        </SelectField>
         {query || status !== "all" || typeFilter !== "all" ? (
           <Button
             onClick={() => {

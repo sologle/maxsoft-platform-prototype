@@ -342,9 +342,10 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
             value={query}
           />
         </label>
-        <select
-          aria-label="Компания пользователя"
-          className="h-11 rounded-xl border border-[var(--ms-border-strong)] bg-white px-3 text-sm font-medium sm:w-56"
+        <SelectField
+          className="sm:w-56"
+          label="Компания пользователя"
+          labelHidden
           onChange={(event) => setCompany(event.target.value)}
           value={company}
         >
@@ -353,10 +354,11 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
           {availableCompanies.map((company) => (
             <option key={company.id}>{company.name}</option>
           ))}
-        </select>
-        <select
-          aria-label="Роль пользователя"
-          className="h-11 rounded-xl border border-[var(--ms-border-strong)] bg-white px-3 text-sm font-medium sm:w-52"
+        </SelectField>
+        <SelectField
+          className="sm:w-52"
+          label="Роль пользователя"
+          labelHidden
           onChange={(event) => setRoleFilter(event.target.value)}
           value={roleFilter}
         >
@@ -366,10 +368,11 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
           <option>Менеджер</option>
           <option>Администратор клиента</option>
           <option>Сотрудник клиента</option>
-        </select>
-        <select
-          aria-label="Статус пользователя"
-          className="h-11 rounded-xl border border-[var(--ms-border-strong)] bg-white px-3 text-sm font-medium sm:w-52"
+        </SelectField>
+        <SelectField
+          className="sm:w-52"
+          label="Статус пользователя"
+          labelHidden
           onChange={(event) => setStatus(event.target.value)}
           value={status}
         >
@@ -378,7 +381,7 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
           <option>Заблокирован</option>
           <option>Приглашён</option>
           <option>Доступ отозван</option>
-        </select>
+        </SelectField>
         {query || company !== "all" || roleFilter !== "all" || status !== "all" ? (
           <Button
             onClick={() => {

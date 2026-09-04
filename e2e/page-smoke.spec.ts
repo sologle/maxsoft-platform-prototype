@@ -16,6 +16,7 @@ const adminPages = [
   "company-types",
   "users",
   "administration",
+  "access-settings",
   "integrations",
   "audit",
   "fields",

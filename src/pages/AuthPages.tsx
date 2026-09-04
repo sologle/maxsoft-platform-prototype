@@ -1,20 +1,16 @@
 import {
-  ArrowRight,
-  BookOpen,
   Building2,
   CheckCircle2,
   Eye,
   EyeOff,
   KeyRound,
-  LockKeyhole,
   Mail,
-  Search,
   ShieldCheck,
 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { AppPage, Authenticate, Navigate } from "../app/types";
 import { ResponsiveOverlay } from "../components/ResponsiveOverlay";
-import { ThemeToggle } from "../components/Theme";
+import { AuthStage } from "../components/AuthStage";
 import { Button, Field } from "../components/ui";
 import {
   companyFields as initialCompanyFields,
@@ -37,96 +33,26 @@ interface AuthPageProps {
 }
 
 const AuthLayout = ({ children }: { children: React.ReactNode }) => (
-  <main className="min-h-dvh overflow-x-clip bg-[var(--ms-background)] text-[var(--ms-text)]">
-    <header className="border-b border-[var(--ms-border)] bg-white/95">
-      <div className="mx-auto flex h-16 max-w-[1280px] items-center gap-2 px-4 sm:px-6 lg:h-[72px] lg:px-8">
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--ms-primary)] text-sm font-black text-white">
-          M
-        </span>
-        <span className="font-heading text-lg font-extrabold">MaxSoft</span>
-        <span className="ml-auto text-xs font-semibold text-[var(--ms-muted)]">Портал клиентов</span>
-        <ThemeToggle />
-      </div>
-    </header>
-    {children}
-  </main>
+  <AuthStage>{children}</AuthStage>
 );
 
 export const LandingPage = ({ onNavigate }: AuthPageProps) => (
   <AuthLayout>
-    <section className="mx-auto grid min-h-[calc(100dvh-64px)] max-w-[1280px] items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:py-16">
-      <div className="min-w-0">
-        <span className="inline-flex rounded-full bg-[var(--ms-primary-soft)] px-3 py-1.5 text-xs font-bold uppercase tracking-[.1em] text-[var(--ms-primary)]">
-          Единое пространство знаний
-        </span>
-        <h1 className="mt-5 max-w-3xl font-heading text-[clamp(2.5rem,7vw,4.8rem)] font-bold leading-[.98] tracking-[-.05em]">
-          Всё необходимое для работы с продуктами MaxSoft
+    <section className="grid min-h-dvh place-items-center px-5 py-20 text-center">
+      <div className="portal-auth-hero max-w-2xl">
+        <h1 className="font-heading text-[clamp(2.6rem,8vw,5.6rem)] font-black leading-none tracking-[-.055em]">
+          Портал MaxSoft
         </h1>
-        <p className="mt-6 max-w-2xl text-base leading-7 text-[var(--ms-muted)] sm:text-lg">
-          Инструкции, документы, видео и полнотекстовый поиск в закрытом портале вашей компании.
+        <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-[var(--ms-muted)] sm:text-lg">
+          База знаний, документы и рабочие сервисы MaxSoft в одном защищённом пространстве.
         </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <Button className="sm:min-w-40" onClick={() => onNavigate("login")}>
-            Войти
+            Вход
           </Button>
           <Button className="sm:min-w-40" onClick={() => onNavigate("register")} tone="secondary">
             Регистрация
           </Button>
-        </div>
-        <div className="mt-10 grid gap-3 sm:grid-cols-3">
-          {[
-            { icon: BookOpen, title: "База знаний", text: "Актуальные инструкции" },
-            { icon: Search, title: "Умный поиск", text: "По статьям и файлам" },
-            { icon: ShieldCheck, title: "Ваши права", text: "Только доступные материалы" },
-          ].map(({ icon: Icon, text, title }) => (
-            <div
-              className="rounded-2xl border border-[var(--ms-border)] bg-white p-4 shadow-[var(--ms-card-shadow)]"
-              key={title}
-            >
-              <Icon className="h-5 w-5 text-[var(--ms-primary)]" aria-hidden="true" />
-              <h2 className="mt-3 text-sm font-bold">{title}</h2>
-              <p className="mt-1 text-xs leading-5 text-[var(--ms-muted)]">{text}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="relative min-w-0 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#0f6ea9] via-[#1478bd] to-[#32a2d7] p-6 text-white shadow-[0_30px_80px_rgba(20,120,189,.28)] sm:p-10">
-        <div
-          className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl"
-          aria-hidden="true"
-        />
-        <div className="relative rounded-2xl border border-white/20 bg-white/12 p-5 backdrop-blur sm:p-6">
-          <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-[var(--ms-primary)]">
-              <BookOpen className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-xs font-semibold text-white/65">Популярная статья</p>
-              <p className="font-heading font-bold">Настройка сетевой лицензии</p>
-            </div>
-          </div>
-          <div className="mt-6 space-y-3">
-            {["Подготовка сервера", "Подключение рабочих мест", "Диагностика соединения"].map(
-              (item, index) => (
-                <div
-                  className="flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold"
-                  key={item}
-                >
-                  <span className="grid h-7 w-7 place-items-center rounded-full bg-white/15 text-xs">
-                    {index + 1}
-                  </span>
-                  {item}
-                </div>
-              ),
-            )}
-          </div>
-          <button
-            className="mt-6 flex items-center gap-2 text-sm font-bold transition hover:gap-3"
-            onClick={() => onNavigate("login")}
-            type="button"
-          >
-            Открыть после входа <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </button>
         </div>
       </div>
     </section>
@@ -145,13 +71,11 @@ export const LoginPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
   };
   return (
     <AuthLayout>
-      <section className="mx-auto grid min-h-[calc(100dvh-64px)] max-w-[1100px] place-items-center px-4 py-10 sm:px-6">
+      <section className="mx-auto grid min-h-dvh max-w-[1100px] place-items-center px-4 py-16 sm:px-6">
         <div className="grid w-full overflow-hidden rounded-[28px] border border-[var(--ms-border)] bg-white shadow-[0_24px_70px_rgba(24,43,66,.12)] md:grid-cols-[.9fr_1.1fr]">
           <div className="hidden bg-gradient-to-br from-[#123b5a] to-[#1478bd] p-10 text-white md:flex md:flex-col md:justify-between">
             <div>
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15">
-                <LockKeyhole className="h-6 w-6" aria-hidden="true" />
-              </span>
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15 font-heading text-lg font-black">M</span>
               <h1 className="mt-6 font-heading text-3xl font-bold">С возвращением</h1>
               <p className="mt-3 leading-7 text-white/72">
                 Войдите, чтобы продолжить работу с материалами вашей компании.

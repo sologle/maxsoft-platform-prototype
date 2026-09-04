@@ -1,5 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { App } from "./App";
 
@@ -9,25 +8,20 @@ describe("адаптивная оболочка платформы", () => {
     window.history.replaceState({}, "", "/");
   });
 
-  it("показывает шесть ролей и запускает платформу одним действием", async () => {
-    const user = userEvent.setup();
+  it("открывает минимальную гостевую страницу без технического лаунчера", () => {
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "Выберите сценарий" })).toBeInTheDocument();
-    expect(screen.getAllByTestId("role-entry")).toHaveLength(6);
-    const manager = screen.getByRole("heading", { name: "Менеджер" }).closest("article");
-    if (!manager) throw new Error("TEST_MANAGER_CARD_MISSING");
-    expect(within(manager).queryByRole("button", { name: /Desktop|Мобильный/ })).not.toBeInTheDocument();
-
-    await user.click(within(manager).getByRole("button", { name: "Открыть платформу" }));
-    expect(screen.getByRole("heading", { name: "Рабочее пространство" })).toBeInTheDocument();
-    expect(document.querySelector("iframe")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Портал MaxSoft" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Вход" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Регистрация" })).toBeInTheDocument();
+    expect(screen.getByTestId("portal-auth-backdrop")).toBeInTheDocument();
+    expect(screen.queryByTestId("role-entry")).not.toBeInTheDocument();
   });
 
   it("открывает гостевую страницу вместо некорректной публичной ссылки", () => {
     window.history.replaceState({}, "", "/?page=unknown&role=unknown");
     render(<App />);
-    expect(screen.getByRole("heading", { name: /Всё необходимое/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Портал MaxSoft" })).toBeInTheDocument();
   });
 
   it("заменяет закрытый прямой маршрут универсальным отказом", () => {

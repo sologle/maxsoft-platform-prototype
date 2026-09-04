@@ -1,9 +1,12 @@
+import { demoResources } from "../../app/demo-resources";
+import { FileTypeIcon } from "../../components/FileTypeIcon";
 import {
   ArrowLeft,
   Bookmark,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Eye,
-  FileText,
   Maximize2,
   Minimize2,
   Minus,
@@ -88,8 +91,6 @@ const ArticleHeader = ({
   );
 };
 
-const defaultArticleId = "network-license";
-const defaultVideoId = "cad-integration";
 
 const articleSections: Record<string, Array<{ id: string; text: string; title: string }>> = {
   "network-license": [
@@ -126,7 +127,8 @@ const articleAttachment: Record<string, string | undefined> = {
 export const ArticlePage = ({ onNavigate, resource, role }: ArticlePageProps) => {
   const [fontScale, setFontScale] = useState(1);
   const [readingMode, setReadingMode] = useState(false);
-  const article = articles.find((candidate) => candidate.id === (resource ?? defaultArticleId))!;
+  const [tocOpen, setTocOpen] = useState(false);
+  const article = articles.find((candidate) => candidate.id === (resource ?? demoResources.article))!;
   const sections = articleSections[article.id];
   const attachment = articleAttachment[article.id];
 
@@ -158,8 +160,8 @@ export const ArticlePage = ({ onNavigate, resource, role }: ArticlePageProps) =>
         <button
           aria-label="Уменьшить размер текста"
           className="icon-button bg-white"
-          disabled={fontScale <= 0.9}
-          onClick={() => setFontScale((current) => Math.max(0.9, current - 0.1))}
+          disabled={fontScale <= 0.7}
+          onClick={() => setFontScale((current) => Math.max(0.7, Number((current - 0.1).toFixed(1))))}
           type="button"
         >
           <Minus className="h-4 w-4" aria-hidden="true" />
@@ -170,8 +172,8 @@ export const ArticlePage = ({ onNavigate, resource, role }: ArticlePageProps) =>
         <button
           aria-label="Увеличить размер текста"
           className="icon-button bg-white"
-          disabled={fontScale >= 1.3}
-          onClick={() => setFontScale((current) => Math.min(1.3, current + 0.1))}
+          disabled={fontScale >= 1.4}
+          onClick={() => setFontScale((current) => Math.min(1.4, Number((current + 0.1).toFixed(1))))}
           type="button"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
@@ -192,7 +194,7 @@ export const ArticlePage = ({ onNavigate, resource, role }: ArticlePageProps) =>
         </Button>
       </div>
       <ArticleHeader article={article} onNavigate={onNavigate} role={role} />
-    <div className="mt-8 grid min-w-0 gap-10 lg:grid-cols-[minmax(0,1fr)_250px]">
+    <div className={`mt-8 grid min-w-0 gap-5 lg:gap-8 ${tocOpen ? "lg:grid-cols-[minmax(0,1fr)_250px]" : "lg:grid-cols-[minmax(0,1fr)_56px]"}`}>
       <div className="article-content min-w-0">
         <p className="article-lead">
           {article.description}
@@ -220,9 +222,7 @@ export const ArticlePage = ({ onNavigate, resource, role }: ArticlePageProps) =>
             onClick={() => onNavigate("file-preview", attachment)}
             type="button"
           >
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-red-50 text-red-600">
-              <FileText className="h-5 w-5" aria-hidden="true" />
-            </span>
+            <FileTypeIcon type={attachment.endsWith(".pdf") ? "PDF" : "DOCX"} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-bold">{attachment}</span>
               <span className="mt-1 block text-xs text-[var(--ms-muted)]">Файл · открыть предпросмотр</span>
@@ -231,18 +231,31 @@ export const ArticlePage = ({ onNavigate, resource, role }: ArticlePageProps) =>
           </button>
         </section> : null}
       </div>
-      <aside className={readingMode ? "hidden" : "hidden lg:block"}>
-        <nav aria-label="Содержание статьи" className="sticky top-28 rounded-2xl bg-slate-50 p-5">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[.12em] text-slate-400">В этой статье</p>
-          {sections.map(({ id, title: label }) => (
-            <a
-              className="block rounded-lg px-2 py-2 text-sm text-[var(--ms-muted)] transition hover:bg-white hover:text-[var(--ms-primary)]"
-              href={`#${id}`}
-              key={id}
+      <aside className="order-first min-w-0 lg:order-last">
+        <nav aria-label="Содержание статьи" className={`sticky ${readingMode ? "top-5" : "top-28"} rounded-2xl border border-[var(--ms-border)] bg-slate-50 ${tocOpen ? "p-3 sm:p-4" : "p-2"}`}>
+          <div className={`flex items-center gap-2 ${tocOpen ? "mb-2" : "justify-center"}`}>
+            {tocOpen ? <p className="min-w-0 flex-1 pl-1 text-xs font-bold uppercase tracking-[.12em] text-slate-400">В этой статье</p> : null}
+            <button
+              aria-label={tocOpen ? "Свернуть содержание статьи" : "Развернуть содержание статьи"}
+              aria-expanded={tocOpen}
+              className="icon-button bg-white shadow-sm"
+              onClick={() => setTocOpen((current) => !current)}
+              type="button"
             >
-              {label}
-            </a>
-          ))}
+              {tocOpen ? <ChevronRight className="h-4 w-4" aria-hidden="true" /> : <ChevronLeft className="h-4 w-4" aria-hidden="true" />}
+            </button>
+          </div>
+          <div className={tocOpen ? "block" : "hidden"}>
+            {sections.map(({ id, title: label }) => (
+              <a
+                className="block rounded-lg px-2 py-2 text-sm text-[var(--ms-muted)] transition hover:bg-white hover:text-[var(--ms-primary)]"
+                href={`#${id}`}
+                key={id}
+              >
+                {label}
+              </a>
+            ))}
+          </div>
         </nav>
       </aside>
     </div>
@@ -262,7 +275,7 @@ const videoDuration = 1080;
 export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProps) => {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(135);
-  const article = articles.find((candidate) => candidate.id === (resource ?? defaultVideoId))!;
+  const article = articles.find((candidate) => candidate.id === (resource ?? demoResources.video))!;
 
   useEffect(() => {
     if (!playing) return;

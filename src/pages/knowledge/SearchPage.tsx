@@ -204,11 +204,11 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
     <>
       <PageHeading
         eyebrow="Поиск"
-        subtitle="По статьям и текстовому содержимому документов с учётом ваших прав доступа."
-        title="Найдите нужный материал"
+        subtitle="Совпадения в статьях, описаниях, тегах и текстовом содержимом файлов."
+        title="Результаты поиска"
       />
       <form
-        className="relative mx-auto mb-6 max-w-4xl"
+        className="relative mb-5"
         onSubmit={(event) => {
           event.preventDefault();
           submit();
@@ -220,7 +220,7 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
         />
         <input
           aria-label="Поиск по базе знаний"
-          className="h-14 w-full min-w-0 rounded-2xl border border-[var(--ms-border-strong)] bg-white pl-12 pr-28 text-base shadow-[var(--ms-card-shadow)] outline-none transition focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)] sm:h-16 sm:pr-36 sm:text-lg"
+          className="h-12 w-full min-w-0 rounded-xl border border-[var(--ms-border-strong)] bg-white pl-11 pr-28 text-sm outline-none transition focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)] sm:pr-36"
           onBlur={() => window.setTimeout(() => setFocused(false), 120)}
           onChange={(event) => setDraftQuery(event.target.value)}
           onFocus={() => setFocused(true)}
@@ -247,7 +247,7 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
           Найти
         </button>
         {focused && draftQuery ? (
-          <div className="absolute inset-x-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border border-[var(--ms-border)] bg-white p-2 shadow-[0_18px_50px_rgba(24,43,66,.18)]">
+          <div className="absolute inset-x-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-xl border border-[var(--ms-border)] bg-white p-2 shadow-[0_18px_50px_rgba(24,43,66,.18)]">
             {["лицензия активация", "лицензия сервер", "лицензирование НАВИСА"]
               .filter((item) => item.includes(draftQuery.toLowerCase()) || draftQuery.length < 4)
               .map((item) => (
@@ -269,8 +269,8 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
         ) : null}
       </form>
 
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="hidden self-start rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] lg:sticky lg:top-28 lg:block">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="hidden self-start rounded-xl border border-[var(--ms-border)] bg-white p-4 lg:sticky lg:top-28 lg:block">
           <div className="mb-5 flex items-center gap-2">
             <SlidersHorizontal className="h-5 w-5 text-[var(--ms-primary)]" aria-hidden="true" />
             <h2 className="font-heading font-bold">Фильтры</h2>
@@ -306,7 +306,7 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
               {results.map(({ article, match }) => (
                 <article
                   aria-label={`Открыть материал: ${article.title}`}
-                  className="group min-w-0 cursor-pointer rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--ms-primary)] hover:shadow-[var(--ms-card-shadow-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)] sm:p-6"
+                  className="group min-w-0 cursor-pointer rounded-xl border border-[var(--ms-border)] border-l-[3px] border-l-[var(--ms-primary)] bg-white p-4 transition hover:border-[var(--ms-primary)] hover:bg-[var(--ms-primary-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)]"
                   key={article.id}
                   onClick={() => onNavigate(article.kind === "video" ? "video" : "article", article.id)}
                   onKeyDown={(event) => {
@@ -318,7 +318,7 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
                   tabIndex={0}
                 >
                   <div className="flex min-w-0 items-start gap-3">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
                       {article.kind === "video" ? (
                         <Video className="h-5 w-5" aria-hidden="true" />
                       ) : (
@@ -326,17 +326,18 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
                       )}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-[var(--ms-muted)]">
-                        {getArticleSections(article).join(" · ")} · {match.label}
-                      </p>
-                      <h2 className="mt-1 font-heading text-lg font-bold sm:text-xl">
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--ms-muted)]">
+                        <span>{getArticleSections(article).join(" · ")}</span>
+                        <span className="rounded-full bg-[var(--ms-primary-soft)] px-2 py-1 text-[var(--ms-primary)]">{match.label}</span>
+                      </div>
+                      <h2 className="mt-1.5 font-heading text-base font-bold sm:text-lg">
                         <Highlight query={query} text={article.title} />
                       </h2>
-                      <p className="mt-2 text-sm leading-6 text-[var(--ms-muted)]">
+                      <p className="mt-1.5 text-sm leading-5 text-[var(--ms-muted)]">
                         <Highlight query={query} text={article.description} />
                       </p>
                     </div>
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[var(--ms-primary)] transition group-hover:translate-x-1 group-hover:bg-[var(--ms-primary-soft)]">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--ms-primary)] transition group-hover:translate-x-1 group-hover:bg-white">
                       <ChevronRight className="h-5 w-5" aria-hidden="true" />
                     </span>
                   </div>

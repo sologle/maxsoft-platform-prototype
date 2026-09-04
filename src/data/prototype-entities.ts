@@ -99,6 +99,17 @@ export const getArticleAccess = (article: ArticleSummary): ArticleAccess =>
     article.id
   ] ?? article.allowedCompanyTypes;
 
+export const writeArticleAccess = (article: ArticleSummary, articleAccess: ArticleAccess) => {
+  const access = readPrototypeValue<Record<string, ArticleAccess>>(
+    prototypeStorageKeys.articleAccess,
+    {},
+  );
+  writePrototypeValue(prototypeStorageKeys.articleAccess, {
+    ...access,
+    [article.id]: articleAccess,
+  });
+};
+
 export const getArticleTags = (article: ArticleSummary) =>
   readPrototypeValue<Record<string, string[]>>(prototypeStorageKeys.articleTags, {})[article.id] ??
   article.tags;

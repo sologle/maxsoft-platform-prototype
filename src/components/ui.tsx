@@ -1,5 +1,9 @@
-import { AlertCircle, ArrowLeft, Check, ChevronDown, ChevronRight, SearchX } from "lucide-react";
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import { AlertCircle, ArrowLeft, Check, ChevronRight, SearchX } from "lucide-react";
+import {
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+} from "react";
 
 type ButtonTone = "primary" | "secondary" | "ghost" | "danger";
 
@@ -55,40 +59,7 @@ export const Field = ({ className = "", error, label, id, ...props }: FieldProps
   );
 };
 
-interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  children: ReactNode;
-  error?: string;
-  label: string;
-}
-
-export const SelectField = ({ children, className = "", error, label, id, ...props }: SelectFieldProps) => {
-  const fieldId = id ?? `select-${label.toLowerCase().replace(/\s+/g, "-")}`;
-  return (
-    <label className={`block ${className}`} htmlFor={fieldId}>
-      <span className="mb-1.5 block text-sm font-semibold text-[var(--ms-text)]">{label}</span>
-      <span className="relative block">
-        <select
-          aria-invalid={Boolean(error)}
-          className="styled-select h-12 w-full min-w-0 rounded-xl border border-[var(--ms-border-strong)] bg-white px-3.5 pr-10 text-[15px] outline-none transition hover:border-slate-400 focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)]"
-          id={fieldId}
-          {...props}
-        >
-          {children}
-        </select>
-        <ChevronDown
-          aria-hidden="true"
-          className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ms-muted)]"
-        />
-      </span>
-      {error ? (
-        <span className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-650" role="alert">
-          <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
-          {error}
-        </span>
-      ) : null}
-    </label>
-  );
-};
+export { SelectField } from "./SelectField";
 
 export const Badge = ({
   children,

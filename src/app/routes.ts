@@ -1,3 +1,4 @@
+import { demoResources } from "./demo-resources";
 import type { AppLocation, AppPage, RoleProfile, UserRole } from "./types";
 import { articles, canRoleAccessArticle, canRoleAccessFile, files } from "../data/platform-data";
 import { getPrototypeCompanies, getPrototypeUsers } from "../data/prototype-entities";
@@ -84,6 +85,7 @@ export const pageDefinitions: PageDefinition[] = [
   { id: "users", label: "Пользователи", roles: staffRoles },
   { id: "client-users", label: "Сотрудники компании", roles: ["client-admin"] },
   { id: "administration", label: "Администрирование", roles: ["portal-admin"] },
+  { id: "access-settings", label: "Доступ к материалам", roles: ["portal-admin"] },
   { id: "integrations", label: "Интеграции", roles: ["portal-admin"] },
   { id: "audit", label: "Журнал действий", roles: ["portal-admin"] },
   { id: "fields", label: "Поля компании", roles: ["portal-admin"] },
@@ -142,16 +144,16 @@ export const canOpenLocation = (
   companyType?: string,
 ): boolean => {
   if (!canOpenPage(page, role)) return false;
-  if ((page === "article" || page === "video") && resource) {
-    const article = articles.find((candidate) => candidate.id === resource);
+  if (page === "article" || page === "video") {
+    const article = articles.find((candidate) => candidate.id === (resource ?? demoResources[page]));
     return Boolean(
       article &&
         canRoleAccessArticle(article, role, companyType) &&
         (page === "video" ? article.kind === "video" : article.kind === "article"),
     );
   }
-  if (page === "file-preview" && resource) {
-    const file = files.find((candidate) => candidate.name === resource);
+  if (page === "file-preview") {
+    const file = files.find((candidate) => candidate.name === (resource ?? demoResources.file));
     return Boolean(file && canRoleAccessFile(file, role, companyType));
   }
   if (page === "editor" && resource)

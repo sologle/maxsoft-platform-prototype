@@ -19,7 +19,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import type { Navigate } from "../../app/types";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
-import { Badge, Button, Switch } from "../../components/ui";
+import { Badge, Button, SelectField, Switch } from "../../components/ui";
 import {
   articles,
   companyTypes,
@@ -214,12 +214,11 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
                 );
               })}
               <span className="mx-1 h-6 w-px bg-[var(--ms-border)]" aria-hidden="true" />
-              <label className="sr-only" htmlFor="paragraph-style">
-                Стиль абзаца
-              </label>
-              <select
-                className="h-9 max-w-40 rounded-lg border border-[var(--ms-border-strong)] bg-white px-2 text-xs font-semibold outline-none focus:border-[var(--ms-primary)]"
+              <SelectField
+                className="max-w-40"
                 id="paragraph-style"
+                label="Стиль абзаца"
+                labelHidden
                 onChange={(event) => {
                   setParagraphStyle(event.target.value);
                   markChanged();
@@ -230,7 +229,7 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
                 <option>Обычный текст</option>
                 <option>Подзаголовок</option>
                 <option>Цитата</option>
-              </select>
+              </SelectField>
             </div>
           </div>
 
