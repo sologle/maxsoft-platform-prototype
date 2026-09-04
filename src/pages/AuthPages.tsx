@@ -12,14 +12,28 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import type { AppPage, UserRole } from "../app/types";
+import type { AppPage, Authenticate, Navigate } from "../app/types";
 import { ResponsiveOverlay } from "../components/ResponsiveOverlay";
 import { ThemeToggle } from "../components/Theme";
 import { Button, Field } from "../components/ui";
+import {
+  companyFields as initialCompanyFields,
+  companyTypes as initialCompanyTypes,
+  type CompanyRecord,
+  type UserRecord,
+} from "../data/platform-data";
+import {
+  getCompanyUniquenessConflicts,
+  getPrototypeCompanies,
+  getPrototypeUsers,
+  writePrototypeCompanies,
+  writePrototypeUsers,
+} from "../data/prototype-entities";
+import { prototypeStorageKeys, readPrototypeValue } from "../data/prototype-store";
 
 interface AuthPageProps {
-  onAuthenticate: (role: UserRole) => void;
-  onNavigate: (page: AppPage) => void;
+  onAuthenticate: Authenticate;
+  onNavigate: Navigate;
 }
 
 const AuthLayout = ({ children }: { children: React.ReactNode }) => (
@@ -120,7 +134,7 @@ export const LandingPage = ({ onNavigate }: AuthPageProps) => (
 );
 
 export const LoginPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
-  const [email, setEmail] = useState("employee@severprom.ru");
+  const [email, setEmail] = useState("o.gurov@integrator-pro.ru");
   const [password, setPassword] = useState("maxsoft-demo");
   const [showPassword, setShowPassword] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -214,9 +228,117 @@ export const LoginPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
 export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
   const [email, setEmail] = useState("admin@severprom.ru");
   const [result, setResult] = useState<"existing" | "new" | "review" | null>(null);
+  const [registeredCompanyId, setRegisteredCompanyId] = useState<string | null>(null);
+  const registrationFields = readPrototypeValue(
+    prototypeStorageKeys.companyFields,
+    initialCompanyFields,
+  ).filter((field) => field.visible && field.registration && field.id !== "type");
+  const registrationDemoValues: Record<string, string> = {
+    bitrix: "",
+    contract: "",
+    contractDate: "",
+    domains: "severprom.ru",
+    inn: "2463128457",
+    kpp: "246301001",
+    legalAddress: "г. Красноярск, ул. Проектная, 12",
+    name: "ООО «СеверПромБИМ»",
+    phone: "+7 (391) 212-45-80",
+    primaryEmail: "info@severprom.ru",
+    project: "Пилотник НАВИСА-2026",
+    shortName: "СеверПромБИМ",
+    status: "Активна",
+    statusUntil: "2026-12-31",
+  };
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setResult(email.includes("conflict") ? "review" : email.endsWith("@severprom.ru") ? "existing" : "new");
+    const form = new FormData(event.currentTarget);
+    const emailDomain = email.trim().toLocaleLowerCase("ru").split("@")[1];
+    if (!emailDomain)
+      throw new Error("ACC_REGISTRATION_EMAIL_DOMAIN_MISSING: домен почты отсутствует");
+    const formValue = (id: string) => {
+      const value = form.get(`company-${id}`);
+      return typeof value === "string" ? value.trim() : "";
+    };
+    const companies = getPrototypeCompanies();
+    const inn = formValue("inn");
+    const configuredDomains = formValue("domains")
+      .split(",")
+      .map((domain) => domain.trim().toLocaleLowerCase("ru"))
+      .filter(Boolean);
+    const registrationDomains = configuredDomains.length ? configuredDomains : [emailDomain];
+    const domainCompany = companies.find((company) => company.domains.includes(emailDomain));
+    const innCompany = inn ? companies.find((company) => company.inn === inn) : undefined;
+    const workingDomainCompany = companies.find((company) =>
+      company.domains.some((domain) => registrationDomains.includes(domain.toLocaleLowerCase("ru"))),
+    );
+    const companyTypes = readPrototypeValue(prototypeStorageKeys.companyTypes, initialCompanyTypes);
+    const defaultCompanyType = companyTypes.find((type) => type.isDefault);
+    if (!defaultCompanyType)
+      throw new Error("ACC_DEFAULT_COMPANY_TYPE_MISSING: базовый тип компании не настроен");
+    const companyId = `company-${Date.now()}`;
+    const company: CompanyRecord = {
+      id: companyId,
+      name: formValue("name") || emailDomain,
+      shortName: formValue("shortName") || emailDomain,
+      inn,
+      kpp: formValue("kpp"),
+      legalAddress: formValue("legalAddress"),
+      primaryEmail: formValue("primaryEmail") || email,
+      phone: formValue("phone"),
+      type: defaultCompanyType.name,
+      status: "Активна",
+      statusUntil: formValue("statusUntil"),
+      contract: formValue("contract"),
+      contractDate: formValue("contractDate"),
+      project: formValue("project"),
+      bitrixUrl: formValue("bitrix"),
+      users: 1,
+      domains: registrationDomains,
+    };
+    const uniqueRegistrationFields = registrationFields
+      .filter((field) => field.unique)
+      .map((field) => field.id);
+    const uniquenessConflicts = getCompanyUniquenessConflicts(
+      company,
+      companies,
+      uniqueRegistrationFields,
+      domainCompany?.id,
+    );
+    const domainInnConflict = Boolean(domainCompany && inn && domainCompany.inn !== inn);
+    if (
+      email.includes("conflict") ||
+      domainInnConflict ||
+      (domainCompany && innCompany && domainCompany.id !== innCompany.id) ||
+      (!domainCompany && (innCompany || workingDomainCompany)) ||
+      uniquenessConflicts.length > 0
+    ) {
+      setRegisteredCompanyId(null);
+      setResult("review");
+      return;
+    }
+    if (domainCompany) {
+      setRegisteredCompanyId(domainCompany.id);
+      setResult("existing");
+      return;
+    }
+    const firstName = form.get("firstName");
+    const lastName = form.get("lastName");
+    if (typeof firstName !== "string" || typeof lastName !== "string")
+      throw new Error("ACC_REGISTRATION_USER_NAME_MISSING: имя пользователя отсутствует");
+    const user: UserRecord = {
+      id: `user-${Date.now()}`,
+      name: `${firstName.trim()} ${lastName.trim()}`,
+      email: email.trim(),
+      company: company.name,
+      role: "Администратор клиента",
+      position: "Не указана",
+      status: "Активен",
+      lastLogin: "Только что",
+    };
+    writePrototypeCompanies([...companies, company]);
+    writePrototypeUsers([...getPrototypeUsers(), user]);
+    setRegisteredCompanyId(companyId);
+    setResult("new");
   };
   return (
     <AuthLayout>
@@ -232,8 +354,8 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
             </p>
           </div>
           <form className="mt-8 grid gap-4 sm:grid-cols-2" onSubmit={submit}>
-            <Field label="Имя" defaultValue="Анна" required />
-            <Field label="Фамилия" defaultValue="Смирнова" required />
+            <Field label="Имя" defaultValue="Анна" name="firstName" required />
+            <Field label="Фамилия" defaultValue="Смирнова" name="lastName" required />
             <Field
               className="sm:col-span-2"
               label="Корпоративная почта"
@@ -242,8 +364,37 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
               type="email"
               value={email}
             />
-            <Field label="Компания" defaultValue="ООО «СеверПромБИМ»" required />
-            <Field label="ИНН" defaultValue="2463128457" inputMode="numeric" required />
+            {registrationFields.map((field) => {
+              const demoValue = registrationDemoValues[field.id];
+              if (demoValue === undefined)
+                throw new Error(
+                  `PLAT_REGISTRATION_FIELD_UNSUPPORTED: поле ${field.id} не поддержано формой регистрации`,
+                );
+              return (
+                <Field
+                  className={
+                    field.id === "legalAddress" || field.id === "domains"
+                      ? "sm:col-span-2"
+                      : undefined
+                  }
+                  defaultValue={demoValue}
+                  inputMode={field.id === "inn" || field.id === "kpp" ? "numeric" : undefined}
+                  key={field.id}
+                  label={field.label}
+                  name={`company-${field.id}`}
+                  required={field.required}
+                  type={
+                    field.id === "primaryEmail"
+                      ? "email"
+                      : field.id === "phone"
+                        ? "tel"
+                        : field.id.includes("Date") || field.id === "statusUntil"
+                          ? "date"
+                          : "text"
+                  }
+                />
+              );
+            })}
             <Field label="Пароль" defaultValue="maxsoft-demo" required type="password" />
             <Field label="Повторите пароль" defaultValue="maxsoft-demo" required type="password" />
             <label className="option-row sm:col-span-2">
@@ -294,7 +445,14 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
               Вернуться ко входу
             </Button>
           ) : (
-            <Button className="mt-6 w-full" onClick={() => onAuthenticate("client-admin")}>
+            <Button
+              className="mt-6 w-full"
+              onClick={() => {
+                if (!registeredCompanyId)
+                  throw new Error("ACC_REGISTERED_COMPANY_MISSING: компания регистрации не задана");
+                onAuthenticate("client-admin", registeredCompanyId);
+              }}
+            >
               Перейти в портал
             </Button>
           )}

@@ -9,13 +9,15 @@ import {
   Tags,
   UsersRound,
 } from "lucide-react";
-import type { AppPage, UserRole } from "../app/types";
+import type { AppPage, Navigate, UserRole } from "../app/types";
 import { roleProfile } from "../app/routes";
 import { Badge, PageHeading } from "../components/ui";
-import { articles } from "../data/platform-data";
+import { articles, canRoleAccessArticle, isArticlePublished } from "../data/platform-data";
+import { getArticleSections } from "../data/prototype-entities";
 
 interface HomePageProps {
-  onNavigate: (page: AppPage) => void;
+  companyType?: string;
+  onNavigate: Navigate;
   role: UserRole;
 }
 
@@ -68,8 +70,11 @@ const cardsForRole = (role: UserRole) => {
   return cards;
 };
 
-export const HomePage = ({ onNavigate, role }: HomePageProps) => {
+export const HomePage = ({ companyType, onNavigate, role }: HomePageProps) => {
   const profile = roleProfile(role);
+  const visibleArticles = articles.filter(
+    (article) => isArticlePublished(article) && canRoleAccessArticle(article, role, companyType),
+  );
   return (
     <>
       <PageHeading
@@ -118,11 +123,13 @@ export const HomePage = ({ onNavigate, role }: HomePageProps) => {
             </button>
           </div>
           <div className="divide-y divide-[var(--ms-border)]">
-            {articles.slice(0, 3).map((article) => (
+            {visibleArticles.slice(0, 3).map((article) => (
               <button
                 className="group flex w-full min-w-0 items-start gap-3 py-4 text-left first:pt-2 last:pb-0"
                 key={article.id}
-                onClick={() => onNavigate(article.kind === "video" ? "video" : "article")}
+                onClick={() =>
+                  onNavigate(article.kind === "video" ? "video" : "article", article.id)
+                }
                 type="button"
               >
                 <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[var(--ms-primary)]" />
@@ -131,7 +138,7 @@ export const HomePage = ({ onNavigate, role }: HomePageProps) => {
                     {article.title}
                   </span>
                   <span className="mt-1 block text-xs text-[var(--ms-muted)]">
-                    {article.section} · {article.updated}
+                    {getArticleSections(article).join(" · ")} · {article.updated}
                   </span>
                 </span>
               </button>
@@ -144,7 +151,8 @@ export const HomePage = ({ onNavigate, role }: HomePageProps) => {
           </span>
           <h2 className="mt-5 font-heading text-xl font-bold">База знаний растёт</h2>
           <p className="mt-2 text-sm leading-6 text-white/72">
-            57 опубликованных материалов доступны вашей роли. Последнее обновление — сегодня.
+            {visibleArticles.length} опубликованных материалов доступны вашей роли. Последнее
+            обновление — сегодня.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Badge tone="blue">НАВИСА · 36</Badge>

@@ -35,7 +35,7 @@ test("тёмная тема применяется к карточкам и ад
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("./?page=knowledge&role=portal-admin");
 
-  const card = page.getByRole("article").first();
+  const card = page.getByRole("button", { name: /Открыть материал:/ }).first();
   await expect(card).not.toHaveCSS("background-color", "rgb(255, 255, 255)");
   await page.getByRole("button", { name: "Показать разделы" }).click();
   const sheet = page.getByRole("dialog", { name: "Разделы базы знаний" });

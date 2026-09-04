@@ -130,6 +130,18 @@ html[data-theme="dark"] .bg-blue-50 {
   background-color: #142847;
 }
 
+html[data-theme="dark"] .bg-violet-50 {
+  background-color: #281f45;
+}
+
+html[data-theme="dark"] .bg-orange-50 {
+  background-color: #382315;
+}
+
+html[data-theme="dark"] .bg-rose-50 {
+  background-color: #3a1b2a;
+}
+
 html[data-theme="dark"] .bg-emerald-50 {
   background-color: #102c24;
 }
@@ -147,6 +159,21 @@ html[data-theme="dark"] .text-sky-700,
 html[data-theme="dark"] .text-sky-900,
 html[data-theme="dark"] .text-blue-600 {
   color: #76c8f8;
+}
+
+html[data-theme="dark"] .text-violet-500,
+html[data-theme="dark"] .text-violet-700 {
+  color: #b9a2ff;
+}
+
+html[data-theme="dark"] .text-orange-500,
+html[data-theme="dark"] .text-orange-700 {
+  color: #f5a963;
+}
+
+html[data-theme="dark"] .text-rose-500,
+html[data-theme="dark"] .text-rose-700 {
+  color: #f49bbb;
 }
 
 html[data-theme="dark"] .text-emerald-600,

@@ -1,18 +1,123 @@
 import { BookOpen, ChevronRight, FileText, Filter, Search, SlidersHorizontal, Video, X } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { AppPage, UserRole } from "../../app/types";
+import type { Navigate, UserRole } from "../../app/types";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
 import { Badge, Button, EmptyState, PageHeading } from "../../components/ui";
-import { articles } from "../../data/platform-data";
+import {
+  articles,
+  canRoleAccessArticle,
+  isArticlePublished,
+  tagGroups,
+  type ArticleSummary,
+} from "../../data/platform-data";
+import { getArticleSections, getArticleTags } from "../../data/prototype-entities";
+import { prototypeStorageKeys, readPrototypeValue } from "../../data/prototype-store";
 
 interface SearchPageProps {
-  onNavigate: (page: AppPage) => void;
+  companyType?: string;
+  onNavigate: Navigate;
   role: UserRole;
 }
 
-const availableTags = ["НАВИСА", "Лицензирование", "Интеграция", "Обновление", "Проекты"];
+const searchableContent: Record<
+  string,
+  { articleText: string; file?: { name: string; text: string; type: string } }
+> = {
+  "network-license": {
+    articleText: "Установка сервера лицензий, подключение рабочего места и диагностика соединения.",
+    file: {
+      name: "инструкция_активации.pdf",
+      text: "Проверьте адрес сервера лицензии и доступность порта 1947 из корпоративной сети.",
+      type: "PDF",
+    },
+  },
+  "cad-integration": {
+    articleText: "Подключение модуля, настройка обмена и проверка первой синхронизации.",
+  },
+  "project-template": {
+    articleText: "Структура каталогов, шаблоны именования и совместная работа над проектом.",
+  },
+  "server-migration": {
+    articleText: "Перенос службы лицензирования на новый сервер без остановки рабочих мест.",
+  },
+  "update-2026": {
+    articleText: "Резервная копия, обновление компонентов и проверка совместимости модулей.",
+  },
+};
 
-export const SearchPage = ({ onNavigate, role }: SearchPageProps) => {
+type SearchMatch = {
+  label: string;
+  snippet?: string;
+  source: "article" | "description" | "file" | "tag" | "title";
+};
+
+const wordMatches = (text: string, words: string[]) => {
+  const normalized = text.toLowerCase();
+  return words.every(
+    (word) => normalized.includes(word) || (word.length > 5 && normalized.includes(word.slice(0, -1))),
+  );
+};
+
+const findMatch = (
+  article: ArticleSummary,
+  articleTags: string[],
+  words: string[],
+  availableTags: string[],
+): SearchMatch | null => {
+  const content = searchableContent[article.id];
+  const candidates: Array<{ label: string; source: SearchMatch["source"]; text?: string }> = [
+    { label: "Совпадение в заголовке статьи", source: "title", text: article.title },
+    { label: "Совпадение в описании статьи", source: "description", text: article.description },
+    {
+      label: "Совпадение в теге",
+      source: "tag",
+      text: articleTags.filter((tag) => availableTags.includes(tag)).join(" "),
+    },
+    { label: "Совпадение в тексте статьи", source: "article", text: content?.articleText },
+    {
+      label: content?.file ? `Совпадение в тексте ${content.file.type}` : "",
+      source: "file",
+      text: content?.file?.text,
+    },
+  ];
+  const match = candidates.find((candidate) => candidate.text && wordMatches(candidate.text, words));
+  if (!match) return null;
+  return {
+    label: match.label,
+    snippet: match.text,
+    source: match.source,
+  };
+};
+
+const Highlight = ({ query, text }: { query: string; text: string }) => {
+  const terms = query
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .flatMap((term) => (term.length > 5 ? [term, term.slice(0, -1)] : [term]))
+    .filter(Boolean)
+    .sort((left, right) => right.length - left.length);
+  if (!terms.length) return text;
+  const escaped = [...new Set(terms)].map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const matcher = new RegExp(`(${escaped.join("|")})`, "gi");
+  return text.split(matcher).map((part, index) =>
+    terms.includes(part.toLowerCase()) ? (
+      <mark className="search-highlight" key={`${part}-${index}`}>
+        {part}
+      </mark>
+    ) : (
+      part
+    ),
+  );
+};
+
+export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) => {
+  const [availableTags] = useState(() =>
+    readPrototypeValue<Array<{ tags: Array<{ name: string }> }>>(
+      prototypeStorageKeys.tags,
+      tagGroups.map((group) => ({ tags: group.tags.map((name) => ({ name })) })),
+    ).flatMap((group) => group.tags.map((tag) => tag.name)),
+  );
   const [query, setQuery] = useState("лицензия");
   const [draftQuery, setDraftQuery] = useState("лицензия");
   const [tags, setTags] = useState<string[]>([]);
@@ -24,16 +129,19 @@ export const SearchPage = ({ onNavigate, role }: SearchPageProps) => {
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return [];
-    return articles.filter((article) => {
-      if (!canSeeDrafts && article.status === "Черновик") return false;
-      const haystack = `${article.title} ${article.description} ${article.tags.join(" ")}`.toLowerCase();
+    return articles.flatMap((article) => {
+      if (!canSeeDrafts && !isArticlePublished(article)) return [];
+      if (!canRoleAccessArticle(article, role, companyType)) return [];
       const words = normalized.split(/\s+/).filter(Boolean);
-      const matchesText = words.some((word) => haystack.includes(word));
-      const matchesTags = tags.length === 0 || tags.every((tag) => article.tags.includes(tag));
-      const matchesSection = section === "all" || article.section.includes(section);
-      return matchesText && matchesTags && matchesSection;
+      const articleTags = getArticleTags(article);
+      const articleSections = getArticleSections(article);
+      const match = findMatch(article, articleTags, words, availableTags);
+      const matchesTags = tags.length === 0 || tags.every((tag) => articleTags.includes(tag));
+      const matchesSection =
+        section === "all" || articleSections.some((articleSection) => articleSection.includes(section));
+      return match && matchesTags && matchesSection ? [{ article, match }] : [];
     });
-  }, [canSeeDrafts, query, section, tags]);
+  }, [availableTags, canSeeDrafts, companyType, query, role, section, tags]);
 
   const toggleTag = (tag: string) =>
     setTags((current) =>
@@ -195,10 +303,19 @@ export const SearchPage = ({ onNavigate, role }: SearchPageProps) => {
           ) : null}
           {results.length ? (
             <div className="space-y-3">
-              {results.map((article) => (
+              {results.map(({ article, match }) => (
                 <article
-                  className="group min-w-0 rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] transition hover:border-[var(--ms-primary)] hover:shadow-[var(--ms-card-shadow-hover)] sm:p-6"
+                  aria-label={`Открыть материал: ${article.title}`}
+                  className="group min-w-0 cursor-pointer rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--ms-primary)] hover:shadow-[var(--ms-card-shadow-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)] sm:p-6"
                   key={article.id}
+                  onClick={() => onNavigate(article.kind === "video" ? "video" : "article", article.id)}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    onNavigate(article.kind === "video" ? "video" : "article", article.id);
+                  }}
+                  role="button"
+                  tabIndex={0}
                 >
                   <div className="flex min-w-0 items-start gap-3">
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
@@ -210,26 +327,38 @@ export const SearchPage = ({ onNavigate, role }: SearchPageProps) => {
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-[var(--ms-muted)]">
-                        {article.section} · совпадение в{" "}
-                        {article.id === "network-license" ? "тексте PDF" : "статье"}
+                        {getArticleSections(article).join(" · ")} · {match.label}
                       </p>
-                      <h2 className="mt-1 font-heading text-lg font-bold sm:text-xl">{article.title}</h2>
-                      <p className="mt-2 text-sm leading-6 text-[var(--ms-muted)]">{article.description}</p>
+                      <h2 className="mt-1 font-heading text-lg font-bold sm:text-xl">
+                        <Highlight query={query} text={article.title} />
+                      </h2>
+                      <p className="mt-2 text-sm leading-6 text-[var(--ms-muted)]">
+                        <Highlight query={query} text={article.description} />
+                      </p>
                     </div>
-                    <button
-                      aria-label={`Открыть: ${article.title}`}
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[var(--ms-primary)] transition group-hover:translate-x-1 group-hover:bg-[var(--ms-primary-soft)]"
-                      onClick={() => onNavigate(article.kind === "video" ? "video" : "article")}
-                      type="button"
-                    >
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[var(--ms-primary)] transition group-hover:translate-x-1 group-hover:bg-[var(--ms-primary-soft)]">
                       <ChevronRight className="h-5 w-5" aria-hidden="true" />
-                    </button>
+                    </span>
                   </div>
-                  {article.id === "network-license" ? (
+                  {match.source === "file" ? (
                     <div className="mt-4 flex min-w-0 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-[var(--ms-muted)]">
                       <FileText className="h-4 w-4 shrink-0" aria-hidden="true" />
                       <span className="truncate">
-                        инструкция_активации.pdf · «…проверьте адрес сервера лицензии…»
+                        {searchableContent[article.id]?.file?.name} · «
+                        <Highlight query={query} text={match.snippet ?? ""} />»
+                      </span>
+                    </div>
+                  ) : null}
+                  {match.source === "article" || match.source === "tag" ? (
+                    <div className="mt-4 flex min-w-0 items-center gap-2 rounded-xl bg-[var(--ms-primary-soft)] px-3 py-2 text-xs text-[var(--ms-muted)]">
+                      <BookOpen
+                        className="h-4 w-4 shrink-0 text-[var(--ms-primary)]"
+                        aria-hidden="true"
+                      />
+                      <span>
+                        {match.source === "tag" ? "Тег: " : "Фрагмент статьи: «"}
+                        <Highlight query={query} text={match.snippet ?? ""} />
+                        {match.source === "article" ? "»" : ""}
                       </span>
                     </div>
                   ) : null}

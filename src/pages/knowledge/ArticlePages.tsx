@@ -2,54 +2,64 @@ import {
   ArrowLeft,
   Bookmark,
   CheckCircle2,
-  Download,
+  Eye,
   FileText,
   Maximize2,
+  Minimize2,
+  Minus,
   Pause,
   Pencil,
   Play,
+  Plus,
+  Type,
   Volume2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import type { AppPage, UserRole } from "../../app/types";
+import { useEffect, useState, type CSSProperties } from "react";
+import type { Navigate, UserRole } from "../../app/types";
 import { Badge, Breadcrumbs, Button } from "../../components/ui";
+import { articles, isArticlePublished, type ArticleSummary } from "../../data/platform-data";
+import { getArticleSections, getArticleTags } from "../../data/prototype-entities";
 
 interface ArticlePageProps {
   onDownload: () => void;
-  onNavigate: (page: AppPage) => void;
+  onNavigate: Navigate;
   onNotice: (message: string) => void;
+  resource?: string;
   role: UserRole;
 }
 
 const ArticleHeader = ({
+  article,
   onNavigate,
   role,
-  video = false,
 }: {
-  onNavigate: (page: AppPage) => void;
+  article: ArticleSummary;
+  onNavigate: Navigate;
   role: UserRole;
-  video?: boolean;
 }) => {
   const [saved, setSaved] = useState(false);
   const canEdit = role === "portal-admin" || role === "support-engineer";
+  const primarySection = getArticleSections(article)[0];
+  if (!primarySection)
+    throw new Error(`KB_ARTICLE_SECTION_MISSING: у статьи ${article.id} не задан раздел`);
   return (
     <>
       <Breadcrumbs
         items={[
           { label: "База знаний", onClick: () => onNavigate("knowledge") },
-          { label: "НАВИСА" },
-          { label: video ? "Настройка" : "Установка" },
+          ...primarySection.split(" / ").map((label) => ({ label })),
         ]}
       />
       <div className="flex flex-col gap-4 border-b border-[var(--ms-border)] pb-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Badge tone="green">Опубликована</Badge>
-            <Badge>НАВИСА</Badge>
-            <Badge>{video ? "Интеграция" : "Лицензирование"}</Badge>
+            <Badge tone={isArticlePublished(article) ? "green" : "amber"}>
+              {isArticlePublished(article) ? "Опубликована" : "Черновик"}
+            </Badge>
+            {getArticleTags(article).map((tag) => <Badge key={tag}>{tag}</Badge>)}
           </div>
           <h1 className="font-heading text-[clamp(1.9rem,5vw,2.8rem)] font-bold leading-[1.12] tracking-[-.03em]">
-            {video ? "Настройка интеграции с САПР-комплексом" : "Настройка сетевой лицензии"}
+            {article.title}
           </h1>
           <p className="mt-4 text-sm text-[var(--ms-muted)]">
             Анна Смирнова · Обновлено сегодня в 10:42 · 8 минут чтения
@@ -67,7 +77,7 @@ const ArticleHeader = ({
           {canEdit ? (
             <Button
               icon={<Pencil className="h-4 w-4" aria-hidden="true" />}
-              onClick={() => onNavigate("editor")}
+              onClick={() => onNavigate("editor", article.id)}
             >
               Редактировать
             </Button>
@@ -78,44 +88,127 @@ const ArticleHeader = ({
   );
 };
 
-export const ArticlePage = ({ onDownload, onNavigate, onNotice, role }: ArticlePageProps) => (
-  <article className="mx-auto max-w-[1180px] rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] sm:p-8 lg:p-10">
-    <ArticleHeader onNavigate={onNavigate} role={role} />
+const defaultArticleId = "network-license";
+const defaultVideoId = "cad-integration";
+
+const articleSections: Record<string, Array<{ id: string; text: string; title: string }>> = {
+  "network-license": [
+    { id: "preparation", title: "Перед началом работы", text: "Убедитесь, что сервер лицензий доступен из корпоративной сети, а системное время на сервере и рабочих станциях синхронизировано." },
+    { id: "installation", title: "Установка сервера лицензий", text: "Скачайте актуальный дистрибутив, запустите установщик от имени администратора и укажите каталог хранения лицензий." },
+    { id: "connection", title: "Подключение рабочего места", text: "Откройте настройки продукта, выберите сетевой тип лицензирования и укажите адрес сервера server.company.local:1947." },
+    { id: "diagnostics", title: "Диагностика", text: "Если лицензия не найдена, проверьте доступность порта, журнал службы и совместимость версий." },
+  ],
+  "project-template": [
+    { id: "preparation", title: "Подготовка структуры", text: "Создайте единый корневой каталог проекта и согласуйте правила именования файлов с командой." },
+    { id: "installation", title: "Шаблоны проекта", text: "Добавьте утверждённые шаблоны, библиотеки и общие параметры до начала моделирования." },
+    { id: "connection", title: "Совместная работа", text: "Назначьте владельцев разделов и настройте регулярную синхронизацию изменений." },
+    { id: "diagnostics", title: "Контроль качества", text: "Перед публикацией проверьте структуру, ссылки и обязательные свойства моделей." },
+  ],
+  "server-migration": [
+    { id: "preparation", title: "Подготовка миграции", text: "Зафиксируйте текущие лицензии, сделайте резервную копию и уведомите пользователей о техническом окне." },
+    { id: "installation", title: "Перенос службы", text: "Установите сервер лицензий на новом узле и восстановите проверенную конфигурацию." },
+    { id: "connection", title: "Переключение клиентов", text: "Обновите адрес сервера на рабочих местах и проверьте выдачу лицензий тестовой группе." },
+    { id: "diagnostics", title: "Завершение", text: "После контрольного периода отключите старую службу и сохраните журнал миграции." },
+  ],
+  "update-2026": [
+    { id: "preparation", title: "Перед обновлением", text: "Сделайте резервную копию проектов и проверьте системные требования версии 2026." },
+    { id: "installation", title: "Обновление компонентов", text: "Устанавливайте компоненты в согласованном порядке и фиксируйте результат каждого шага." },
+    { id: "connection", title: "Проверка модулей", text: "Откройте контрольный проект и проверьте совместимость подключённых модулей." },
+    { id: "diagnostics", title: "Возврат к работе", text: "После успешной проверки обновите рабочие места и сообщите пользователям о завершении." },
+  ],
+};
+
+const articleAttachment: Record<string, string | undefined> = {
+  "network-license": "инструкция_активации.pdf",
+  "update-2026": "регламент_обновления.docx",
+};
+
+export const ArticlePage = ({ onNavigate, resource, role }: ArticlePageProps) => {
+  const [fontScale, setFontScale] = useState(1);
+  const [readingMode, setReadingMode] = useState(false);
+  const article = articles.find((candidate) => candidate.id === (resource ?? defaultArticleId))!;
+  const sections = articleSections[article.id];
+  const attachment = articleAttachment[article.id];
+
+  useEffect(() => {
+    if (!readingMode) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [readingMode]);
+
+  return (
+  <article
+    className={
+      readingMode
+        ? "fixed inset-0 z-[85] overflow-y-auto bg-white p-4 sm:p-8 lg:p-10"
+        : "mx-auto max-w-[1180px] rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] sm:p-8 lg:p-10"
+    }
+    data-reading-mode={readingMode ? "fullscreen" : "standard"}
+    style={{ "--article-font-size": `${fontScale}rem` } as CSSProperties}
+  >
+    <div className={readingMode ? "mx-auto max-w-[1480px]" : undefined}>
+      <div className="mb-5 flex flex-wrap items-center justify-end gap-2 rounded-xl border border-[var(--ms-border)] bg-slate-50 p-2">
+        <span className="mr-auto flex items-center gap-2 px-2 text-xs font-bold uppercase tracking-[.1em] text-[var(--ms-muted)]">
+          <Type className="h-4 w-4" aria-hidden="true" />
+          Размер текста
+        </span>
+        <button
+          aria-label="Уменьшить размер текста"
+          className="icon-button bg-white"
+          disabled={fontScale <= 0.9}
+          onClick={() => setFontScale((current) => Math.max(0.9, current - 0.1))}
+          type="button"
+        >
+          <Minus className="h-4 w-4" aria-hidden="true" />
+        </button>
+        <span aria-live="polite" className="min-w-12 text-center text-sm font-bold">
+          {Math.round(fontScale * 100)}%
+        </span>
+        <button
+          aria-label="Увеличить размер текста"
+          className="icon-button bg-white"
+          disabled={fontScale >= 1.3}
+          onClick={() => setFontScale((current) => Math.min(1.3, current + 0.1))}
+          type="button"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+        </button>
+        <Button
+          aria-label={readingMode ? "Выйти из полноэкранного режима" : "На весь экран"}
+          icon={
+            readingMode ? (
+              <Minimize2 className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Maximize2 className="h-4 w-4" aria-hidden="true" />
+            )
+          }
+          onClick={() => setReadingMode((current) => !current)}
+          tone="secondary"
+        >
+          {readingMode ? "Обычный режим" : "Режим чтения"}
+        </Button>
+      </div>
+      <ArticleHeader article={article} onNavigate={onNavigate} role={role} />
     <div className="mt-8 grid min-w-0 gap-10 lg:grid-cols-[minmax(0,1fr)_250px]">
       <div className="article-content min-w-0">
         <p className="article-lead">
-          Сетевая лицензия позволяет централизованно управлять доступом к продуктам НАВИСА и распределять
-          лицензии между рабочими местами организации.
+          {article.description}
         </p>
-        <h2 id="preparation">Перед началом работы</h2>
-        <p>
-          Убедитесь, что сервер лицензий доступен из корпоративной сети, а системное время на сервере и
-          рабочих станциях синхронизировано.
-        </p>
-        <div className="my-6 rounded-2xl border border-sky-100 bg-sky-50 p-4 sm:p-5">
+        {sections.map((section, index) => <div key={section.id}>
+          <h2 id={section.id}>{section.title}</h2>
+          <p>{section.text}</p>
+          {article.id === "network-license" && index === 0 ? <div className="my-6 rounded-2xl border border-sky-100 bg-sky-50 p-4 sm:p-5">
           <p className="flex items-start gap-3 text-sm leading-6 text-sky-900">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" aria-hidden="true" />
             Для установки потребуются права администратора и файл лицензии, полученный от менеджера MaxSoft.
           </p>
-        </div>
-        <h2 id="installation">Установка сервера лицензий</h2>
-        <ol>
-          <li>Скачайте актуальный дистрибутив сервера лицензий.</li>
-          <li>Запустите установщик от имени администратора.</li>
-          <li>Укажите каталог хранения лицензий и завершите установку.</li>
-        </ol>
-        <h2 id="connection">Подключение рабочего места</h2>
-        <p>
-          Откройте настройки продукта, выберите сетевой тип лицензирования и укажите адрес сервера в формате{" "}
-          <code>server.company.local:1947</code>.
-        </p>
-        <h2 id="diagnostics">Диагностика</h2>
-        <p>
-          Если лицензия не найдена, проверьте доступность порта, журнал службы и совпадение версии сервера
-          лицензий с версией продукта.
-        </p>
+          </div> : null}
+        </div>)}
 
-        <section
+        {attachment ? <section
           className="mt-10 border-t border-[var(--ms-border)] pt-7"
           aria-labelledby="attachments-title"
         >
@@ -124,32 +217,24 @@ export const ArticlePage = ({ onDownload, onNavigate, onNotice, role }: ArticleP
           </h2>
           <button
             className="mt-4 flex w-full min-w-0 items-center gap-3 rounded-2xl border border-[var(--ms-border)] p-4 text-left transition hover:border-[var(--ms-primary)] hover:bg-[var(--ms-primary-soft)]"
-            onClick={() => {
-              onDownload();
-              onNotice("Файл подготовлен к скачиванию.");
-            }}
+            onClick={() => onNavigate("file-preview", attachment)}
             type="button"
           >
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-red-50 text-red-600">
               <FileText className="h-5 w-5" aria-hidden="true" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-bold">инструкция_активации.pdf</span>
-              <span className="mt-1 block text-xs text-[var(--ms-muted)]">PDF · 2,4 МБ</span>
+              <span className="block truncate text-sm font-bold">{attachment}</span>
+              <span className="mt-1 block text-xs text-[var(--ms-muted)]">Файл · открыть предпросмотр</span>
             </span>
-            <Download className="h-5 w-5 shrink-0 text-[var(--ms-primary)]" aria-hidden="true" />
+            <Eye className="h-5 w-5 shrink-0 text-[var(--ms-primary)]" aria-hidden="true" />
           </button>
-        </section>
+        </section> : null}
       </div>
-      <aside className="hidden lg:block">
-        <div className="sticky top-28 rounded-2xl bg-slate-50 p-5">
+      <aside className={readingMode ? "hidden" : "hidden lg:block"}>
+        <nav aria-label="Содержание статьи" className="sticky top-28 rounded-2xl bg-slate-50 p-5">
           <p className="mb-3 text-xs font-bold uppercase tracking-[.12em] text-slate-400">В этой статье</p>
-          {[
-            ["preparation", "Перед началом"],
-            ["installation", "Установка"],
-            ["connection", "Подключение"],
-            ["diagnostics", "Диагностика"],
-          ].map(([id, label]) => (
+          {sections.map(({ id, title: label }) => (
             <a
               className="block rounded-lg px-2 py-2 text-sm text-[var(--ms-muted)] transition hover:bg-white hover:text-[var(--ms-primary)]"
               href={`#${id}`}
@@ -158,11 +243,13 @@ export const ArticlePage = ({ onDownload, onNavigate, onNotice, role }: ArticleP
               {label}
             </a>
           ))}
-        </div>
+        </nav>
       </aside>
     </div>
+    </div>
   </article>
-);
+  );
+};
 
 const timecodes = [
   { label: "00:00", seconds: 0, title: "Введение и требования" },
@@ -172,9 +259,10 @@ const timecodes = [
 ];
 const videoDuration = 1080;
 
-export const VideoArticlePage = ({ onNavigate, role }: ArticlePageProps) => {
+export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProps) => {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(135);
+  const article = articles.find((candidate) => candidate.id === (resource ?? defaultVideoId))!;
 
   useEffect(() => {
     if (!playing) return;
@@ -191,7 +279,7 @@ export const VideoArticlePage = ({ onNavigate, role }: ArticlePageProps) => {
 
   return (
     <article className="mx-auto max-w-[1180px] rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] sm:p-8 lg:p-10">
-      <ArticleHeader onNavigate={onNavigate} role={role} video />
+      <ArticleHeader article={article} onNavigate={onNavigate} role={role} />
       <div className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_330px]">
         <section className="min-w-0">
           <div className="relative aspect-video min-w-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#153550] via-[#0e2438] to-[#081827] shadow-[0_18px_48px_rgba(9,25,40,.28)]">
@@ -244,7 +332,7 @@ export const VideoArticlePage = ({ onNavigate, role }: ArticlePageProps) => {
           </div>
           <div className="article-content mt-7">
             <p className="article-lead">
-              Пошаговая настройка обмена данными между НАВИСА и САПР-комплексом с проверкой подключения.
+              {article.description}
             </p>
             <h2>Что показано в видео</h2>
             <p>

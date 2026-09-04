@@ -1,4 +1,4 @@
-import { AlertCircle, Check, ChevronRight, SearchX } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, ChevronDown, ChevronRight, SearchX } from "lucide-react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
 
 type ButtonTone = "primary" | "secondary" | "ghost" | "danger";
@@ -46,7 +46,7 @@ export const Field = ({ className = "", error, label, id, ...props }: FieldProps
         {...props}
       />
       {error ? (
-        <span className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-650">
+        <span className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-650" role="alert">
           <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
           {error}
         </span>
@@ -57,21 +57,35 @@ export const Field = ({ className = "", error, label, id, ...props }: FieldProps
 
 interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
   children: ReactNode;
+  error?: string;
   label: string;
 }
 
-export const SelectField = ({ children, className = "", label, id, ...props }: SelectFieldProps) => {
+export const SelectField = ({ children, className = "", error, label, id, ...props }: SelectFieldProps) => {
   const fieldId = id ?? `select-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
     <label className={`block ${className}`} htmlFor={fieldId}>
       <span className="mb-1.5 block text-sm font-semibold text-[var(--ms-text)]">{label}</span>
-      <select
-        className="h-12 w-full min-w-0 rounded-xl border border-[var(--ms-border-strong)] bg-white px-3.5 text-[15px] outline-none transition hover:border-slate-400 focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)]"
-        id={fieldId}
-        {...props}
-      >
-        {children}
-      </select>
+      <span className="relative block">
+        <select
+          aria-invalid={Boolean(error)}
+          className="styled-select h-12 w-full min-w-0 rounded-xl border border-[var(--ms-border-strong)] bg-white px-3.5 pr-10 text-[15px] outline-none transition hover:border-slate-400 focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)]"
+          id={fieldId}
+          {...props}
+        >
+          {children}
+        </select>
+        <ChevronDown
+          aria-hidden="true"
+          className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ms-muted)]"
+        />
+      </span>
+      {error ? (
+        <span className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-650" role="alert">
+          <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 };
@@ -101,12 +115,16 @@ export const Badge = ({
 
 export const PageHeading = ({
   actions,
+  backLabel,
   eyebrow,
+  onBack,
   subtitle,
   title,
 }: {
   actions?: ReactNode;
+  backLabel?: string;
   eyebrow?: string;
+  onBack?: () => void;
   subtitle: string;
   title: string;
 }) => (
@@ -117,9 +135,21 @@ export const PageHeading = ({
           {eyebrow}
         </p>
       ) : null}
-      <h1 className="font-heading text-[clamp(1.75rem,4vw,2.4rem)] font-bold leading-tight tracking-[-.025em] text-[var(--ms-text)]">
-        {title}
-      </h1>
+      <div className="flex min-w-0 items-center gap-3">
+        {onBack ? (
+          <button
+            aria-label={backLabel ?? "Назад"}
+            className="icon-button shrink-0 border border-[var(--ms-border)] bg-white shadow-sm"
+            onClick={onBack}
+            type="button"
+          >
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+          </button>
+        ) : null}
+        <h1 className="min-w-0 [overflow-wrap:anywhere] font-heading text-[clamp(1.75rem,4vw,2.4rem)] font-bold leading-tight tracking-[-.025em] text-[var(--ms-text)]">
+          {title}
+        </h1>
+      </div>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ms-muted)] sm:text-base">{subtitle}</p>
     </div>
     {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
@@ -139,17 +169,20 @@ export const EmptyState = ({ action, text, title }: { action?: ReactNode; text: 
 
 export const Switch = ({
   checked,
+  disabled = false,
   label,
   onChange,
 }: {
   checked: boolean;
+  disabled?: boolean;
   label: string;
   onChange: () => void;
 }) => (
   <button
     aria-checked={checked}
     aria-label={label}
-    className={`relative h-7 w-12 shrink-0 rounded-full transition duration-200 ${checked ? "bg-[var(--ms-primary)]" : "bg-slate-300"}`}
+    className={`relative h-7 w-12 shrink-0 rounded-full transition duration-200 disabled:opacity-45 ${checked ? "bg-[var(--ms-primary)]" : "bg-slate-300"}`}
+    disabled={disabled}
     onClick={onChange}
     role="switch"
     type="button"

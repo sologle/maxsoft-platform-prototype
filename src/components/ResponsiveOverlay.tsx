@@ -51,9 +51,9 @@ export const ResponsiveOverlay = ({
       <section
         aria-labelledby={labelId}
         aria-modal="true"
-        className={`responsive-overlay-panel fixed inset-x-0 bottom-0 flex max-h-[88dvh] flex-col overflow-hidden rounded-t-[24px] bg-white shadow-[0_-18px_60px_rgba(14,32,52,0.24)] md:inset-y-0 md:bottom-auto md:left-auto md:max-h-none md:rounded-none ${
+        className={`responsive-overlay-panel fixed inset-x-0 bottom-0 flex max-h-[88dvh] flex-col overflow-hidden rounded-t-[24px] bg-white shadow-[0_-18px_60px_rgba(14,32,52,0.24)] md:rounded-none ${
           desktop === "drawer"
-            ? "md:w-[min(520px,48vw)]"
+            ? "md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-[min(520px,48vw)]"
             : "md:inset-x-1/2 md:inset-y-1/2 md:h-fit md:max-h-[calc(100dvh-48px)] md:w-[min(620px,calc(100vw-48px))] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[24px]"
         }`}
         data-desktop={desktop}

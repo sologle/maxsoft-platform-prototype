@@ -17,13 +17,28 @@ import {
   Upload,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { AppPage } from "../../app/types";
+import type { Navigate } from "../../app/types";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
 import { Badge, Button, Switch } from "../../components/ui";
+import {
+  articles,
+  companyTypes,
+  isArticlePublished,
+  tagGroups,
+  type AuditEvent,
+} from "../../data/platform-data";
+import {
+  getArticleAccess,
+  getArticleSections,
+  getArticleTags,
+  writeArticleSettings,
+} from "../../data/prototype-entities";
+import { appendPrototypeValue, prototypeStorageKeys, readPrototypeValue } from "../../data/prototype-store";
 
 interface EditorPageProps {
-  onNavigate: (page: AppPage) => void;
+  onNavigate: Navigate;
   onNotice: (message: string) => void;
+  resource?: string;
 }
 
 type ImportPhase = "select" | "processing" | "success" | "error";
@@ -38,10 +53,21 @@ const toolbarActions = [
   { id: "image", label: "Изображение", icon: Image },
 ];
 
-export const EditorPage = ({ onNavigate, onNotice }: EditorPageProps) => {
-  const [title, setTitle] = useState("Настройка сетевой лицензии");
+export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) => {
+  const sourceArticle = articles.find((article) => article.id === (resource ?? "network-license"))!;
+  const [availableTags] = useState(() =>
+    readPrototypeValue<Array<{ tags: Array<{ name: string }> }>>(
+      prototypeStorageKeys.tags,
+      tagGroups.map((group) => ({ tags: group.tags.map((name) => ({ name })) })),
+    ).flatMap((group) => group.tags.map((tag) => tag.name)),
+  );
+  const [availableCompanyTypes] = useState(() =>
+    readPrototypeValue(prototypeStorageKeys.companyTypes, companyTypes),
+  );
+  const initialAccess = getArticleAccess(sourceArticle);
+  const [title, setTitle] = useState(sourceArticle.title);
   const [content, setContent] = useState(
-    "Сетевая лицензия позволяет централизованно управлять доступом к продуктам НАВИСА.\n\nПеред началом работы убедитесь, что сервер доступен из корпоративной сети.",
+    `${sourceArticle.description}\n\nМатериал открыт в редакторе и готов к изменению.`,
   );
   const [saved, setSaved] = useState(true);
   const [activeTools, setActiveTools] = useState<string[]>([]);
@@ -50,10 +76,15 @@ export const EditorPage = ({ onNavigate, onNotice }: EditorPageProps) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importPhase, setImportPhase] = useState<ImportPhase>("select");
-  const [published, setPublished] = useState(false);
-  const [allCompanies, setAllCompanies] = useState(true);
-  const [sections, setSections] = useState(["Установка"]);
-  const [tags, setTags] = useState(["НАВИСА", "Лицензирование"]);
+  const [published, setPublished] = useState(() => isArticlePublished(sourceArticle));
+  const [allCompanies, setAllCompanies] = useState(initialAccess === "all");
+  const [selectedCompanyTypes, setSelectedCompanyTypes] = useState(() =>
+    initialAccess === "all"
+      ? availableCompanyTypes.map((companyType) => companyType.name)
+      : initialAccess,
+  );
+  const [sections, setSections] = useState(() => getArticleSections(sourceArticle));
+  const [tags, setTags] = useState(() => getArticleTags(sourceArticle));
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -116,7 +147,7 @@ export const EditorPage = ({ onNavigate, onNotice }: EditorPageProps) => {
                 Редактор статьи
               </p>
               <p className="mt-1 truncate text-sm text-[var(--ms-muted)]">
-                Черновик · автосохранение включено
+                {published ? "Опубликована" : "Черновик"} · автосохранение включено
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -221,7 +252,9 @@ export const EditorPage = ({ onNavigate, onNotice }: EditorPageProps) => {
               {tags.map((tag) => (
                 <Badge key={tag}>{tag}</Badge>
               ))}
-              <Badge tone="amber">Черновик</Badge>
+              <Badge tone={published ? "green" : "amber"}>
+                {published ? "Опубликована" : "Черновик"}
+              </Badge>
             </div>
             <label className="block">
               <span className="sr-only">Содержимое статьи</span>
@@ -267,22 +300,31 @@ export const EditorPage = ({ onNavigate, onNotice }: EditorPageProps) => {
           <section>
             <h3 className="mb-3 font-heading text-lg font-bold">Разделы</h3>
             <div className="space-y-2">
-              {["Установка", "Настройка", "Администрирование"].map((item) => (
-                <label className="option-row" key={item}>
+              {[
+                { label: "Установка", path: "НАВИСА / Установка" },
+                { label: "Настройка", path: "НАВИСА / Настройка" },
+                { label: "Администрирование", path: "НАВИСА / Администрирование" },
+              ].map((item) => (
+                <label className="option-row" key={item.path}>
                   <input
-                    checked={sections.includes(item)}
-                    onChange={() => toggleItem(item, sections, setSections)}
+                    checked={sections.includes(item.path)}
+                    onChange={() => toggleItem(item.path, sections, setSections)}
                     type="checkbox"
                   />
-                  <span>{item}</span>
+                  <span>{item.label}</span>
                 </label>
               ))}
             </div>
+            {!sections.length ? (
+              <p className="mt-3 text-sm font-semibold text-red-600" role="alert">
+                Выберите хотя бы один раздел. Код: KB_SECTION_REQUIRED.
+              </p>
+            ) : null}
           </section>
           <section>
             <h3 className="mb-3 font-heading text-lg font-bold">Теги</h3>
             <div className="flex flex-wrap gap-2">
-              {["НАВИСА", "Лицензирование", "Интеграция", "Обновление"].map((tag) => (
+              {availableTags.map((tag) => (
                 <button
                   aria-pressed={tags.includes(tag)}
                   className={`rounded-full px-3 py-2 text-sm font-semibold ring-1 transition ${tags.includes(tag) ? "bg-[var(--ms-primary)] text-white ring-[var(--ms-primary)]" : "bg-white text-[var(--ms-muted)] ring-[var(--ms-border-strong)] hover:ring-[var(--ms-primary)]"}`}
@@ -300,7 +342,10 @@ export const EditorPage = ({ onNavigate, onNotice }: EditorPageProps) => {
             <label className="option-row">
               <input
                 checked={allCompanies}
-                onChange={() => setAllCompanies(true)}
+                onChange={() => {
+                  setAllCompanies(true);
+                  markChanged();
+                }}
                 name="access"
                 type="radio"
               />
@@ -309,7 +354,10 @@ export const EditorPage = ({ onNavigate, onNotice }: EditorPageProps) => {
             <label className="option-row mt-2">
               <input
                 checked={!allCompanies}
-                onChange={() => setAllCompanies(false)}
+                onChange={() => {
+                  setAllCompanies(false);
+                  markChanged();
+                }}
                 name="access"
                 type="radio"
               />
@@ -317,20 +365,55 @@ export const EditorPage = ({ onNavigate, onNotice }: EditorPageProps) => {
             </label>
             {!allCompanies ? (
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <label className="option-row">
-                  <input defaultChecked type="checkbox" />
-                  Клиент
-                </label>
-                <label className="option-row">
-                  <input type="checkbox" />
-                  Интегратор
-                </label>
+                {availableCompanyTypes.map((companyType) => (
+                  <label className="option-row" key={companyType.name}>
+                    <input
+                      checked={selectedCompanyTypes.includes(companyType.name)}
+                      onChange={() =>
+                        toggleItem(companyType.name, selectedCompanyTypes, setSelectedCompanyTypes)
+                      }
+                      type="checkbox"
+                    />
+                    {companyType.name}
+                  </label>
+                ))}
               </div>
             ) : null}
+            {!allCompanies && !selectedCompanyTypes.length ? (
+              <p className="mt-3 text-sm font-semibold text-red-600">
+                Выберите хотя бы один тип компании. Код: KB_ACCESS_TYPE_REQUIRED.
+              </p>
+            ) : null}
+            {published && !allCompanies ? (
+              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-700">
+                После сохранения исключённые типы компаний сразу потеряют доступ к статье и вложениям.
+              </p>
+            ) : null}
+            <div className="mt-3 rounded-xl border border-[var(--ms-border)] bg-slate-50 p-3 text-sm leading-6" data-testid="article-access-summary">
+              <strong>Итоговый доступ:</strong>{" "}
+              {allCompanies ? "все типы компаний" : selectedCompanyTypes.join(", ") || "не настроен"}.
+            </div>
           </section>
           <Button
             className="w-full"
+            disabled={!sections.length || (!allCompanies && !selectedCompanyTypes.length)}
             onClick={() => {
+              writeArticleSettings(sourceArticle, {
+                access: allCompanies ? "all" : selectedCompanyTypes,
+                published,
+                sections,
+                tags,
+              });
+              appendPrototypeValue<AuditEvent>(prototypeStorageKeys.audit, {
+                action: "Изменил настройки и права доступа статьи",
+                category: "access",
+                date: "Только что",
+                object: sourceArticle.title,
+                page: sourceArticle.kind === "video" ? "video" : "article",
+                resource: sourceArticle.id,
+                result: "Успешно",
+                user: "Администратор портала",
+              });
               setSettingsOpen(false);
               setSaved(true);
               onNotice("Настройки статьи сохранены.");

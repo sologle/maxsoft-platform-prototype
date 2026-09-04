@@ -1,4 +1,6 @@
 import type { AppLocation, AppPage, RoleProfile, UserRole } from "./types";
+import { articles, canRoleAccessArticle, canRoleAccessFile, files } from "../data/platform-data";
+import { getPrototypeCompanies, getPrototypeUsers } from "../data/prototype-entities";
 
 const authenticatedRoles: readonly UserRole[] = [
   "portal-admin",
@@ -74,6 +76,7 @@ export const pageDefinitions: PageDefinition[] = [
   { id: "structure", label: "Структура базы знаний", roles: ["portal-admin"] },
   { id: "tags", label: "Теги и группы", roles: ["portal-admin"] },
   { id: "files", label: "Реестр файлов", roles: ["portal-admin"] },
+  { id: "file-preview", label: "Просмотр файла", roles: authenticatedRoles },
   { id: "search", label: "Поиск", roles: authenticatedRoles },
   { id: "companies", label: "Компании", roles: staffRoles },
   { id: "company", label: "Карточка компании", roles: staffRoles },
@@ -100,6 +103,64 @@ export const canOpenPage = (page: AppPage, role: UserRole): boolean => {
   return Boolean(definition?.roles.includes(role));
 };
 
+const activeCompanyStorageKey = "maxsoft-prototype-active-company";
+const demoUserForRole: Partial<Record<UserRole, string>> = {
+  "client-admin": "anna-smirnova",
+  "client-employee": "oleg-gurov",
+};
+
+const readActiveCompanies = () => {
+  const stored = window.sessionStorage.getItem(activeCompanyStorageKey);
+  return stored ? (JSON.parse(stored) as Partial<Record<UserRole, string>>) : {};
+};
+
+export const setActiveClientCompany = (role: UserRole, companyId?: string) => {
+  const activeCompanies = readActiveCompanies();
+  if (companyId) activeCompanies[role] = companyId;
+  else delete activeCompanies[role];
+  window.sessionStorage.setItem(activeCompanyStorageKey, JSON.stringify(activeCompanies));
+};
+
+export const companyContextForRole = (role: UserRole, explicitCompanyId?: string) => {
+  if (role !== "client-admin" && role !== "client-employee") return {};
+  const companies = getPrototypeCompanies();
+  const activeCompanyId = explicitCompanyId ?? readActiveCompanies()[role];
+  const demoUserId = demoUserForRole[role];
+  const demoUser = getPrototypeUsers().find((candidate) => candidate.id === demoUserId);
+  const company = activeCompanyId
+    ? companies.find((candidate) => candidate.id === activeCompanyId)
+    : companies.find((candidate) => candidate.name === demoUser?.company);
+  if (!company)
+    throw new Error(`ACC_ACTIVE_COMPANY_MISSING: компания для роли ${role} не найдена`);
+  return { companyId: company.id, companyType: company.type };
+};
+
+export const canOpenLocation = (
+  page: AppPage,
+  role: UserRole,
+  resource?: string,
+  companyType?: string,
+): boolean => {
+  if (!canOpenPage(page, role)) return false;
+  if ((page === "article" || page === "video") && resource) {
+    const article = articles.find((candidate) => candidate.id === resource);
+    return Boolean(
+      article &&
+        canRoleAccessArticle(article, role, companyType) &&
+        (page === "video" ? article.kind === "video" : article.kind === "article"),
+    );
+  }
+  if (page === "file-preview" && resource) {
+    const file = files.find((candidate) => candidate.name === resource);
+    return Boolean(file && canRoleAccessFile(file, role, companyType));
+  }
+  if (page === "editor" && resource)
+    return articles.some((candidate) => candidate.id === resource);
+  if (page === "company" && resource)
+    return getPrototypeCompanies().some((company) => company.id === resource);
+  return true;
+};
+
 export const pagesForRole = (role: UserRole): PageDefinition[] =>
   pageDefinitions.filter((page) => page.roles.includes(role) && page.id !== "access-denied");
 
@@ -109,10 +170,40 @@ export const readLocation = (): AppLocation => {
   const params = new URLSearchParams(window.location.search);
   const roleParam = params.get("role") as UserRole | null;
   const pageParam = params.get("page") as AppPage | null;
+  const resource = params.get("resource")?.trim() || undefined;
+  const returnPageParam = params.get("returnPage") as AppPage | null;
+  const returnResource = params.get("returnResource")?.trim() || undefined;
   const role = roleProfiles.some((profile) => profile.role === roleParam) ? roleParam! : "guest";
+  const companyContext = companyContextForRole(role);
   const requestedPage = pageParam && pageIds.has(pageParam) ? pageParam : startPageForRole(role);
+  const canOpenRequestedLocation = canOpenLocation(
+    requestedPage,
+    role,
+    resource,
+    companyContext.companyType,
+  );
+  if (
+    role === "guest" &&
+    requestedPage !== "landing" &&
+    !canOpenRequestedLocation
+  ) {
+    return {
+      page: "login",
+      returnPage: requestedPage,
+      returnResource: resource,
+      role,
+    };
+  }
   return {
-    page: canOpenPage(requestedPage, role) ? requestedPage : role === "guest" ? "landing" : "access-denied",
+    ...companyContext,
+    page: canOpenRequestedLocation
+      ? requestedPage
+      : role === "guest"
+        ? "landing"
+        : "access-denied",
+    resource: canOpenRequestedLocation ? resource : undefined,
+    returnPage: returnPageParam && pageIds.has(returnPageParam) ? returnPageParam : undefined,
+    returnResource,
     role,
   };
 };
@@ -122,5 +213,8 @@ export const writeLocation = (location: AppLocation, replace = false) => {
   url.search = "";
   url.searchParams.set("page", location.page);
   url.searchParams.set("role", location.role);
+  if (location.resource) url.searchParams.set("resource", location.resource);
+  if (location.returnPage) url.searchParams.set("returnPage", location.returnPage);
+  if (location.returnResource) url.searchParams.set("returnResource", location.returnResource);
   window.history[replace ? "replaceState" : "pushState"]({}, "", url);
 };

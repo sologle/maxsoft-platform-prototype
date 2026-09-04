@@ -8,7 +8,7 @@ interface ToastProps {
 export const Toast = ({ message, onClose }: ToastProps) => (
   <div
     aria-live="polite"
-    className="fixed left-1/2 top-4 z-[70] flex w-[min(520px,calc(100vw-32px))] -translate-x-1/2 animate-[toast-in_180ms_ease-out] items-start gap-3 rounded-xl border border-[#a6d7b9] bg-[#effaf3] px-4 py-3 text-[#184f2e] shadow-[0_14px_38px_rgba(20,52,36,0.16)]"
+    className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-[90] flex w-[min(440px,calc(100vw-2rem))] animate-[toast-in_180ms_ease-out] items-start gap-3 rounded-xl border border-[#a6d7b9] bg-[#effaf3] px-4 py-3 text-[#184f2e] shadow-[0_14px_38px_rgba(20,52,36,0.16)]"
     role="status"
   >
     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />

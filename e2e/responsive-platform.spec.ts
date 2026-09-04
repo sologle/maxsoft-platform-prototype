@@ -60,6 +60,26 @@ test("профильное меню закрывается по клику вн�
   await expect(page.getByRole("menu")).toBeHidden();
 });
 
+test("рабочая область расширяется на большом экране, а панель показывает текущий экран", async ({ page }) => {
+  await page.setViewportSize({ width: 2560, height: 1400 });
+  await page.goto("./?page=administration&role=portal-admin");
+  const mainWidth = await page.locator("main").evaluate((node) => node.getBoundingClientRect().width);
+  expect(mainWidth).toBeGreaterThan(2000);
+  await page.getByRole("button", { name: "Открыть панель сценариев" }).click();
+  await expect(page.getByText("Текущий экран")).toBeVisible();
+  await expect(page.getByText("Администрирование", { exact: true }).first()).toBeVisible();
+});
+
+test("верхняя навигация администратора не перекрывает поиск", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("./?page=home&role=portal-admin");
+  const nav = await page.getByTestId("desktop-navigation").boundingBox();
+  const search = await page.getByRole("button", { name: "Открыть поиск" }).boundingBox();
+  expect(nav).not.toBeNull();
+  expect(search).not.toBeNull();
+  expect(nav!.x + nav!.width).toBeLessThanOrEqual(search!.x);
+});
+
 test("разделы базы знаний сворачиваются и разворачиваются", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("./?page=knowledge&role=portal-admin");
@@ -104,7 +124,7 @@ test("администратор получает одинаковые дейс�
   await expect(actions).toHaveAttribute("aria-expanded", "false");
   await actions.click();
   await expect(page.getByRole("menuitem", { name: "Изменить роль" })).toBeVisible();
-  await expect(page.getByRole("menuitem", { name: "Удалить" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Отозвать доступ" })).toBeVisible();
 });
 
 test("контекстное меню закрывается по Escape и клику снаружи", async ({ page }) => {
@@ -124,9 +144,12 @@ test("контекстное меню управляется с клавиату
   await page.goto("./?page=users&role=portal-admin");
   await page.getByRole("button", { name: "Действия: Анна Смирнова" }).click();
   const changeRole = page.getByRole("menuitem", { name: "Изменить роль" });
+  const audit = page.getByRole("menuitem", { name: "Открыть записи журнала" });
   const block = page.getByRole("menuitem", { name: "Заблокировать" });
-  const remove = page.getByRole("menuitem", { name: "Удалить" });
+  const remove = page.getByRole("menuitem", { name: "Отозвать доступ" });
   await expect(changeRole).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(audit).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(block).toBeFocused();
   await page.keyboard.press("End");

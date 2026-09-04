@@ -14,7 +14,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { roleProfile } from "../app/routes";
-import type { AppLocation, AppPage } from "../app/types";
+import type { AppLocation, AppPage, Navigate } from "../app/types";
 import { usePresence } from "../hooks/usePresence";
 import { ModalSurface } from "./ModalSurface";
 import { ThemeToggle } from "./Theme";
@@ -23,7 +23,7 @@ interface AppShellProps {
   children: ReactNode;
   location: AppLocation;
   onExit: () => void;
-  onNavigate: (page: AppPage) => void;
+  onNavigate: Navigate;
 }
 
 interface NavigationItem {
@@ -59,14 +59,14 @@ const NavLinks = ({
   stacked = false,
 }: {
   location: AppLocation;
-  onNavigate: (page: AppPage) => void;
+  onNavigate: Navigate;
   stacked?: boolean;
 }) => (
   <nav className={stacked ? "flex flex-col gap-1" : "flex items-center gap-1"}>
     {navigationForRole(location).map(({ icon: Icon, label, page }) => {
       const active =
         location.page === page ||
-        (page === "knowledge" && ["article", "video", "editor"].includes(location.page));
+        (page === "knowledge" && ["article", "video", "editor", "file-preview"].includes(location.page));
       return (
         <a
           aria-current={active ? "page" : undefined}
@@ -134,7 +134,7 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
   return (
     <div className="min-h-dvh min-w-0 overflow-x-clip bg-[var(--ms-background)] text-[var(--ms-text)]">
       <header className="sticky top-0 z-50 border-b border-[var(--ms-border)] bg-white/94 shadow-[0_2px_12px_rgba(27,51,75,.06)] backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-2 px-4 sm:px-6 lg:h-[72px] lg:px-8">
+        <div className="flex h-16 w-full items-center gap-2 px-4 sm:px-6 lg:h-[72px] lg:px-8 2xl:px-10">
           <button
             aria-label="Открыть меню"
             className="icon-button mobile-menu-trigger"
@@ -174,6 +174,7 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
 
           <div className="relative">
             <button
+              aria-label={`${profile.shortLabel}. Демо-профиль`}
               aria-expanded={profileOpen}
               aria-haspopup="menu"
               className="flex min-w-0 items-center gap-2 rounded-xl p-1.5 text-left transition hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-[var(--ms-primary)]"
@@ -184,12 +185,12 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#d9edf9] font-heading text-sm font-bold text-[var(--ms-primary)]">
                 {profile.shortLabel.slice(0, 1)}
               </span>
-              <span className="hidden min-w-0 xl:block">
+              <span className="hidden min-w-0 2xl:block">
                 <span className="block max-w-48 truncate text-sm font-semibold">{profile.shortLabel}</span>
                 <span className="block text-xs text-[var(--ms-muted)]">Демо-профиль</span>
               </span>
               <ChevronDown
-                className={`hidden h-4 w-4 transition xl:block ${profileOpen ? "rotate-180" : ""}`}
+                className={`hidden h-4 w-4 transition 2xl:block ${profileOpen ? "rotate-180" : ""}`}
                 aria-hidden="true"
               />
             </button>
@@ -221,8 +222,11 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
         </div>
       </header>
 
-      <main className="mx-auto min-w-0 max-w-[1480px] px-4 py-6 pb-24 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        <div className="page-enter min-w-0" key={location.page}>
+      <main className="min-w-0 w-full px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-24 lg:px-8 lg:py-10 lg:pb-24 2xl:px-10">
+        <div
+          className="page-enter min-w-0"
+          key={`${location.page}:${location.resource ?? ""}:${location.companyType ?? ""}`}
+        >
           {children}
         </div>
       </main>

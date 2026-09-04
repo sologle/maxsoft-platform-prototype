@@ -1,19 +1,20 @@
 import { ArrowLeft, LogOut, PanelRightClose, Settings2 } from "lucide-react";
 import { useState } from "react";
-import { pagesForRole, roleProfile, roleProfiles } from "../app/routes";
-import type { AppLocation, AppPage, UserRole } from "../app/types";
+import { pageDefinitions, pagesForRole, roleProfile, roleProfiles } from "../app/routes";
+import type { AppLocation, AppPage, Navigate, UserRole } from "../app/types";
 
 interface ScenarioPanelProps {
   location: AppLocation;
   onBack: () => void;
   onExit: () => void;
-  onNavigate: (page: AppPage) => void;
+  onNavigate: Navigate;
   onRoleChange: (role: UserRole) => void;
 }
 
 export const ScenarioPanel = ({ location, onBack, onExit, onNavigate, onRoleChange }: ScenarioPanelProps) => {
   const [open, setOpen] = useState(false);
   const profile = roleProfile(location.role);
+  const currentPage = pageDefinitions.find((page) => page.id === location.page);
 
   if (!open) {
     return (
@@ -31,6 +32,10 @@ export const ScenarioPanel = ({ location, onBack, onExit, onNavigate, onRoleChan
 
   return (
     <aside className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-3 z-[70] w-[min(370px,calc(100vw-24px))] animate-[toolbar-in_180ms_ease-out] rounded-2xl border border-white/10 bg-[#172b42]/96 p-4 text-white shadow-[0_18px_60px_rgba(0,0,0,.34)] backdrop-blur-xl sm:right-4">
+      <div className="mb-3 rounded-xl border border-white/10 bg-white/[.06] px-3 py-2.5">
+        <p className="text-[10px] font-bold uppercase tracking-[.14em] text-white/50">Текущий экран</p>
+        <p className="mt-1 truncate text-sm font-bold text-white">{currentPage?.label ?? location.page}</p>
+      </div>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold uppercase tracking-[.14em] text-white/55">Демонстрация</p>

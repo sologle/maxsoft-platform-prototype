@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { canOpenPage, readLocation, startPageForRole, writeLocation } from "./app/routes";
-import type { AppLocation, AppPage, UserRole } from "./app/types";
+import {
+  canOpenLocation,
+  companyContextForRole,
+  readLocation,
+  setActiveClientCompany,
+  startPageForRole,
+  writeLocation,
+} from "./app/routes";
+import type { AppLocation, AppPage, Authenticate, UserRole } from "./app/types";
 import { AppShell } from "./components/AppShell";
 import { Launcher } from "./components/Launcher";
 import { ScenarioPanel } from "./components/ScenarioPanel";
@@ -64,21 +71,25 @@ const PlatformApp = () => {
 
   const start = useCallback(
     (role: UserRole) => {
-      openLocation({ page: startPageForRole(role), role });
+      setActiveClientCompany(role);
+      openLocation({ ...companyContextForRole(role), page: startPageForRole(role), role });
     },
     [openLocation],
   );
 
   const navigate = useCallback(
-    (page: AppPage) => {
+    (page: AppPage, resource?: string) => {
       setLocation((current) => {
         if (!current) return current;
         const next: AppLocation = {
-          page: canOpenPage(page, current.role)
+          companyId: current.companyId,
+          companyType: current.companyType,
+          page: canOpenLocation(page, current.role, resource, current.companyType)
             ? page
             : current.role === "guest"
               ? "landing"
               : "access-denied",
+          resource,
           role: current.role,
         };
         writeLocation(next);
@@ -90,11 +101,31 @@ const PlatformApp = () => {
     [showNotice],
   );
 
-  const changeRole = useCallback(
-    (role: UserRole) => {
-      openLocation({ page: startPageForRole(role), role });
+  const changeRole: Authenticate = useCallback(
+    (role: UserRole, companyId?: string) => {
+      setLocation((current) => {
+        setActiveClientCompany(role, companyId);
+        const companyContext = companyContextForRole(role, companyId);
+        const canReturn = Boolean(
+          current?.returnPage &&
+            canOpenLocation(
+              current.returnPage,
+              role,
+              current.returnResource,
+              companyContext.companyType,
+            ),
+        );
+        const next: AppLocation = current?.returnPage
+          ? canReturn
+            ? { ...companyContext, page: current.returnPage, resource: current.returnResource, role }
+            : { ...companyContext, page: "access-denied", role }
+          : { ...companyContext, page: startPageForRole(role), role };
+        writeLocation(next);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return next;
+      });
     },
-    [openLocation],
+    [],
   );
 
   const exit = useCallback(() => {

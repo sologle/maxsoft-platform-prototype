@@ -14,6 +14,7 @@ export type AppPage =
   | "structure"
   | "tags"
   | "files"
+  | "file-preview"
   | "search"
   | "companies"
   | "company"
@@ -27,9 +28,18 @@ export type AppPage =
   | "access-denied";
 
 export interface AppLocation {
+  companyId?: string;
+  companyType?: string;
   page: AppPage;
+  resource?: string;
+  returnPage?: AppPage;
+  returnResource?: string;
   role: UserRole;
 }
+
+export type Navigate = (page: AppPage, resource?: string) => void;
+
+export type Authenticate = (role: UserRole, companyId?: string) => void;
 
 export interface RoleProfile {
   role: UserRole;

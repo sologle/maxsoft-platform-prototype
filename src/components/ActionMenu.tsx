@@ -63,7 +63,7 @@ export const ActionMenu = ({
   };
 
   return (
-    <div className="relative" ref={rootRef}>
+    <div className="relative shrink-0" ref={rootRef}>
       <button
         aria-controls={open ? menuId : undefined}
         aria-expanded={open}

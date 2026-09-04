@@ -61,6 +61,29 @@ select {
   font: inherit;
 }
 
+select:not([multiple]):not(.styled-select) {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #748395 50%),
+    linear-gradient(135deg, #748395 50%, transparent 50%);
+  background-position:
+    calc(100% - 17px) calc(50% - 2px),
+    calc(100% - 12px) calc(50% - 2px);
+  background-repeat: no-repeat;
+  background-size: 5px 5px, 5px 5px;
+}
+
+.styled-select {
+  appearance: none;
+  background-image: none;
+}
+
+select option {
+  background: var(--ms-surface);
+  color: var(--ms-text);
+}
+
 button,
 [role="button"] {
   cursor: pointer;
@@ -200,16 +223,16 @@ svg {
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -8px);
+    transform: translateX(-12px);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translateX(0);
   }
 }
 
 .page-enter {
-  animation: page-in 220ms ease-out both;
+  animation: page-in 220ms ease-out;
 }
 
 .icon-button {
@@ -412,8 +435,21 @@ svg {
 
 .article-content {
   color: var(--ms-article-text);
-  font-size: 1rem;
+  font-size: var(--article-font-size, 1rem);
   line-height: 1.85;
+}
+
+.search-highlight {
+  border-radius: 0.25rem;
+  background: #ffe784;
+  padding: 0 0.12em;
+  color: #513d00;
+  box-decoration-break: clone;
+}
+
+html[data-theme="dark"] .search-highlight {
+  background: #765d09;
+  color: #fff1ad;
 }
 
 .article-content h2 {

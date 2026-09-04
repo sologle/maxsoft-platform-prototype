@@ -9,6 +9,7 @@ const adminPages = [
   "structure",
   "tags",
   "files",
+  "file-preview",
   "search",
   "companies",
   "company",

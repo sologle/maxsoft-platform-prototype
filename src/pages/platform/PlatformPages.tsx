@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Building2,
   CheckCircle2,
+  CircleAlert,
   Database,
   FileClock,
   FolderTree,
@@ -15,12 +16,13 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { AppPage } from "../../app/types";
-import { Badge, Button, Field, PageHeading, SelectField, Switch } from "../../components/ui";
-import { auditEvents, companyFields as initialFields } from "../../data/platform-data";
+import type { AppPage, Navigate } from "../../app/types";
+import { Badge, Button, EmptyState, Field, PageHeading, SelectField, Switch } from "../../components/ui";
+import { auditEvents, companyFields as initialFields, type AuditEvent } from "../../data/platform-data";
+import { appendPrototypeValue, prototypeStorageKeys, readPrototypeValue, writePrototypeValue } from "../../data/prototype-store";
 
 interface PlatformProps {
-  onNavigate: (page: AppPage) => void;
+  onNavigate: Navigate;
   onNotice: (message: string) => void;
 }
 
@@ -31,48 +33,56 @@ export const AdministrationPage = ({ onNavigate }: PlatformProps) => {
       icon: FolderTree,
       label: "Структура базы знаний",
       page: "structure" as AppPage,
+      tone: "bg-amber-50 text-amber-700",
     },
     {
       description: "Группы тегов и их использование",
       icon: Tags,
       label: "Теги и группы",
       page: "tags" as AppPage,
+      tone: "bg-violet-50 text-violet-700",
     },
     {
       description: "Все документы и связанные статьи",
       icon: Database,
       label: "Реестр файлов",
       page: "files" as AppPage,
+      tone: "bg-sky-50 text-sky-700",
     },
     {
       description: "Почта и связь с Битрикс24",
       icon: Link2,
       label: "Интеграции",
       page: "integrations" as AppPage,
+      tone: "bg-blue-50 text-blue-600",
     },
     {
       description: "Обязательность и доступность данных",
       icon: Settings2,
       label: "Поля компании",
       page: "fields" as AppPage,
+      tone: "bg-emerald-50 text-emerald-700",
     },
     {
       description: "События и изменения в системе",
       icon: FileClock,
       label: "Журнал действий",
       page: "audit" as AppPage,
+      tone: "bg-slate-100 text-slate-700",
     },
     {
       description: "Типы доступа клиентских организаций",
       icon: Building2,
       label: "Типы компаний",
       page: "company-types" as AppPage,
+      tone: "bg-orange-50 text-orange-700",
     },
     {
       description: "Роли и аккаунты портала",
       icon: UsersRound,
       label: "Пользователи",
       page: "users" as AppPage,
+      tone: "bg-rose-50 text-rose-700",
     },
   ];
   return (
@@ -83,14 +93,14 @@ export const AdministrationPage = ({ onNavigate }: PlatformProps) => {
         title="Администрирование"
       />
       <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {sections.map(({ description, icon: Icon, label, page }) => (
+        {sections.map(({ description, icon: Icon, label, page, tone }) => (
           <button
             className="group flex min-h-44 min-w-0 flex-col items-start rounded-2xl border border-[var(--ms-border)] bg-white p-5 text-left shadow-[var(--ms-card-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--ms-primary)] hover:shadow-[var(--ms-card-shadow-hover)]"
             key={page}
             onClick={() => onNavigate(page)}
             type="button"
           >
-            <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)] transition group-hover:bg-[var(--ms-primary)] group-hover:text-white">
+            <span className={`grid h-11 w-11 place-items-center rounded-xl transition group-hover:scale-105 ${tone}`}>
               <Icon className="h-5 w-5" aria-hidden="true" />
             </span>
             <span className="mt-5 flex w-full min-w-0 items-center gap-2">
@@ -111,26 +121,34 @@ export const AdministrationPage = ({ onNavigate }: PlatformProps) => {
 export const IntegrationsPage = ({ onNotice }: PlatformProps) => {
   const [mailEnabled, setMailEnabled] = useState(true);
   const [bitrixEnabled, setBitrixEnabled] = useState(true);
+  const [mailHost, setMailHost] = useState("smtp.maxsoft.ru");
+  const [bitrixUrl, setBitrixUrl] = useState("https://maxsoft.bitrix24.ru");
   const [checking, setChecking] = useState<"mail" | "bitrix" | null>(null);
-  const [result, setResult] = useState<"mail" | "bitrix" | null>(null);
+  const [result, setResult] = useState<{ kind: "mail" | "bitrix"; status: "success" | "error" } | null>(null);
   useEffect(() => {
     if (!checking) return;
     const timeout = window.setTimeout(() => {
-      setResult(checking);
+      const invalid = checking === "mail" ? mailHost.includes("invalid") : bitrixUrl.includes("invalid");
+      setResult({ kind: checking, status: invalid ? "error" : "success" });
       setChecking(null);
     }, 1200);
     return () => window.clearTimeout(timeout);
-  }, [checking]);
+  }, [bitrixUrl, checking, mailHost]);
   const status = (kind: "mail" | "bitrix") =>
     checking === kind ? (
       <span className="flex items-center gap-2 text-xs font-semibold text-[var(--ms-primary)]">
         <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
         Проверяем…
       </span>
-    ) : result === kind ? (
+    ) : result?.kind === kind && result.status === "success" ? (
       <span className="flex items-center gap-2 text-xs font-semibold text-emerald-700">
         <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
         Подключение работает
+      </span>
+    ) : result?.kind === kind && result.status === "error" ? (
+      <span className="flex items-center gap-2 text-xs font-semibold text-red-700" role="alert">
+        <CircleAlert className="h-4 w-4" aria-hidden="true" />
+        Не удалось подключиться. Проверьте адрес. Код: PLAT_INTEGRATION_CONNECTION_FAILED.
       </span>
     ) : null;
   return (
@@ -159,7 +177,7 @@ export const IntegrationsPage = ({ onNotice }: PlatformProps) => {
           <div
             className={`mt-6 grid gap-4 transition ${mailEnabled ? "opacity-100" : "pointer-events-none opacity-45"}`}
           >
-            <Field defaultValue="smtp.maxsoft.ru" label="SMTP-сервер" />
+            <Field label="SMTP-сервер" onChange={(event) => setMailHost(event.target.value)} value={mailHost} />
             <div className="grid gap-4 sm:grid-cols-2">
               <Field defaultValue="587" label="Порт" inputMode="numeric" />
               <SelectField defaultValue="STARTTLS" label="Шифрование">
@@ -199,7 +217,7 @@ export const IntegrationsPage = ({ onNotice }: PlatformProps) => {
           <div
             className={`mt-6 grid gap-4 transition ${bitrixEnabled ? "opacity-100" : "pointer-events-none opacity-45"}`}
           >
-            <Field defaultValue="https://maxsoft.bitrix24.ru" label="Адрес портала" type="url" />
+            <Field label="Адрес портала" onChange={(event) => setBitrixUrl(event.target.value)} type="url" value={bitrixUrl} />
             <Field defaultValue="••••••••••••••••" label="Вебхук" type="password" />
             <div className="flex min-h-6 items-center justify-between gap-3">
               {status("bitrix")}
@@ -222,17 +240,21 @@ export const IntegrationsPage = ({ onNotice }: PlatformProps) => {
   );
 };
 
-export const AuditPage = (_props: PlatformProps) => {
+export const AuditPage = ({ onNavigate }: PlatformProps) => {
+  const [events] = useState(() => [
+    ...readPrototypeValue<AuditEvent[]>(prototypeStorageKeys.audit, []),
+    ...auditEvents,
+  ]);
   const [query, setQuery] = useState("");
   const [type, setType] = useState("all");
   const visible = useMemo(
     () =>
-      auditEvents.filter(
+      events.filter(
         (event) =>
-          (type === "all" || event.action.toLowerCase().includes(type)) &&
+          (type === "all" || event.category === type) &&
           `${event.user} ${event.action} ${event.object}`.toLowerCase().includes(query.toLowerCase()),
       ),
-    [query, type],
+    [events, query, type],
   );
   return (
     <>
@@ -262,51 +284,110 @@ export const AuditPage = (_props: PlatformProps) => {
           value={type}
         >
           <option value="all">Все события</option>
-          <option value="изменил">Изменения</option>
-          <option value="вошёл">Входы</option>
-          <option value="добавила">Создание</option>
+          <option value="content">Контент</option>
+          <option value="access">Права доступа</option>
+          <option value="company">Компании</option>
+          <option value="user">Пользователи</option>
+          <option value="system">Системные события</option>
         </select>
       </div>
-      <div className="overflow-hidden rounded-2xl border border-[var(--ms-border)] bg-white shadow-[var(--ms-card-shadow)]">
-        <div className="divide-y divide-[var(--ms-border)]">
-          {visible.map((event, index) => (
-            <article
-              className="flex min-w-0 gap-3 p-4 sm:items-center sm:p-5"
-              key={`${event.user}-${event.date}`}
-            >
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
-                <Activity className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm leading-6">
-                  <strong>{event.user}</strong> · {event.action}
-                </p>
-                <p className="mt-0.5 break-words text-sm text-[var(--ms-primary)]">{event.object}</p>
-              </div>
-              <time className="hidden shrink-0 text-xs text-[var(--ms-muted)] sm:block">{event.date}</time>
-              <Badge tone={index === 2 ? "slate" : "blue"}>{index === 2 ? "Вход" : "Изменение"}</Badge>
-            </article>
-          ))}
+      {visible.length ? (
+        <div className="overflow-hidden rounded-2xl border border-[var(--ms-border)] bg-white shadow-[var(--ms-card-shadow)]">
+          <div className="divide-y divide-[var(--ms-border)]">
+            {visible.map((event) => (
+              <article
+                className="flex min-w-0 gap-3 p-4 sm:items-center sm:p-5"
+                key={`${event.user}-${event.date}-${event.action}`}
+              >
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
+                  <Activity className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm leading-6">
+                    <strong>{event.user}</strong> · {event.action}
+                  </p>
+                  <button
+                    className="mt-0.5 break-words text-left text-sm font-semibold text-[var(--ms-primary)] hover:underline"
+                    onClick={() => onNavigate(event.page, event.resource)}
+                    type="button"
+                  >
+                    {event.object}
+                  </button>
+                </div>
+                <time className="hidden shrink-0 text-xs text-[var(--ms-muted)] sm:block">
+                  {event.date}
+                </time>
+                <Badge tone={event.result === "Успешно" ? "green" : "red"}>{event.result}</Badge>
+              </article>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <EmptyState
+          action={
+            <Button
+              onClick={() => {
+                setQuery("");
+                setType("all");
+              }}
+            >
+              Сбросить фильтры
+            </Button>
+          }
+          text="Измените пользователя, объект или категорию события."
+          title="События не найдены"
+        />
+      )}
     </>
   );
 };
 
 export const FieldsPage = ({ onNotice }: PlatformProps) => {
   const [fields, setFields] = useState(
-    initialFields.map((field) => ({ ...field, visible: true, manager: field.id !== "bitrix" })),
+    () => readPrototypeValue(prototypeStorageKeys.companyFields, initialFields),
   );
-  const toggle = (id: string, key: "visible" | "required" | "unique" | "manager" | "registration") =>
+  const [dirty, setDirty] = useState(false);
+  const [validation, setValidation] = useState<"idle" | "checking" | "error">("idle");
+  type FieldSetting = "visible" | "required" | "unique" | "manager" | "registration" | "creation" | "editing";
+  const toggle = (id: string, key: FieldSetting) => {
+    setDirty(true);
+    setValidation("idle");
     setFields((current) =>
-      current.map((field) => (field.id === id ? { ...field, [key]: !field[key] } : field)),
+      current.map((field) => {
+        if (field.id !== id) return field;
+        if (key === "visible" && field.visible)
+          return {
+            ...field,
+            visible: false,
+            required: false,
+            manager: false,
+            registration: false,
+            creation: false,
+            editing: false,
+          };
+        if (key === "required" && !field.required)
+          return { ...field, required: true, visible: true, creation: true, editing: true };
+        if (key === "manager" && !field.manager) return { ...field, manager: true, visible: true };
+        if (["registration", "creation", "editing"].includes(key) && !field[key])
+          return { ...field, [key]: true, visible: true };
+        if (["registration", "creation", "editing"].includes(key) && field[key]) {
+          const remainingOperations = ["registration", "creation", "editing"].filter(
+            (operation) => operation !== key && field[operation as "registration" | "creation" | "editing"],
+          );
+          return { ...field, [key]: false, required: remainingOperations.length ? field.required : false };
+        }
+        return { ...field, [key]: !field[key] };
+      }),
     );
+  };
   const columns = [
-    { key: "visible" as const, label: "Показывать" },
+    { key: "visible" as const, label: "В форме" },
     { key: "required" as const, label: "Обязательное" },
     { key: "unique" as const, label: "Уникальное" },
     { key: "manager" as const, label: "Менеджеру" },
     { key: "registration" as const, label: "Регистрация" },
+    { key: "creation" as const, label: "Создание" },
+    { key: "editing" as const, label: "Редактирование" },
   ];
   return (
     <>
@@ -315,8 +396,19 @@ export const FieldsPage = ({ onNotice }: PlatformProps) => {
         subtitle="Настройте отображение и правила заполнения данных компании для разных операций."
         title="Поля компании"
       />
-      <div className="hidden overflow-hidden rounded-2xl border border-[var(--ms-border)] bg-white shadow-[var(--ms-card-shadow)] lg:block">
-        <table className="w-full border-collapse text-left text-sm">
+      <div className="mb-4 flex flex-col gap-2 rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-900 sm:flex-row sm:items-center">
+        <span className="flex-1">
+          Скрытое поле не может быть обязательным. Внутренний тип компании никогда не показывается при самостоятельной регистрации.
+        </span>
+        {dirty ? <Badge tone="amber">Есть несохранённые изменения</Badge> : <Badge tone="green">Настройки сохранены</Badge>}
+      </div>
+      {validation === "error" ? (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700" role="alert">
+          Не удалось включить уникальность телефона: в существующих данных есть совпадения. Устраните их и повторите проверку. Код: PLAT_FIELD_UNIQUENESS_CONFLICT.
+        </div>
+      ) : null}
+      <div className="hidden overflow-x-auto rounded-2xl border border-[var(--ms-border)] bg-white shadow-[var(--ms-card-shadow)] lg:block">
+        <table className="w-full min-w-[1050px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-[var(--ms-border)]">
               <th className="px-5 py-4">Поле</th>
@@ -336,6 +428,7 @@ export const FieldsPage = ({ onNotice }: PlatformProps) => {
                     <span className="inline-flex">
                       <Switch
                         checked={field[column.key]}
+                        disabled={field.id === "type" && column.key === "registration"}
                         label={`${column.label}: ${field.label}`}
                         onChange={() => toggle(field.id, column.key)}
                       />
@@ -363,6 +456,7 @@ export const FieldsPage = ({ onNotice }: PlatformProps) => {
                   <span className="text-xs font-semibold text-[var(--ms-muted)]">{column.label}</span>
                   <Switch
                     checked={field[column.key]}
+                    disabled={field.id === "type" && column.key === "registration"}
                     label={`${column.label}: ${field.label}`}
                     onChange={() => toggle(field.id, column.key)}
                   />
@@ -373,7 +467,35 @@ export const FieldsPage = ({ onNotice }: PlatformProps) => {
         ))}
       </div>
       <div className="mt-5 flex justify-end">
-        <Button onClick={() => onNotice("Настройки полей сохранены.")}>Сохранить настройки</Button>
+        <Button
+          disabled={!dirty || validation === "checking"}
+          onClick={() => {
+            setValidation("checking");
+            window.setTimeout(() => {
+              const phone = fields.find((field) => field.id === "phone");
+              if (phone?.unique) {
+                setValidation("error");
+                onNotice("Проверка существующих данных выявила конфликт. Код: PLAT_FIELD_UNIQUENESS_CONFLICT.");
+                return;
+              }
+              setValidation("idle");
+              setDirty(false);
+              writePrototypeValue(prototypeStorageKeys.companyFields, fields);
+              appendPrototypeValue<AuditEvent>(prototypeStorageKeys.audit, {
+                action: "Обновил схему полей компании",
+                category: "company",
+                date: "Только что",
+                object: "Поля компании",
+                page: "fields",
+                result: "Успешно",
+                user: "Администратор портала",
+              });
+              onNotice("Настройки полей сохранены после серверной проверки существующих данных.");
+            }, 700);
+          }}
+        >
+          {validation === "checking" ? "Проверяем данные…" : "Сохранить настройки"}
+        </Button>
       </div>
     </>
   );
