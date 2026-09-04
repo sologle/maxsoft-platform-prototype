@@ -1,8 +1,8 @@
 export const backgroundOptions = [
   { id: "minimal", label: "Тишина", description: "Минимум деталей · мягкий свет и тонкая сетка" },
-  { id: "flow", label: "Поток", description: "Плавные линии · движение и лёгкость" },
-  { id: "prism", label: "Призма", description: "Стеклянная геометрия · объём и глубина" },
-  { id: "orbit", label: "Орбита", description: "Цифровая сфера · частицы и световые траектории" },
+  { id: "field", label: "Поле", description: "Ведите курсор: штрихи изгибаются и поворачиваются рядом с ним" },
+  { id: "swarm", label: "Рой", description: "Ведите курсор: частицы собираются в вихрь и оставляют след" },
+  { id: "signal", label: "Сигнал", description: "Наведите курсор: ближайший узел отправит импульсы по связям" },
 ] as const;
 
 export type AuthBackground = (typeof backgroundOptions)[number]["id"];
