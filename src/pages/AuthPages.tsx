@@ -39,7 +39,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => (
 export const LandingPage = ({ onNavigate }: AuthPageProps) => (
   <AuthLayout>
     <section className="grid min-h-dvh place-items-center px-5 py-20 text-center">
-      <div className="portal-auth-hero max-w-2xl">
+      <div className="portal-auth-hero portal-auth-glass max-w-2xl">
         <h1 className="font-heading text-[clamp(2.6rem,8vw,5.6rem)] font-black leading-none tracking-[-.055em]">
           Портал MaxSoft
         </h1>
@@ -72,16 +72,16 @@ export const LoginPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
   return (
     <AuthLayout>
       <section className="mx-auto grid min-h-dvh max-w-[1100px] place-items-center px-4 py-16 sm:px-6">
-        <div className="grid w-full overflow-hidden rounded-[28px] border border-[var(--ms-border)] bg-white shadow-[0_24px_70px_rgba(24,43,66,.12)] md:grid-cols-[.9fr_1.1fr]">
-          <div className="hidden bg-gradient-to-br from-[#123b5a] to-[#1478bd] p-10 text-white md:flex md:flex-col md:justify-between">
+        <div className="portal-auth-glass grid w-full overflow-hidden rounded-[28px] md:grid-cols-[.9fr_1.1fr]">
+          <div className="portal-auth-glass-intro hidden p-10 md:flex md:flex-col md:justify-between">
             <div>
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15 font-heading text-lg font-black">M</span>
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--ms-primary-soft)] font-heading text-lg font-black text-[var(--ms-primary)]">M</span>
               <h1 className="mt-6 font-heading text-3xl font-bold">С возвращением</h1>
-              <p className="mt-3 leading-7 text-white/72">
+              <p className="mt-3 leading-7 text-[var(--ms-muted)]">
                 Войдите, чтобы продолжить работу с материалами вашей компании.
               </p>
             </div>
-            <p className="text-xs text-white/55">Доступ защищён ролевой моделью и правами компании.</p>
+            <p className="text-xs text-[var(--ms-muted)]">Доступ защищён ролевой моделью и правами компании.</p>
           </div>
           <form className="p-5 sm:p-8 lg:p-12" onSubmit={submit}>
             <h1 className="font-heading text-3xl font-bold md:hidden">Вход</h1>
@@ -267,7 +267,7 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
   return (
     <AuthLayout>
       <section className="mx-auto max-w-[920px] px-4 py-8 sm:px-6 sm:py-12">
-        <div className="rounded-[28px] border border-[var(--ms-border)] bg-white p-5 shadow-[0_20px_60px_rgba(24,43,66,.1)] sm:p-8 lg:p-10">
+        <div className="portal-auth-glass rounded-[28px] p-5 sm:p-8 lg:p-10">
           <div className="max-w-2xl">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
               <Building2 className="h-5 w-5" aria-hidden="true" />
@@ -391,7 +391,7 @@ export const RecoverPage = ({ onNavigate }: AuthPageProps) => {
   return (
     <AuthLayout>
       <section className="mx-auto grid min-h-[calc(100dvh-64px)] max-w-xl place-items-center px-4 py-10 sm:px-6">
-        <div className="w-full rounded-[28px] border border-[var(--ms-border)] bg-white p-5 text-center shadow-[0_20px_60px_rgba(24,43,66,.1)] sm:p-8">
+        <div className="portal-auth-glass w-full rounded-[28px] p-5 text-center sm:p-8">
           <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
             {step === "done" ? (
               <CheckCircle2 className="h-6 w-6" aria-hidden="true" />

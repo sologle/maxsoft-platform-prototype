@@ -3,6 +3,7 @@ export const backgroundOptions = [
   { id: "field", label: "Поле", description: "Ведите курсор: штрихи изгибаются и поворачиваются рядом с ним" },
   { id: "swarm", label: "Рой", description: "Ведите курсор: частицы собираются в вихрь и оставляют след" },
   { id: "signal", label: "Сигнал", description: "Наведите курсор: ближайший узел отправит импульсы по связям" },
+  { id: "living-field", label: "Живое", description: "Штрихи вращаются, следуют за курсором и в паузах складываются в MaxSoft" },
 ] as const;
 
 export type AuthBackground = (typeof backgroundOptions)[number]["id"];

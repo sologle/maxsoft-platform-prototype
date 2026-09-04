@@ -4,7 +4,7 @@ test("сравнение фонов сохраняет форму входа и 
   await page.goto("./?page=login&role=guest&background=minimal");
   const email = page.getByLabel("Электронная почта");
   await email.fill("preview@maxsoft.ru");
-  for (const [name, value] of [["Поле", "field"], ["Рой", "swarm"], ["Сигнал", "signal"], ["Тишина", "minimal"]]) {
+  for (const [name, value] of [["Живое", "living-field"], ["Поле", "field"], ["Рой", "swarm"], ["Сигнал", "signal"], ["Тишина", "minimal"]]) {
     const button = page.getByRole("button", { name: new RegExp(name) });
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");
@@ -35,7 +35,7 @@ test("обычный вход не показывает панель сравн�
 test("фоны учитывают системное ограничение движения", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?page=login&role=guest&background=signal");
-  for (const name of ["Сигнал", "Рой", "Поле", "Тишина"]) {
+  for (const name of ["Сигнал", "Рой", "Поле", "Живое", "Тишина"]) {
     await page.getByRole("button", { name: new RegExp(name) }).click();
     await expect.poll(() => page.getByTestId("portal-auth-backdrop").evaluate((element) =>
       element.getAnimations({ subtree: true }).filter((animation) => animation.playState === "running").length,
@@ -69,4 +69,25 @@ test("поле деформируется у курсора, сохраняя д
   await page.mouse.move(180, 200);
   await expect.poll(async () => (await pixels()).near).not.toEqual(before.near);
   expect((await pixels()).far).toEqual(before.far);
+});
+
+
+test("живое поле вращается без указателя и доступно рядом с исходным полем", async ({ page }) => {
+  await page.goto("./?page=login&role=guest&background=field");
+  const canvas = page.getByTestId("auth-reactive-canvas");
+  const pixels = () => canvas.evaluate((element) => {
+    const canvas = element as HTMLCanvasElement;
+    const ratio = canvas.width / canvas.clientWidth;
+    return Array.from(canvas.getContext("2d")!.getImageData(20 * ratio, 140 * ratio, 70 * ratio, 70 * ratio).data);
+  });
+  const original = await pixels();
+  await page.waitForTimeout(200);
+  expect(await pixels()).toEqual(original);
+  await page.getByRole("button", { name: /Живое/ }).click();
+  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "living-field");
+  await page.mouse.move(-1, -1);
+  const before = await pixels();
+  await expect.poll(pixels).not.toEqual(before);
+  await page.getByRole("button", { name: /Поле/ }).click();
+  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "field");
 });

@@ -18,13 +18,13 @@
   top: 20px;
   left: 50%;
   z-index: 20;
-  width: min(600px, calc(100% - 160px));
+  width: min(700px, calc(100% - 160px));
   transform: translateX(-50%);
 }
 
 .auth-background-options {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px;
   border: 1px solid var(--ms-border);
   border-radius: 18px;
@@ -102,6 +102,9 @@
 .auth-swatch-field {
   background: repeating-linear-gradient(135deg, transparent 0 5px, #1478bd50 5px 6px, transparent 6px 11px), #f2faff;
 }
+.auth-swatch-living-field {
+  background: repeating-conic-gradient(from 15deg, #1478bd50 0deg 5deg, transparent 5deg 40deg), #f2faff;
+}
 .auth-swatch-swarm {
   background: radial-gradient(circle at 32% 30%, #1478bd 0 1px, transparent 2px), radial-gradient(circle at 65% 55%, #24abc1 0 2px, transparent 3px), radial-gradient(circle at 40% 75%, #1478bd80 0 1px, transparent 2px), #edf9fc;
 }
@@ -115,7 +118,8 @@
   width: 100%;
   height: 100%;
 }
-.portal-auth-backdrop[data-background="field"] {
+.portal-auth-backdrop[data-background="field"],
+.portal-auth-backdrop[data-background="living-field"] {
   background: radial-gradient(ellipse at 85% 20%, #bce6f51a, transparent 60%), var(--ms-surface);
 }
 .portal-auth-backdrop[data-background="swarm"] {
@@ -124,7 +128,8 @@
 .portal-auth-backdrop[data-background="signal"] {
   background: radial-gradient(ellipse at 80% 20%, #c1e5fa24, transparent 60%), var(--ms-surface);
 }
-html[data-theme="dark"] .portal-auth-backdrop[data-background="field"] {
+html[data-theme="dark"] .portal-auth-backdrop[data-background="field"],
+html[data-theme="dark"] .portal-auth-backdrop[data-background="living-field"] {
   background: #0c1722;
 }
 html[data-theme="dark"] .portal-auth-backdrop[data-background="swarm"] {
@@ -132,6 +137,9 @@ html[data-theme="dark"] .portal-auth-backdrop[data-background="swarm"] {
 }
 html[data-theme="dark"] .portal-auth-backdrop[data-background="signal"] {
   background: radial-gradient(ellipse at 80% 20%, #14395630, transparent 55%), #0b1520;
+}
+@media (max-width: 800px) {
+  .auth-background-swatch { display: none; }
 }
 @media (max-width: 640px) {
   .portal-auth-stage[data-comparing="true"] { padding-top: 112px; }
@@ -141,7 +149,6 @@ html[data-theme="dark"] .portal-auth-backdrop[data-background="signal"] {
   .auth-background-options { gap: 2px; border-radius: 14px; padding: 4px; }
   .auth-background-option { gap: 0; min-height: 48px; padding: 4px 2px; text-align: center; border-radius: 9px; }
   .auth-background-option strong { font-size: 11px; }
-  .auth-background-swatch { display: none; }
   .auth-background-caption { font-size: 10px; text-align: left; padding-left: 5px; }
 }
 @media (prefers-reduced-motion: reduce) {

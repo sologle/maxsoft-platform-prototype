@@ -97,12 +97,37 @@
 }
 
 .portal-auth-hero {
-  border: 1px solid color-mix(in srgb, var(--ms-border) 72%, transparent);
   border-radius: 2rem;
-  background: color-mix(in srgb, var(--ms-surface) 84%, transparent);
   padding: clamp(2rem, 6vw, 4.5rem);
-  box-shadow: 0 28px 90px rgba(24, 43, 66, 0.11);
-  backdrop-filter: blur(18px);
+}
+
+/* Transparent fills keep the backdrop visible without filtering every animation frame. */
+.portal-auth-glass {
+  border: 1px solid rgba(170, 197, 218, 0.5);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.28));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 1px 0 0 rgba(255, 255, 255, 0.65),
+    0 24px 70px rgba(24, 43, 66, 0.09);
+}
+
+.portal-auth-glass-intro {
+  border-right: 1px solid rgba(147, 183, 210, 0.18);
+  background: linear-gradient(145deg, rgba(20, 120, 189, 0.045), transparent);
+}
+
+html[data-theme="dark"] .portal-auth-glass {
+  border-color: rgba(141, 193, 229, 0.2);
+  background: linear-gradient(135deg, rgba(28, 49, 67, 0.64), rgba(13, 25, 38, 0.38));
+  box-shadow:
+    inset 0 1px 0 rgba(200, 231, 251, 0.12),
+    inset 1px 0 0 rgba(200, 231, 251, 0.07),
+    0 24px 70px rgba(0, 0, 0, 0.18);
+}
+
+html[data-theme="dark"] .portal-auth-glass-intro {
+  border-color: rgba(141, 193, 229, 0.12);
+  background: linear-gradient(145deg, rgba(58, 166, 221, 0.05), transparent);
 }
 
 @keyframes portal-orbit {

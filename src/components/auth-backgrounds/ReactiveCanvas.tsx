@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
 import type { AuthBackground } from "./BackgroundPicker";
-import { createField } from "./field-scene";
+import { createField, createLivingField } from "./field-scene";
 import { createSwarm } from "./swarm-scene";
 import { createSignal } from "./signal-scene";
 import type { DrawScene, ScenePointer } from "./scene-types";
@@ -8,8 +8,8 @@ import type { DrawScene, ScenePointer } from "./scene-types";
 const MAX_PIXEL_RATIO = 2;
 const MAX_BACKING_PIXELS = 6_000_000;
 const MAX_DELTA_SECONDS = 1 / 30;
-const darkBackgrounds = { field: "#0c1722", swarm: "#0b1823", signal: "#0b1520" };
-const scenes = { field: createField, swarm: createSwarm, signal: createSignal };
+const darkBackgrounds = { field: "#0c1722", swarm: "#0b1823", signal: "#0b1520", "living-field": "#0c1722" };
+const scenes = { field: createField, swarm: createSwarm, signal: createSignal, "living-field": createLivingField };
 
 export const ReactiveCanvas = ({ variant, pointer }: {
   variant: Exclude<AuthBackground, "minimal">;
