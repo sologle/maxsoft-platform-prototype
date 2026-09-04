@@ -1,0 +1,113 @@
+.portal-auth-stage {
+  --pointer-x: 50%;
+  --pointer-y: 50%;
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--ms-surface);
+  color: var(--ms-text);
+  isolation: isolate;
+}
+
+.portal-auth-backdrop {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(20, 120, 189, 0.17), transparent 28rem),
+    linear-gradient(145deg, var(--ms-surface) 22%, var(--ms-primary-soft) 120%);
+}
+
+.portal-auth-grid {
+  position: absolute;
+  inset: -25%;
+  opacity: 0.42;
+  background-image:
+    linear-gradient(rgba(20, 120, 189, 0.075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 120, 189, 0.075) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at var(--pointer-x) var(--pointer-y), black, transparent 62%);
+  transform: perspective(700px) rotateX(58deg) translateY(18%);
+  transform-origin: center;
+}
+
+.portal-auth-glow {
+  position: absolute;
+  left: var(--pointer-x);
+  top: var(--pointer-y);
+  width: min(52vw, 42rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(40, 160, 220, 0.2), rgba(20, 120, 189, 0.04) 54%, transparent 72%);
+  transform: translate(-50%, -50%);
+  transition: left 220ms ease-out, top 220ms ease-out;
+  filter: blur(3px);
+}
+
+.portal-auth-word {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  color: transparent;
+  font-family: "Funnel Sans", Inter, system-ui, sans-serif;
+  font-size: clamp(6rem, 22vw, 24rem);
+  font-weight: 900;
+  letter-spacing: -0.09em;
+  line-height: 0.8;
+  opacity: 0.055;
+  -webkit-text-stroke: 1px var(--ms-primary);
+  transform: translate(-50%, -48%);
+  white-space: nowrap;
+}
+
+.portal-auth-orbit {
+  position: absolute;
+  border: 1px solid rgba(20, 120, 189, 0.16);
+  border-radius: 50%;
+  animation: portal-orbit 18s linear infinite;
+}
+
+.portal-auth-orbit::after {
+  position: absolute;
+  left: 16%;
+  top: 6%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ms-primary);
+  box-shadow: 0 0 24px rgba(20, 120, 189, 0.52);
+  content: "";
+}
+
+.portal-auth-orbit-one {
+  right: -8rem;
+  top: -12rem;
+  width: min(46vw, 36rem);
+  aspect-ratio: 1;
+}
+
+.portal-auth-orbit-two {
+  bottom: -18rem;
+  left: -10rem;
+  width: min(58vw, 44rem);
+  aspect-ratio: 1;
+  animation-direction: reverse;
+  animation-duration: 24s;
+}
+
+.portal-auth-hero {
+  border: 1px solid color-mix(in srgb, var(--ms-border) 72%, transparent);
+  border-radius: 2rem;
+  background: color-mix(in srgb, var(--ms-surface) 84%, transparent);
+  padding: clamp(2rem, 6vw, 4.5rem);
+  box-shadow: 0 28px 90px rgba(24, 43, 66, 0.11);
+  backdrop-filter: blur(18px);
+}
+
+@keyframes portal-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
