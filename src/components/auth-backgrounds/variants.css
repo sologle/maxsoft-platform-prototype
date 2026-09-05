@@ -166,4 +166,28 @@ html[data-theme="dark"] .portal-auth-backdrop[data-background="ribbon"] { backgr
 .auth-wordmark-actions > button {
   flex: 1;
   min-height: 48px;
+  border: 1px solid color-mix(in srgb, var(--ms-primary) 28%, transparent);
+  box-shadow: inset 0 1px 0 #ffffff40, 0 6px 20px #10385812;
+  translate: none;
+  transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.auth-wordmark-landing .auth-wordmark-primary {
+  background-color: color-mix(in srgb, var(--ms-primary-hover) 90%, transparent);
+}
+.auth-wordmark-landing .auth-wordmark-actions > .auth-wordmark-secondary {
+  background-color: color-mix(in srgb, var(--ms-surface) 58%, transparent);
+}
+html[data-theme="dark"] .auth-wordmark-landing .auth-wordmark-primary {
+  color: #102437;
+}
+@media (hover: hover) and (pointer: fine) {
+  .auth-wordmark-actions > button:hover {
+    transform: scale(1.045);
+    box-shadow: inset 0 1px 0 #ffffff50, 0 9px 24px #10385824;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-wordmark-actions > button { transition: none; }
+  .auth-wordmark-actions > button:hover { transform: none; }
 }

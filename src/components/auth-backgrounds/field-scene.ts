@@ -15,6 +15,8 @@ const WORD_HOLD_SECONDS = 3;
 const WORD_RESPONSE = 4;
 const WORDMARK_ASSEMBLY_SECONDS = 0.9;
 const AMBIENT_DRIFT = 12;
+const AMBIENT_SPACING = 48;
+const AMBIENT_HALF_LENGTH = 5.5;
 
 const smoothStep = (value: number) => {
   const t = Math.max(0, Math.min(1, value));
@@ -26,7 +28,8 @@ const createFieldScene = (width: number, height: number, mode: "living" | "wordm
   const ambient = mode === "ambient";
   const standalone = mode !== "living";
   // Keep the standalone word readable even on a small viewport.
-  const preferredSpacing = standalone ? Math.min(LIVING_SPACING, Math.sqrt(width * height / MIN_WORDMARK_MARKS)) : LIVING_SPACING;
+  const preferredSpacing = ambient ? AMBIENT_SPACING
+    : centered ? Math.min(LIVING_SPACING, Math.sqrt(width * height / MIN_WORDMARK_MARKS)) : LIVING_SPACING;
   const spacing = Math.max(preferredSpacing, Math.sqrt(width * height / MAX_MARKS));
   const wordHalfLength = width < 640 ? 1.3 : 2.2;
   const columns = Math.ceil(width / spacing);
@@ -93,11 +96,12 @@ const createFieldScene = (width: number, height: number, mode: "living" | "wordm
         point.angle += turn * response;
         point.energy += (influence - point.energy) * response;
       }
-      const halfLength = 3 + point.energy * 11 - morph * (3 - wordHalfLength);
+      const halfLength = (ambient ? AMBIENT_HALF_LENGTH : 3) + point.energy * 11 - morph * (3 - wordHalfLength);
       const ux = Math.cos(point.angle) * halfLength;
       const uy = Math.sin(point.angle) * halfLength;
-      context.lineWidth = 1.25 + (centered ? morph * 0.85 : 0);
-      context.strokeStyle = `rgba(${color},${(dark ? 0.21 : 0.17) + point.energy * 0.7 + morph * (centered ? 0.48 : 0.32)})`;
+      context.lineWidth = ambient ? 1.5 : 1.25 + (centered ? morph * 0.55 : 0);
+      const opacity = (dark ? 0.21 : 0.17) - (ambient ? 0.05 : 0);
+      context.strokeStyle = `rgba(${color},${opacity + point.energy * 0.7 + morph * (centered ? 0.48 : 0.32)})`;
       context.beginPath();
       context.moveTo(point.x - ux, point.y - uy);
       context.lineTo(point.x + ux, point.y + uy);
