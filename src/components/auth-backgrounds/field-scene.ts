@@ -52,10 +52,9 @@ const createFieldScene = (width: number, height: number, mode: "living" | "wordm
     wordAmount = centered
       ? motion ? smoothStep((time - startedAt) / WORDMARK_ASSEMBLY_SECONDS) : 1
       : motion ? wordAmount + (target - wordAmount) * (1 - Math.exp(-WORD_RESPONSE * delta)) : 0;
-    const pointerStrength = centered ? 1 : 1 - wordAmount;
+    const pointerStrength = centered ? 0.65 : 1 - wordAmount;
     if (active) drawHalo(context, pointer.x, pointer.y, INFLUENCE_RADIUS, color, (dark ? 0.16 : 0.1) * pointerStrength);
     context.lineCap = "round";
-    context.lineWidth = 1.25;
     for (const [index, point] of points.entries()) {
       // Leave a sparse ambient grid behind the word instead of emptying the backdrop.
       const word = index % 5 !== 0 ? wordTargets[index] : null;
@@ -88,7 +87,8 @@ const createFieldScene = (width: number, height: number, mode: "living" | "wordm
       const halfLength = 3 + point.energy * 11 - morph * (3 - wordHalfLength);
       const ux = Math.cos(point.angle) * halfLength;
       const uy = Math.sin(point.angle) * halfLength;
-      context.strokeStyle = `rgba(${color},${(dark ? 0.21 : 0.17) + point.energy * 0.7 + morph * 0.32})`;
+      context.lineWidth = 1.25 + (centered ? morph * 0.85 : 0);
+      context.strokeStyle = `rgba(${color},${(dark ? 0.21 : 0.17) + point.energy * 0.7 + morph * (centered ? 0.48 : 0.32)})`;
       context.beginPath();
       context.moveTo(point.x - ux, point.y - uy);
       context.lineTo(point.x + ux, point.y + uy);
