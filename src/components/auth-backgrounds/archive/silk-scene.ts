@@ -1,4 +1,4 @@
-import { drawHalo, TAU, type DrawScene } from "./scene-types";
+import { drawHalo, TAU, type DrawScene } from "../scene-types";
 
 const MAX_COLUMNS = 48;
 const MAX_ROWS = 44;

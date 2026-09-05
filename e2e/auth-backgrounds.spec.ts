@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 test("сравнение фонов сохраняет форму входа и выбранный вариант при навигации", async ({ page }) => {
-  await page.goto("./?page=login&role=guest&background=minimal");
+  await page.goto("./?page=login&role=guest&backgroundArchive=1&background=minimal");
   await expect(page.getByRole("group", { name: "Варианты фона" }).getByRole("button")).toHaveCount(6);
   await expect(page.getByRole("button", { name: /Поле|Рой|Сигнал/ })).toHaveCount(0);
   const email = page.getByLabel("Электронная почта");
@@ -24,6 +24,7 @@ test("сравнение фонов сохраняет форму входа и 
   await page.getByRole("button", { name: "Войти", exact: true }).click();
   await expect(page).toHaveURL(/role=client-employee/);
   await expect(page).not.toHaveURL(/background=/);
+  await expect(page).not.toHaveURL(/backgroundArchive=/);
   await expect(page.getByRole("group", { name: "Варианты фона" })).toHaveCount(0);
 });
 
@@ -31,12 +32,16 @@ test("обычный вход не показывает панель сравн�
   await page.goto("./?page=login&role=guest");
   await expect(page.getByRole("group", { name: "Варианты фона" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Войти", exact: true })).toBeVisible();
+  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "wordmark");
+  await page.goto("./?page=login&role=guest&background=minimal");
+  await expect(page.getByRole("group", { name: "Варианты фона" })).toHaveCount(0);
+  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "wordmark");
 });
 
 
 test("фоны учитывают системное ограничение движения", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("./?page=login&role=guest&background=echo");
+  await page.goto("./?page=login&role=guest&backgroundArchive=1&background=echo");
   for (const name of ["Эхо", "Шёлк", "След", "Живое", "MaxSoft", "Тишина"]) {
     await page.getByRole("button", { name: new RegExp(name) }).click();
     await expect.poll(() => page.getByTestId("portal-auth-backdrop").evaluate((element) =>
@@ -55,7 +60,7 @@ test("фоны учитывают системное ограничение дв
 
 
 test("живое поле продолжает вращаться без указателя", async ({ page }) => {
-  await page.goto("./?page=login&role=guest&background=living-field");
+  await page.goto("./?page=login&role=guest&backgroundArchive=1&background=living-field");
   await expect(page.getByTestId("auth-reactive-canvas")).toBeVisible();
   await expect(page.getByRole("button", { name: /05.*Живое/ })).toHaveAttribute("aria-pressed", "true");
   const before = await scenePixels(page);
@@ -79,7 +84,7 @@ for (const [variant, label] of [["echo", "Эхо"], ["silk", "Шёлк"], ["ribb
     });
     try {
       for (const target of [page, control]) {
-        await target.goto(new URL("?page=login&role=guest&background=minimal", baseURL).href);
+        await target.goto(new URL("?page=login&role=guest&backgroundArchive=1&background=minimal", baseURL).href);
         await target.clock.install({ time: 0 });
         await target.clock.pauseAt(1000);
         // Align creation to a virtual frame boundary; installation has a different performance.now origin per page.
@@ -107,10 +112,15 @@ for (const [variant, label] of [["echo", "Эхо"], ["silk", "Шёлк"], ["ribb
 }
 
 test("След сохраняет ленты после изменения размера окна", async ({ page }) => {
-  await page.clock.install();
-  await page.goto("./?page=login&role=guest&background=ribbon");
+  await page.goto("./?page=login&role=guest&backgroundArchive=1&background=minimal");
+  await expect(page.locator(".portal-auth-grid")).toBeVisible();
+  await expect(page.getByRole("group", { name: "Варианты фона" })).toBeVisible();
+  await page.clock.install({ time: 0 });
+  await page.clock.pauseAt(1000);
+  await page.getByRole("button", { name: /След/ }).evaluate((button: HTMLButtonElement) => button.click());
+  await expect(page.getByTestId("auth-reactive-canvas")).toBeVisible();
+  await page.waitForTimeout(100);
   await page.clock.runFor(4000);
-  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
   const viewport = page.viewportSize()!;
   await page.setViewportSize({ width: viewport.width - 20, height: viewport.height - 20 });
   await page.waitForTimeout(150);

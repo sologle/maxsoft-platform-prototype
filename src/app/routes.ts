@@ -213,8 +213,10 @@ export const readLocation = (): AppLocation => {
 export const writeLocation = (location: AppLocation, replace = false) => {
   const url = new URL(window.location.href);
   const background = url.searchParams.get("background");
+  const backgroundArchive = url.searchParams.get("backgroundArchive");
   url.search = "";
   if (background !== null && location.role === "guest") url.searchParams.set("background", background);
+  if (backgroundArchive === "1" && location.role === "guest") url.searchParams.set("backgroundArchive", "1");
   url.searchParams.set("page", location.page);
   url.searchParams.set("role", location.role);
   if (location.resource) url.searchParams.set("resource", location.resource);

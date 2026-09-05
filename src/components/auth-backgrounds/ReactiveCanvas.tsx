@@ -1,20 +1,12 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
-import type { AuthBackground } from "./BackgroundPicker";
-import { createAmbientField, createLivingField, createWordmarkField } from "./field-scene";
-import { createEcho } from "./echo-scene";
-import { createSilk } from "./silk-scene";
-import { createRibbon } from "./ribbon-scene";
-import type { DrawScene, ScenePointer } from "./scene-types";
+import type { DrawScene, SceneFactory, ScenePointer } from "./scene-types";
 
 const MAX_PIXEL_RATIO = 2;
 const MAX_BACKING_PIXELS = 6_000_000;
 const MAX_DELTA_SECONDS = 1 / 30;
-const darkBackgrounds = { echo: "#0d1825", silk: "#101c29", ribbon: "#0c1724", "living-field": "#0c1722", wordmark: "#0c1722" };
-const scenes = { echo: createEcho, silk: createSilk, ribbon: createRibbon, "living-field": createLivingField, wordmark: createWordmarkField };
-
-export const ReactiveCanvas = ({ variant, pointer, showWordmark }: {
-  variant: Exclude<AuthBackground, "minimal">;
-  showWordmark: boolean;
+export const ReactiveCanvas = ({ createScene, darkBackground, pointer }: {
+  createScene: SceneFactory;
+  darkBackground: string;
   pointer: RefObject<ScenePointer>;
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -44,7 +36,7 @@ export const ReactiveCanvas = ({ variant, pointer, showWordmark }: {
       const delta = motion && previousTime !== null ? Math.min((now - previousTime) / 1000, MAX_DELTA_SECONDS) : 0;
       previousTime = now;
       elapsed += delta;
-      context.fillStyle = dark ? darkBackgrounds[variant] : "#ffffff";
+      context.fillStyle = dark ? darkBackground : "#ffffff";
       context.fillRect(0, 0, width, height);
       draw({ context, width, height, delta, time: elapsed, pointer: pointer.current, dark, motion });
       if (motion && !document.hidden) frame = window.requestAnimationFrame(render);
@@ -62,7 +54,6 @@ export const ReactiveCanvas = ({ variant, pointer, showWordmark }: {
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       context.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
-      const createScene = variant === "wordmark" && !showWordmark ? createAmbientField : scenes[variant];
       draw = createScene(width, height);
       refresh();
     };
@@ -87,7 +78,7 @@ export const ReactiveCanvas = ({ variant, pointer, showWordmark }: {
       document.removeEventListener("visibilitychange", visibilityChanged);
       window.removeEventListener("resize", resize);
     };
-  }, [variant, pointer, showWordmark]);
+  }, [createScene, darkBackground, pointer]);
 
   return <canvas className="auth-reactive-canvas" data-testid="auth-reactive-canvas" ref={canvasRef} />;
 };

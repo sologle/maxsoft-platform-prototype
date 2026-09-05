@@ -72,8 +72,8 @@ test("размер текста статьи уменьшается до 70 пр
 
 test("гостевая главная показывает вход без прокрутки", async ({ page }) => {
   await page.goto("./");
-  await expect(page.getByRole("heading", { name: "Портал MaxSoft" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Вход" })).toBeInViewport();
+  await expect(page.getByTestId("wordmark-landing")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Войти", exact: true })).toBeInViewport();
   await expect(page.getByRole("button", { name: "Регистрация" })).toBeInViewport();
   await expect(page.getByTestId("portal-auth-backdrop")).toBeVisible();
 });

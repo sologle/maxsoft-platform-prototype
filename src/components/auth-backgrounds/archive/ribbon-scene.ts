@@ -1,4 +1,4 @@
-import { drawHalo, TAU, type DrawScene } from "./scene-types";
+import { drawHalo, TAU, type DrawScene } from "../scene-types";
 
 const TRAIL_SECONDS = 2.8;
 const MAX_TRAIL_POINTS = 130;

@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { ThemeToggle } from "./Theme";
 import { BackgroundArt } from "./auth-backgrounds/BackgroundArt";
-import { BackgroundPicker, readBackground, type AuthBackground } from "./auth-backgrounds/BackgroundPicker";
+import { readBackground, type AuthBackground } from "./auth-backgrounds/background-state";
 import type { ScenePointer } from "./auth-backgrounds/scene-types";
 import "./auth-backgrounds/base.css";
 import "./auth-backgrounds/variants.css";
+
+const BackgroundPicker = lazy(() => import("./auth-backgrounds/archive/BackgroundPicker"));
 
 export const AuthStage = ({ children, layout }: {
   children: ReactNode | ((variant: AuthBackground) => ReactNode);
@@ -53,6 +55,7 @@ export const AuthStage = ({ children, layout }: {
     pointerRef.current.active = false;
     const url = new URL(window.location.href);
     url.searchParams.set("background", next);
+    url.searchParams.set("backgroundArchive", "1");
     window.history.replaceState(window.history.state, "", url);
     setBackground({ variant: next, comparing: true });
   };
@@ -71,7 +74,7 @@ export const AuthStage = ({ children, layout }: {
       <div aria-hidden="true" className="portal-auth-backdrop" data-background={variant} data-testid="portal-auth-backdrop">
         <BackgroundArt key={variant} pointer={pointerRef} variant={variant} showWordmark={layout === "landing"} />
       </div>
-      {comparing ? <BackgroundPicker onChange={changeBackground} value={variant} /> : null}
+      {comparing ? <Suspense fallback={null}><BackgroundPicker onChange={changeBackground} value={variant} /></Suspense> : null}
       <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6"><ThemeToggle /></div>
       <div className="portal-auth-content">{typeof children === "function" ? children(variant) : children}</div>
     </main>

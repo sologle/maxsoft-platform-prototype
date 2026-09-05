@@ -12,7 +12,7 @@ const expectNoRuntimeErrors = (page: Page) => {
 test("гость входит в портал без технического лаунчера и iframe", async ({ page }) => {
   const verifyErrors = expectNoRuntimeErrors(page);
   await page.goto("./");
-  await page.getByRole("button", { name: "Вход", exact: true }).click();
+  await page.getByRole("button", { name: "Войти", exact: true }).click();
   await page.getByRole("button", { name: "Войти", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Рабочее пространство" })).toBeVisible();
   await expect(page.locator("iframe")).toHaveCount(0);

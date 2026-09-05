@@ -1,18 +1,19 @@
-import type { RefObject } from "react";
-import type { AuthBackground } from "./BackgroundPicker";
+import { lazy, Suspense, type RefObject } from "react";
+import type { AuthBackground } from "./background-state";
 import { ReactiveCanvas } from "./ReactiveCanvas";
+import { createAmbientField, createWordmarkField } from "./field-scene";
 import type { ScenePointer } from "./scene-types";
+
+const ArchivedBackgroundArt = lazy(() => import("./archive/BackgroundArt"));
 
 export const BackgroundArt = ({ variant, pointer, showWordmark }: {
   variant: AuthBackground;
   showWordmark: boolean;
   pointer: RefObject<ScenePointer>;
-}) => variant === "minimal" ? (
-  <>
-    <div className="portal-auth-grid" />
-    <div className="portal-auth-glow" />
-    <div className="portal-auth-orbit portal-auth-orbit-one" />
-    <div className="portal-auth-orbit portal-auth-orbit-two" />
-    <div className="portal-auth-word">MAXSOFT</div>
-  </>
-) : <ReactiveCanvas pointer={pointer} variant={variant} showWordmark={showWordmark} />;
+}) => variant === "wordmark" ? (
+  <ReactiveCanvas pointer={pointer} createScene={showWordmark ? createWordmarkField : createAmbientField} darkBackground="#0c1722" />
+) : (
+  <Suspense fallback={null}>
+    <ArchivedBackgroundArt variant={variant} pointer={pointer} />
+  </Suspense>
+);

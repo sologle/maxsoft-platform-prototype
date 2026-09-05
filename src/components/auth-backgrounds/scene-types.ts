@@ -16,6 +16,7 @@ export interface SceneFrame {
 }
 
 export type DrawScene = (frame: SceneFrame) => void;
+export type SceneFactory = (width: number, height: number) => DrawScene;
 
 export const drawHalo = (
   context: CanvasRenderingContext2D,

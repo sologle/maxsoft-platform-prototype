@@ -1,6 +1,9 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+
+// Canvas animation is covered by browser tests; jsdom has no Canvas2D renderer.
+vi.mock("./components/auth-backgrounds/ReactiveCanvas", () => ({ ReactiveCanvas: () => null }));
 
 describe("адаптивная оболочка платформы", () => {
   afterEach(() => {
@@ -8,11 +11,11 @@ describe("адаптивная оболочка платформы", () => {
     window.history.replaceState({}, "", "/");
   });
 
-  it("открывает минимальную гостевую страницу без технического лаунчера", () => {
+  it("открывает выбранную гостевую страницу без технического лаунчера", () => {
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "Портал MaxSoft" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Вход" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "MaxSoft" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Войти" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Регистрация" })).toBeInTheDocument();
     expect(screen.getByTestId("portal-auth-backdrop")).toBeInTheDocument();
     expect(screen.queryByTestId("role-entry")).not.toBeInTheDocument();
@@ -21,7 +24,7 @@ describe("адаптивная оболочка платформы", () => {
   it("открывает гостевую страницу вместо некорректной публичной ссылки", () => {
     window.history.replaceState({}, "", "/?page=unknown&role=unknown");
     render(<App />);
-    expect(screen.getByRole("heading", { name: "Портал MaxSoft" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "MaxSoft" })).toBeInTheDocument();
   });
 
   it("заменяет закрытый прямой маршрут универсальным отказом", () => {

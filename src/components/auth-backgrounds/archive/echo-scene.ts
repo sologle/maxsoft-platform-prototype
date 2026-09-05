@@ -1,4 +1,4 @@
-import { drawHalo, TAU, type DrawScene } from "./scene-types";
+import { drawHalo, TAU, type DrawScene } from "../scene-types";
 
 const DOT_SPACING = 34;
 const MAX_DOTS = 1000;
