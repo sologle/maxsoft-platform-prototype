@@ -55,7 +55,7 @@ for (const variant of ["wordmark", "scatter"]) {
         expect(await centerInk(page)).toBeGreaterThan(rest * 0.7);
       }
     } finally {
-      await session.detach();
+      if (!page.isClosed()) await session.detach();
     }
   });
 }
@@ -68,16 +68,29 @@ test("сенсорная прокрутка настроек и регистра
   const bounds = (await panel.boundingBox())!;
   const session = await page.context().newCDPSession(page);
   try {
-    await swipe(session, { x: bounds.x + 12, y: bounds.y + bounds.height - 45 }, { x: bounds.x + 12, y: bounds.y + 85 });
-    await touch(session, "touchEnd");
-    await expect.poll(() => panel.evaluate((element) => element.scrollTop)).toBeGreaterThan(50);
-    await page.getByRole("button", { name: "Свернуть настройки" }).tap();
-    await page.getByTestId("wordmark-landing").getByRole("button", { name: "Регистрация", exact: true }).tap();
-    await expect(page).toHaveURL(/page=register/);
-    await swipe(session, { x: 8, y: 700 }, { x: 8, y: 180 });
-    await touch(session, "touchEnd");
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(50);
+    await test.step("Прокрутить панель пальцем и дождаться остановки", async () => {
+      await panel.evaluate((element) => {
+        element.addEventListener("scrollend", () => { element.setAttribute("data-scroll-ended", "true"); }, { once: true });
+      });
+      await swipe(session, { x: bounds.x + 12, y: bounds.y + bounds.height - 45 }, { x: bounds.x + 12, y: bounds.y + 85 });
+      await touch(session, "touchEnd");
+      await expect.poll(() => panel.evaluate((element) => element.scrollTop)).toBeGreaterThan(50);
+      // During momentum scrolling, the first tap can stop scrolling instead of activating a button.
+      await expect(panel).toHaveAttribute("data-scroll-ended", "true");
+    });
+    await test.step("Открыть регистрацию касанием", async () => {
+      await page.getByRole("button", { name: "Свернуть настройки" }).tap();
+      await expect(panel).toBeHidden();
+      await page.getByTestId("wordmark-landing").getByRole("button", { name: "Регистрация", exact: true }).tap();
+      await expect(page).toHaveURL(/page=register/);
+      await expect(page.getByLabel("Корпоративная почта", { exact: true })).toBeVisible();
+    });
+    await test.step("Прокрутить регистрацию пальцем", async () => {
+      await swipe(session, { x: 8, y: 700 }, { x: 8, y: 180 });
+      await touch(session, "touchEnd");
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(50);
+    });
   } finally {
-    await session.detach();
+    if (!page.isClosed()) await session.detach();
   }
 });
