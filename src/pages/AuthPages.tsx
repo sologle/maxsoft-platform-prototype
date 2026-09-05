@@ -41,7 +41,7 @@ const ArchivedLanding = lazy(() => import("../components/auth-backgrounds/archiv
 
 export const LandingPage = ({ onNavigate }: AuthPageProps) => (
   <AuthStage layout="landing">
-    {(variant) => variant === "wordmark" ? <WordmarkLanding onNavigate={onNavigate} /> : (
+    {(variant) => (variant === "wordmark" || variant === "scatter") ? <WordmarkLanding onNavigate={onNavigate} /> : (
       <Suspense fallback={null}><ArchivedLanding onNavigate={onNavigate} /></Suspense>
     )}
   </AuthStage>

@@ -2,11 +2,11 @@ import { expect, test, type Page } from "@playwright/test";
 
 test("сравнение фонов сохраняет форму входа и выбранный вариант при навигации", async ({ page }) => {
   await page.goto("./?page=login&role=guest&backgroundArchive=1&background=minimal");
-  await expect(page.getByRole("group", { name: "Варианты фона" }).getByRole("button")).toHaveCount(6);
+  await expect(page.getByRole("group", { name: "Варианты фона" }).getByRole("button")).toHaveCount(7);
   await expect(page.getByRole("button", { name: /Поле|Рой|Сигнал/ })).toHaveCount(0);
   const email = page.getByLabel("Электронная почта");
   await email.fill("preview@maxsoft.ru");
-  for (const [name, value] of [["MaxSoft", "wordmark"], ["Живое", "living-field"], ["Эхо", "echo"], ["Шёлк", "silk"], ["След", "ribbon"], ["Тишина", "minimal"]]) {
+  for (const [name, value] of [["Разлёт", "scatter"], ["MaxSoft", "wordmark"], ["Живое", "living-field"], ["Эхо", "echo"], ["Шёлк", "silk"], ["След", "ribbon"], ["Тишина", "minimal"]]) {
     const button = page.getByRole("button", { name: new RegExp(name) });
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");
@@ -42,7 +42,7 @@ test("обычный вход не показывает панель сравн�
 test("фоны учитывают системное ограничение движения", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?page=login&role=guest&backgroundArchive=1&background=echo");
-  for (const name of ["Эхо", "Шёлк", "След", "Живое", "MaxSoft", "Тишина"]) {
+  for (const name of ["Эхо", "Шёлк", "След", "Живое", "MaxSoft", "Разлёт", "Тишина"]) {
     await page.getByRole("button", { name: new RegExp(name) }).click();
     await expect.poll(() => page.getByTestId("portal-auth-backdrop").evaluate((element) =>
       element.getAnimations({ subtree: true }).filter((animation) => animation.playState === "running").length,

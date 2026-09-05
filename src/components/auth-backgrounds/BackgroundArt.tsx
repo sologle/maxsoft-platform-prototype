@@ -14,6 +14,6 @@ export const BackgroundArt = ({ variant, pointer, showWordmark }: {
   <ReactiveCanvas pointer={pointer} createScene={showWordmark ? createWordmarkField : createAmbientField} darkBackground="#0c1722" />
 ) : (
   <Suspense fallback={null}>
-    <ArchivedBackgroundArt variant={variant} pointer={pointer} />
+    <ArchivedBackgroundArt variant={variant} pointer={pointer} showWordmark={showWordmark} />
   </Suspense>
 );
