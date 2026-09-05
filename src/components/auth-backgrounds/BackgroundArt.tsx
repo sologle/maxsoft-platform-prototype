@@ -3,8 +3,9 @@ import type { AuthBackground } from "./BackgroundPicker";
 import { ReactiveCanvas } from "./ReactiveCanvas";
 import type { ScenePointer } from "./scene-types";
 
-export const BackgroundArt = ({ variant, pointer }: {
+export const BackgroundArt = ({ variant, pointer, showWordmark }: {
   variant: AuthBackground;
+  showWordmark: boolean;
   pointer: RefObject<ScenePointer>;
 }) => variant === "minimal" ? (
   <>
@@ -14,4 +15,4 @@ export const BackgroundArt = ({ variant, pointer }: {
     <div className="portal-auth-orbit portal-auth-orbit-two" />
     <div className="portal-auth-word">MAXSOFT</div>
   </>
-) : <ReactiveCanvas pointer={pointer} variant={variant} />;
+) : <ReactiveCanvas pointer={pointer} variant={variant} showWordmark={showWordmark} />;

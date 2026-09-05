@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
 import type { AuthBackground } from "./BackgroundPicker";
-import { createLivingField, createWordmarkField } from "./field-scene";
+import { createAmbientField, createLivingField, createWordmarkField } from "./field-scene";
 import { createEcho } from "./echo-scene";
 import { createSilk } from "./silk-scene";
 import { createRibbon } from "./ribbon-scene";
@@ -12,8 +12,9 @@ const MAX_DELTA_SECONDS = 1 / 30;
 const darkBackgrounds = { echo: "#0d1825", silk: "#101c29", ribbon: "#0c1724", "living-field": "#0c1722", wordmark: "#0c1722" };
 const scenes = { echo: createEcho, silk: createSilk, ribbon: createRibbon, "living-field": createLivingField, wordmark: createWordmarkField };
 
-export const ReactiveCanvas = ({ variant, pointer }: {
+export const ReactiveCanvas = ({ variant, pointer, showWordmark }: {
   variant: Exclude<AuthBackground, "minimal">;
+  showWordmark: boolean;
   pointer: RefObject<ScenePointer>;
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -61,7 +62,8 @@ export const ReactiveCanvas = ({ variant, pointer }: {
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       context.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
-      draw = scenes[variant](width, height);
+      const createScene = variant === "wordmark" && !showWordmark ? createAmbientField : scenes[variant];
+      draw = createScene(width, height);
       refresh();
     };
     const themeObserver = new MutationObserver(() => {
@@ -85,7 +87,7 @@ export const ReactiveCanvas = ({ variant, pointer }: {
       document.removeEventListener("visibilitychange", visibilityChanged);
       window.removeEventListener("resize", resize);
     };
-  }, [variant, pointer]);
+  }, [variant, pointer, showWordmark]);
 
   return <canvas className="auth-reactive-canvas" data-testid="auth-reactive-canvas" ref={canvasRef} />;
 };

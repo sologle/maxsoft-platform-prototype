@@ -13,17 +13,20 @@ const WORD_START_SECONDS = 6;
 const WORD_MORPH_SECONDS = 2.5;
 const WORD_HOLD_SECONDS = 3;
 const WORD_RESPONSE = 4;
-const WORDMARK_ASSEMBLY_SECONDS = 2;
+const WORDMARK_ASSEMBLY_SECONDS = 0.9;
+const AMBIENT_DRIFT = 12;
 
 const smoothStep = (value: number) => {
   const t = Math.max(0, Math.min(1, value));
   return t * t * (3 - 2 * t);
 };
 
-const createFieldScene = (width: number, height: number, mode: "living" | "wordmark"): DrawScene => {
+const createFieldScene = (width: number, height: number, mode: "living" | "wordmark" | "ambient"): DrawScene => {
   const centered = mode === "wordmark";
+  const ambient = mode === "ambient";
+  const standalone = mode !== "living";
   // Keep the standalone word readable even on a small viewport.
-  const preferredSpacing = centered ? Math.min(LIVING_SPACING, Math.sqrt(width * height / MIN_WORDMARK_MARKS)) : LIVING_SPACING;
+  const preferredSpacing = standalone ? Math.min(LIVING_SPACING, Math.sqrt(width * height / MIN_WORDMARK_MARKS)) : LIVING_SPACING;
   const spacing = Math.max(preferredSpacing, Math.sqrt(width * height / MAX_MARKS));
   const wordHalfLength = width < 640 ? 1.3 : 2.2;
   const columns = Math.ceil(width / spacing);
@@ -33,7 +36,7 @@ const createFieldScene = (width: number, height: number, mode: "living" | "wordm
     return { homeX, homeY, x: homeX, y: homeY, angle: -Math.PI / 4, energy: 0 };
   });
 
-  const wordTargets = createWordTargets(width, centered ? height / 2 : Math.min(height * 0.2, 210), points.length);
+  const wordTargets = ambient ? null : createWordTargets(width, centered ? height / 2 : Math.min(height * 0.2, 210), points.length);
   let startedAt: number | null = null;
   let idleTime = 0;
   let wordAmount = 0;
@@ -44,31 +47,37 @@ const createFieldScene = (width: number, height: number, mode: "living" | "wordm
     const response = 1 - Math.exp(-SPRING_RATE * delta);
     const active = pointer.active && motion;
     startedAt ??= time;
-    const moved = pointer.active && (!previousPointer.active || Math.hypot(pointer.x - previousPointer.x, pointer.y - previousPointer.y) > 0.5);
-    idleTime = motion && !moved ? idleTime + delta : 0;
-    previousPointer = { ...pointer };
-    const phase = idleTime % WORD_PERIOD_SECONDS - WORD_START_SECONDS;
-    const target = smoothStep(phase / WORD_MORPH_SECONDS) * (1 - smoothStep((phase - WORD_MORPH_SECONDS - WORD_HOLD_SECONDS) / WORD_MORPH_SECONDS));
-    wordAmount = centered
-      ? motion ? smoothStep((time - startedAt) / WORDMARK_ASSEMBLY_SECONDS) : 1
-      : motion ? wordAmount + (target - wordAmount) * (1 - Math.exp(-WORD_RESPONSE * delta)) : 0;
-    const pointerStrength = centered ? 0.65 : 1 - wordAmount;
+    if (ambient) {
+      wordAmount = 0;
+    } else if (centered) {
+      wordAmount = motion ? smoothStep((time - startedAt) / WORDMARK_ASSEMBLY_SECONDS) : 1;
+    } else {
+      const moved = pointer.active && (!previousPointer.active || Math.hypot(pointer.x - previousPointer.x, pointer.y - previousPointer.y) > 0.5);
+      idleTime = motion && !moved ? idleTime + delta : 0;
+      previousPointer = { ...pointer };
+      const phase = idleTime % WORD_PERIOD_SECONDS - WORD_START_SECONDS;
+      const target = smoothStep(phase / WORD_MORPH_SECONDS) * (1 - smoothStep((phase - WORD_MORPH_SECONDS - WORD_HOLD_SECONDS) / WORD_MORPH_SECONDS));
+      wordAmount = motion ? wordAmount + (target - wordAmount) * (1 - Math.exp(-WORD_RESPONSE * delta)) : 0;
+    }
+    const pointerStrength = standalone ? 0.65 : 1 - wordAmount;
     if (active) drawHalo(context, pointer.x, pointer.y, INFLUENCE_RADIUS, color, (dark ? 0.16 : 0.1) * pointerStrength);
     context.lineCap = "round";
     for (const [index, point] of points.entries()) {
       // Leave a sparse ambient grid behind the word instead of emptying the backdrop.
-      const word = index % 5 !== 0 ? wordTargets[index] : null;
+      const word = wordTargets && index % 5 !== 0 ? wordTargets[index] : null;
       const morph = word ? wordAmount : 0;
       // In the centered composition, each letter fragment reacts at its place in the word.
-      const anchorX = point.homeX + (centered && word ? (word.x - point.homeX) * morph : 0);
-      const anchorY = point.homeY + (centered && word ? (word.y - point.homeY) * morph : 0);
+      const driftX = ambient && motion ? Math.sin(time * 0.22 + index * 0.73) * AMBIENT_DRIFT : 0;
+      const driftY = ambient && motion ? Math.cos(time * 0.18 + index * 0.41) * AMBIENT_DRIFT : 0;
+      const anchorX = point.homeX + driftX + (centered && word ? (word.x - point.homeX) * morph : 0);
+      const anchorY = point.homeY + driftY + (centered && word ? (word.y - point.homeY) * morph : 0);
       const dx = anchorX - pointer.x;
       const dy = anchorY - pointer.y;
       const distance = Math.hypot(dx, dy);
       const influence = active ? Math.max(0, 1 - distance / INFLUENCE_RADIUS) ** 2 * pointerStrength : 0;
       const angle = Math.atan2(dy, dx);
-      const targetX = point.homeX + Math.cos(angle) * influence * 62 + (word ? (word.x - point.homeX) * morph : 0);
-      const targetY = point.homeY + Math.sin(angle) * influence * 62 + (word ? (word.y - point.homeY) * morph : 0);
+      const targetX = point.homeX + driftX + Math.cos(angle) * influence * 62 + (word ? (word.x - point.homeX) * morph : 0);
+      const targetY = point.homeY + driftY + Math.sin(angle) * influence * 62 + (word ? (word.y - point.homeY) * morph : 0);
       const idleAngle = -Math.PI / 4 + (time * ROTATION_SPEED + Math.sin(index * 0.7) * 0.6);
       const targetAngle = influence > 0 ? angle + Math.PI / 2 : idleAngle;
       if (!motion) {
@@ -99,3 +108,4 @@ const createFieldScene = (width: number, height: number, mode: "living" | "wordm
 
 export const createLivingField = (width: number, height: number): DrawScene => createFieldScene(width, height, "living");
 export const createWordmarkField = (width: number, height: number): DrawScene => createFieldScene(width, height, "wordmark");
+export const createAmbientField = (width: number, height: number): DrawScene => createFieldScene(width, height, "ambient");

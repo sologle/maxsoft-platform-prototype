@@ -34,11 +34,11 @@ interface AuthPageProps {
 }
 
 const AuthLayout = ({ children }: { children: React.ReactNode }) => (
-  <AuthStage>{children}</AuthStage>
+  <AuthStage layout="form">{children}</AuthStage>
 );
 
 export const LandingPage = ({ onNavigate }: AuthPageProps) => (
-  <AuthStage>
+  <AuthStage layout="landing">
     {(variant) => variant === "wordmark" ? <WordmarkLanding onNavigate={onNavigate} /> : (
       <section className="grid min-h-dvh place-items-center px-5 py-20 text-center">
         <div className="portal-auth-hero portal-auth-glass max-w-2xl">

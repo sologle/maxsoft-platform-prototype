@@ -27,3 +27,45 @@ test("главная MaxSoft оставляет две кнопки и откр�
   await page.reload();
   await expect(landing.getByRole("button")).toHaveCount(2);
 });
+
+test("MaxSoft собирается на главной, а за формами штрихи остаются распределены по фону", async ({ page }) => {
+  test.slow();
+  await page.clock.install();
+  const concentration = () => page.getByTestId("auth-reactive-canvas").evaluate((element) => {
+    const sample = document.createElement("canvas");
+    sample.width = (element as HTMLCanvasElement).width;
+    sample.height = (element as HTMLCanvasElement).height;
+    const context = sample.getContext("2d")!;
+    context.drawImage(element as HTMLCanvasElement, 0, 0);
+    const pixels = context.getImageData(0, 0, sample.width, sample.height).data;
+    const rows = Array<number>(sample.height).fill(0);
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i] < 245 && pixels[i + 2] - pixels[i] > 5) rows[Math.floor(i / 4 / sample.width)] += 1;
+    }
+    const total = rows.reduce((sum, count) => sum + count, 0);
+    const bandHeight = Math.floor(sample.height / 4);
+    let band = rows.slice(0, bandHeight).reduce((sum, count) => sum + count, 0);
+    let strongestBand = band;
+    for (let row = bandHeight; row < rows.length; row += 1) {
+      band += rows[row] - rows[row - bandHeight];
+      strongestBand = Math.max(strongestBand, band);
+    }
+    return { total, share: strongestBand / total };
+  });
+  await page.goto("./?page=landing&role=guest&background=wordmark");
+  await page.clock.runFor(1400);
+  expect((await concentration()).share).toBeGreaterThan(0.65);
+  await page.getByTestId("wordmark-landing").getByRole("button", { name: "Войти", exact: true }).click();
+  await page.mouse.move(-1, -1);
+  await page.clock.runFor(10000);
+  const login = await concentration();
+  expect(login.total).toBeGreaterThan(100);
+  expect(login.share).toBeLessThan(0.5);
+  for (const form of ["register", "recover"]) {
+    await page.goto(`./?page=${form}&role=guest&background=wordmark`);
+    await page.clock.runFor(10000);
+    const field = await concentration();
+    expect(field.total).toBeGreaterThan(100);
+    expect(field.share).toBeLessThan(0.5);
+  }
+});

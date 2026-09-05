@@ -6,7 +6,10 @@ import type { ScenePointer } from "./auth-backgrounds/scene-types";
 import "./auth-backgrounds/base.css";
 import "./auth-backgrounds/variants.css";
 
-export const AuthStage = ({ children }: { children: ReactNode | ((variant: AuthBackground) => ReactNode) }) => {
+export const AuthStage = ({ children, layout }: {
+  children: ReactNode | ((variant: AuthBackground) => ReactNode);
+  layout: "landing" | "form";
+}) => {
   const stageRef = useRef<HTMLElement>(null);
   const pointerRef = useRef<ScenePointer>({ x: 0, y: 0, active: false });
   const frameRef = useRef<number | null>(null);
@@ -66,7 +69,7 @@ export const AuthStage = ({ children }: { children: ReactNode | ((variant: AuthB
       ref={stageRef}
     >
       <div aria-hidden="true" className="portal-auth-backdrop" data-background={variant} data-testid="portal-auth-backdrop">
-        <BackgroundArt key={variant} pointer={pointerRef} variant={variant} />
+        <BackgroundArt key={variant} pointer={pointerRef} variant={variant} showWordmark={layout === "landing"} />
       </div>
       {comparing ? <BackgroundPicker onChange={changeBackground} value={variant} /> : null}
       <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6"><ThemeToggle /></div>
