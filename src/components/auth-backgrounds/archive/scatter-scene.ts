@@ -7,6 +7,9 @@ const MIN_MARKS = 750;
 const ASSEMBLY_SECONDS = 0.9;
 const MAX_SPEED = 1100;
 const BRUSH_TRAVEL = 26;
+const ORBIT_EDGE_RATIO = 0.7;
+const ORBIT_ANGLE_RESPONSE = 10;
+const ORBIT_BAND_SPREAD = 0.16;
 
 export const createScatterWordmark = (width: number, height: number, readSettings: () => ScatterSettings): DrawScene => {
   const spacing = Math.max(Math.min(30, Math.sqrt(width * height / MIN_MARKS)), Math.sqrt(width * height / MAX_MARKS));
@@ -20,7 +23,8 @@ export const createScatterWordmark = (width: number, height: number, readSetting
     homeY: Math.floor(index / columns) * spacing + spacing / 2,
     word: index % 5 !== 0 ? targets[index] : null,
     variation: Math.sin(index * 2.4) * 0.35,
-    x: 0, y: 0, vx: 0, vy: 0, spin: 0, spinVelocity: 0,
+    orbitLane: (Math.sin(index * 1.7) + Math.cos(index * 0.7)) * ORBIT_BAND_SPREAD / 2,
+    x: 0, y: 0, vx: 0, vy: 0, spin: 0, spinVelocity: 0, orbit: 0, angle: -Math.PI / 4,
   }));
   const previous = { x: 0, y: 0, active: false };
   let startedAt: number | null = null;
@@ -45,7 +49,7 @@ export const createScatterWordmark = (width: number, height: number, readSetting
     const flowY = travel > 0 ? moveY / travel : 0;
     const impulse = brush ? (180 + Math.min(travel / delta, 1800) * 0.55) * (1 - Math.exp(-(arrival ? 12 : travel) / BRUSH_TRAVEL)) : 0;
     const damping = Math.exp(-settings.damping * delta);
-    glow = motion ? glow + ((brush ? 1 : 0) - glow) * (1 - Math.exp(-6 * delta)) : 0;
+    glow = motion ? glow + ((active ? settings.orbitStrength * 0.4 + (brush ? 0.6 : 0) : 0) - glow) * (1 - Math.exp(-6 * delta)) : 0;
     const color = dark ? "108,198,238" : "26,115,166";
     if (active && glow > 0.005) drawHalo(context, pointer.x, pointer.y, radius * 1.35, color, glow * (dark ? 0.12 : 0.07));
     context.lineCap = "round";
@@ -55,6 +59,18 @@ export const createScatterWordmark = (width: number, height: number, readSetting
       const morph = point.word ? assembly : 0;
       const anchorX = point.homeX + (point.word ? (point.word.x - point.homeX) * morph : 0);
       const anchorY = point.homeY + (point.word ? (point.word.y - point.homeY) * morph : 0);
+      const anchorDx = anchorX - pointer.x;
+      const anchorDy = anchorY - pointer.y;
+      const anchorDistance = Math.hypot(anchorDx, anchorDy);
+      const nx = anchorDistance > 0.1 ? anchorDx / anchorDistance : Math.cos(index * 2.4);
+      const ny = anchorDistance > 0.1 ? anchorDy / anchorDistance : Math.sin(index * 2.4);
+      const edge = Math.max(0, Math.min(1, (anchorDistance - settings.orbitRadius) / (settings.orbitRadius * ORBIT_EDGE_RATIO)));
+      const orbit = active ? settings.orbitStrength * (1 - edge * edge * (3 - 2 * edge)) : 0;
+      // A narrow band keeps separate dashes visible instead of stacking them into a solid outline.
+      const orbitDistance = settings.orbitRadius * (1 + point.orbitLane);
+      const orbitX = nx * (orbitDistance - anchorDistance) * orbit;
+      const orbitY = ny * (orbitDistance - anchorDistance) * orbit;
+      point.orbit = motion ? point.orbit + (orbit - point.orbit) * (1 - Math.exp(-ORBIT_ANGLE_RESPONSE * delta)) : 0;
       if (!motion) {
         point.x = point.y = point.vx = point.vy = point.spin = point.spinVelocity = 0;
       } else {
@@ -75,9 +91,9 @@ export const createScatterWordmark = (width: number, height: number, readSetting
             point.spinVelocity += (nx * flowY - ny * flowX + curl) * strength * 0.045 * settings.spin;
           }
         }
-        // Damped springs return every fragment to its own letter, even if the mouse stops on it.
-        point.vx = (point.vx - point.x * settings.spring * delta) * damping;
-        point.vy = (point.vy - point.y * settings.spring * delta) * damping;
+        // The resting target is the cursor ring nearby, and the original letter when the cursor leaves.
+        point.vx = (point.vx - (point.x - orbitX) * settings.spring * delta) * damping;
+        point.vy = (point.vy - (point.y - orbitY) * settings.spring * delta) * damping;
         const speed = Math.hypot(point.vx, point.vy);
         const speedLimit = MAX_SPEED * mobility * Math.max(1, settings.force);
         if (speed > speedLimit) {
@@ -91,8 +107,13 @@ export const createScatterWordmark = (width: number, height: number, readSetting
       }
       const speed = Math.hypot(point.vx, point.vy);
       const energy = Math.min(1, speed / 700);
-      const angle = -Math.PI / 4 + (motion ? time * 0.18 + Math.sin(index * 0.7) * 0.6 + point.spin : 0);
-      const halfLength = 3 + (wordHalfLength - 3) * morph + energy * 5;
+      const idleAngle = -Math.PI / 4 + (motion ? time * 0.18 + Math.sin(index * 0.7) * 0.6 : 0);
+      const tangent = Math.atan2(anchorY + point.y - pointer.y, anchorX + point.x - pointer.x) + Math.PI / 2;
+      const targetAngle = point.orbit > 0.01 ? tangent : idleAngle;
+      const turn = Math.atan2(Math.sin(targetAngle - point.angle), Math.cos(targetAngle - point.angle));
+      point.angle = motion ? point.angle + turn * (1 - Math.exp(-ORBIT_ANGLE_RESPONSE * delta)) : -Math.PI / 4;
+      const angle = point.angle + point.spin;
+      const halfLength = 3 + (wordHalfLength - 3) * morph + energy * 5 + point.orbit * 2;
       const x = anchorX + point.x;
       const y = anchorY + point.y;
       context.lineWidth = 1.25 + morph * 0.55;

@@ -2,7 +2,7 @@ import { Copy, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { Button } from "../../ui";
 import type { ScenePointer } from "../scene-types";
-import { defaultScatterSettings, exportScatterSettings, scatterControls, type ScatterSettings } from "./scatter-settings";
+import { defaultScatterSettings, exportScatterSettings, formatScatterValue, scatterControls, scatterGroups, type ScatterSettings } from "./scatter-settings";
 import "./scatter-controls.css";
 
 export const ScatterControls = ({ settings, onChange, pointer, storageError }: {
@@ -64,22 +64,30 @@ export const ScatterControls = ({ settings, onChange, pointer, storageError }: {
               <X size={18} aria-hidden="true" />
             </button>
           </div>
-          <p className="scatter-panel-description">Меняй значения и проводи мышью по надписи. Всё применяется сразу.</p>
+          <p className="scatter-panel-description">Мышь стоит — палочки держатся на круге. Ведёшь — немного разлетаются. Увёл — собираются в буквы. Настройки применяются сразу.</p>
           <div className="scatter-sliders">
-            {scatterControls.map((control) => (
-              <label className="scatter-control" key={control.key}>
-                <span><strong>{control.label}</strong><output aria-hidden="true">{settings[control.key].toFixed(control.step >= 0.1 ? 1 : 2)}</output></span>
-                <input
-                  aria-label={control.label}
-                  min={control.min}
-                  max={control.max}
-                  step={control.step}
-                  type="range"
-                  value={settings[control.key]}
-                  onChange={(event) => update({ ...settings, [control.key]: Number(event.target.value) })}
-                />
-                <small>{control.hint}</small>
-              </label>
+            {scatterGroups.map((group) => (
+              <fieldset className="scatter-group" key={group.id}>
+                <legend>{group.title}</legend>
+                <p>{group.hint}</p>
+                {scatterControls.filter((control) => control.group === group.id).map((control) => (
+                  <label className="scatter-control" key={control.key}>
+                    <span><strong>{control.label}</strong><output aria-hidden="true">{formatScatterValue(settings[control.key], control.unit)}</output></span>
+                    <input
+                      aria-label={control.label}
+                      aria-describedby={`scatter-hint-${control.key}`}
+                      aria-valuetext={formatScatterValue(settings[control.key], control.unit)}
+                      min={control.min}
+                      max={control.max}
+                      step={control.step}
+                      type="range"
+                      value={settings[control.key]}
+                      onChange={(event) => update({ ...settings, [control.key]: Number(event.target.value) })}
+                    />
+                    <small id={`scatter-hint-${control.key}`}>{control.hint}</small>
+                  </label>
+                ))}
+              </fieldset>
             ))}
           </div>
           <div className="scatter-panel-actions">
