@@ -5,7 +5,7 @@ const SAMPLE_STEP = 3;
 const GOLDEN_FRACTION = 0.61803398875;
 
 // Rasterize a small, local system-font mask once per resize, never in the animation loop.
-export const createWordTargets = (width: number, height: number, count: number) => {
+export const createWordTargets = (width: number, centerY: number, count: number) => {
   const mask = document.createElement("canvas");
   mask.width = MASK_WIDTH;
   mask.height = MASK_HEIGHT;
@@ -21,7 +21,7 @@ export const createWordTargets = (width: number, height: number, count: number) 
   for (let x = 0; x < MASK_WIDTH; x += SAMPLE_STEP) {
     for (let y = 0; y < MASK_HEIGHT; y += SAMPLE_STEP) {
       if (pixels[(y * MASK_WIDTH + x) * 4 + 3] > 128) {
-        samples.push({ x: width / 2 + (x - MASK_WIDTH / 2) * scale, y: Math.min(height * 0.2, 210) + (y - MASK_HEIGHT / 2) * scale });
+        samples.push({ x: width / 2 + (x - MASK_WIDTH / 2) * scale, y: centerY + (y - MASK_HEIGHT / 2) * scale });
       }
     }
   }

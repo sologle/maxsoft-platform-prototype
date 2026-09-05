@@ -2,11 +2,11 @@ import { expect, test, type Page } from "@playwright/test";
 
 test("сравнение фонов сохраняет форму входа и выбранный вариант при навигации", async ({ page }) => {
   await page.goto("./?page=login&role=guest&background=minimal");
-  await expect(page.getByRole("group", { name: "Варианты фона" }).getByRole("button")).toHaveCount(5);
+  await expect(page.getByRole("group", { name: "Варианты фона" }).getByRole("button")).toHaveCount(6);
   await expect(page.getByRole("button", { name: /Поле|Рой|Сигнал/ })).toHaveCount(0);
   const email = page.getByLabel("Электронная почта");
   await email.fill("preview@maxsoft.ru");
-  for (const [name, value] of [["Живое", "living-field"], ["Эхо", "echo"], ["Шёлк", "silk"], ["След", "ribbon"], ["Тишина", "minimal"]]) {
+  for (const [name, value] of [["MaxSoft", "wordmark"], ["Живое", "living-field"], ["Эхо", "echo"], ["Шёлк", "silk"], ["След", "ribbon"], ["Тишина", "minimal"]]) {
     const button = page.getByRole("button", { name: new RegExp(name) });
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");
@@ -37,7 +37,7 @@ test("обычный вход не показывает панель сравн�
 test("фоны учитывают системное ограничение движения", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?page=login&role=guest&background=echo");
-  for (const name of ["Эхо", "Шёлк", "След", "Живое", "Тишина"]) {
+  for (const name of ["Эхо", "Шёлк", "След", "Живое", "MaxSoft", "Тишина"]) {
     await page.getByRole("button", { name: new RegExp(name) }).click();
     await expect.poll(() => page.getByTestId("portal-auth-backdrop").evaluate((element) =>
       element.getAnimations({ subtree: true }).filter((animation) => animation.playState === "running").length,
@@ -70,7 +70,7 @@ const scenePixels = (page: Page) => page.getByTestId("auth-reactive-canvas").eva
   return sample.toDataURL();
 });
 
-for (const [variant, label] of [["echo", "Эхо"], ["silk", "Шёлк"], ["ribbon", "След"]]) {
+for (const [variant, label] of [["echo", "Эхо"], ["silk", "Шёлк"], ["ribbon", "След"], ["wordmark", "MaxSoft"]]) {
   test(`${variant}: мышь меняет рисунок независимо от фонового движения`, async ({ page, browser, baseURL }) => {
     const settings = test.info().project.use;
     const control = await browser.newPage({
@@ -91,7 +91,8 @@ for (const [variant, label] of [["echo", "Эхо"], ["silk", "Шёлк"], ["ribb
         await target.clock.runFor(64);
       }
       expect(await scenePixels(page) === await scenePixels(control), "Начальные кадры двух сцен совпадают").toBe(true);
-      await page.mouse.move(110, 190);
+      const viewport = page.viewportSize()!;
+      await page.mouse.move(variant === "wordmark" ? viewport.width / 2 : 110, variant === "wordmark" ? viewport.height / 2 : 190);
       await page.clock.runFor(1200);
       await control.clock.runFor(1200);
       // Remove the pointer halo: the wave, deformation or trail must persist in the scene itself.

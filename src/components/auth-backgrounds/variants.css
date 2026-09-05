@@ -18,13 +18,13 @@
   top: 20px;
   left: 50%;
   z-index: 20;
-  width: min(700px, calc(100% - 160px));
+  width: min(840px, calc(100% - 160px));
   transform: translateX(-50%);
 }
 
 .auth-background-options {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 4px;
   border: 1px solid var(--ms-border);
   border-radius: 18px;
@@ -108,6 +108,9 @@
 .auth-swatch-ribbon {
   background: linear-gradient(35deg, transparent 35%, #2a85cf80 38% 40%, transparent 43%), linear-gradient(145deg, transparent 45%, #1dadb970 48% 51%, transparent 54%), #f2faff;
 }
+.auth-swatch-wordmark {
+  background: radial-gradient(ellipse at center, #1478bd90 0 10%, transparent 12%), repeating-linear-gradient(135deg, transparent 0 5px, #1478bd30 6px 7px), #f2faff;
+}
 .auth-swatch-living-field {
   background: repeating-conic-gradient(from 15deg, #1478bd50 0deg 5deg, transparent 5deg 40deg), #f2faff;
 }
@@ -118,29 +121,49 @@
   width: 100%;
   height: 100%;
 }
+.portal-auth-backdrop[data-background="wordmark"],
 .portal-auth-backdrop[data-background="living-field"],
 .portal-auth-backdrop[data-background="echo"],
 .portal-auth-backdrop[data-background="silk"],
 .portal-auth-backdrop[data-background="ribbon"] {
   background: var(--ms-surface);
 }
+html[data-theme="dark"] .portal-auth-backdrop[data-background="wordmark"],
 html[data-theme="dark"] .portal-auth-backdrop[data-background="living-field"] { background: #0c1722; }
 html[data-theme="dark"] .portal-auth-backdrop[data-background="echo"] { background: #0d1825; }
 html[data-theme="dark"] .portal-auth-backdrop[data-background="silk"] { background: #101c29; }
 html[data-theme="dark"] .portal-auth-backdrop[data-background="ribbon"] { background: #0c1724; }
-@media (max-width: 800px) {
+@media (max-width: 960px) {
   .auth-background-swatch { display: none; }
 }
 @media (max-width: 640px) {
-  .portal-auth-stage[data-comparing="true"] { padding-top: 112px; }
+  .portal-auth-stage[data-comparing="true"] { padding-top: 164px; }
   .portal-auth-stage[data-comparing="true"] .portal-auth-content,
-  .portal-auth-stage[data-comparing="true"] .portal-auth-content > section { min-height: calc(100dvh - 112px); }
+  .portal-auth-stage[data-comparing="true"] .portal-auth-content > section { min-height: calc(100dvh - 164px); }
   .auth-background-picker { left: 12px; top: 16px; width: calc(100% - 76px); transform: none; }
-  .auth-background-options { gap: 2px; border-radius: 14px; padding: 4px; }
+  .auth-background-options { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; border-radius: 14px; padding: 4px; }
   .auth-background-option { gap: 0; min-height: 48px; padding: 4px 2px; text-align: center; border-radius: 9px; }
   .auth-background-option strong { font-size: 11px; }
   .auth-background-caption { font-size: 10px; text-align: left; padding-left: 5px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .portal-auth-backdrop *, .portal-auth-backdrop *::after { animation: none !important; transition: none !important; }
+}
+
+.auth-wordmark-landing {
+  position: fixed;
+  inset: 0;
+}
+.auth-wordmark-actions {
+  position: absolute;
+  top: calc(50dvh + clamp(76px, 9vw, 150px));
+  left: 50%;
+  display: flex;
+  gap: 12px;
+  width: min(360px, calc(100% - 48px));
+  transform: translateX(-50%);
+}
+.auth-wordmark-actions > button {
+  flex: 1;
+  min-height: 48px;
 }

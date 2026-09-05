@@ -4,6 +4,7 @@ export const backgroundOptions = [
   { id: "silk", label: "Шёлк", description: "Потяните мышью невесомую ткань — нити плавно вернутся на место" },
   { id: "ribbon", label: "След", description: "Рисуйте курсором: световые ленты переплетаются и медленно гаснут" },
   { id: "living-field", label: "Живое", description: "Штрихи вращаются, следуют за курсором и в паузах складываются в MaxSoft" },
+  { id: "wordmark", label: "MaxSoft", description: "Живые штрихи собираются в центре и огибают курсор" },
 ] as const;
 
 export type AuthBackground = (typeof backgroundOptions)[number]["id"];
