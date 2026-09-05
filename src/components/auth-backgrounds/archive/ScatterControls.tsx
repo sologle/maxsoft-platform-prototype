@@ -64,7 +64,7 @@ export const ScatterControls = ({ settings, onChange, pointer, storageError }: {
               <X size={18} aria-hidden="true" />
             </button>
           </div>
-          <p className="scatter-panel-description">Мышь стоит — палочки держатся на круге. Ведёшь — немного разлетаются. Увёл — собираются в буквы. Настройки применяются сразу.</p>
+          <p className="scatter-panel-description">Води мышью или пальцем — палочки немного разлетаются. Остановись — держатся на круге. Уведи мышь или отпусти палец — собираются в буквы. Настройки применяются сразу.</p>
           <div className="scatter-sliders">
             {scatterGroups.map((group) => (
               <fieldset className="scatter-group" key={group.id}>

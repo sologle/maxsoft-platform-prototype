@@ -15,6 +15,8 @@
 .auth-wordmark-landing {
   position: fixed;
   inset: 0;
+  /* Keep single-finger movement in the scene while allowing pinch zoom. */
+  touch-action: pinch-zoom;
 }
 .auth-wordmark-actions {
   position: absolute;

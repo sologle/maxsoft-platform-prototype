@@ -36,10 +36,10 @@ const orbitInk = (page: Page) => page.getByTestId("auth-reactive-canvas").evalua
     const x = (i / 4 % canvas.width) / scale;
     const y = Math.floor(i / 4 / canvas.width) / (canvas.height / bounds.height);
     const distance = Math.hypot(x - bounds.width / 2, y - bounds.height / 2);
-    if (distance > 70 * 1.4) continue;
+    if (distance > 60 * 1.4) continue;
     total += 1;
-    if (distance < 70 * 0.55) inner += 1;
-    if (distance > 70 * 0.8 && distance < 70 * 1.2) ring += 1;
+    if (distance < 60 * 0.55) inner += 1;
+    if (distance > 60 * 0.8 && distance < 60 * 1.2) ring += 1;
   }
   return { total, innerShare: inner / total, ringShare: ring / total };
 });
@@ -132,6 +132,12 @@ test("настройки разлёта применяются сразу, ко�
   const panel = page.getByRole("region", { name: "Настройки разлёта" });
   await expect(page.getByRole("button", { name: "Свернуть настройки" })).toBeFocused();
   await expect(panel.getByRole("slider")).toHaveCount(9);
+  const preset = [
+    ["Сила разлёта", "0.2"], ["Область разлёта", "0.65"], ["Тяга обратно", "20"],
+    ["Торможение", "6.3"], ["Кручение палочек", "1"], ["Длина хвостика", "1"],
+    ["Неравномерность разлёта", "1"], ["Расстояние от курсора", "60"], ["Удержание на круге", "0.7"],
+  ];
+  for (const [name, value] of preset) await expect(panel.getByRole("slider", { name, exact: true })).toHaveValue(value);
   const force = panel.getByRole("slider", { name: "Сила разлёта", exact: true });
   await panel.getByRole("slider", { name: "Удержание на круге", exact: true }).press("Home");
   await force.press("Home");
@@ -146,7 +152,7 @@ test("настройки разлёта применяются сразу, ко�
   await page.getByRole("button", { name: "Скопировать настройки" }).click();
   await expect(panel.getByRole("status")).toHaveText("Настройки скопированы — отправь их в чат.");
   const copied = JSON.parse(await page.locator("html").getAttribute("data-copied-settings") as string);
-  expect(copied).toMatchObject({ experiment: "maxsoft-scatter-v2", settings: { force: 2.5, radius: 1.05 } });
+  expect(copied).toMatchObject({ experiment: "maxsoft-scatter-v2", settings: { force: 2.5, radius: 0.7 } });
   await page.getByRole("button", { name: "Свернуть настройки" }).click();
   await sweepWord(page);
   await page.clock.runFor(120);
@@ -156,11 +162,11 @@ test("настройки разлёта применяются сразу, ко�
   await page.reload();
   await page.getByRole("button", { name: "Настроить разлёт", exact: true }).click();
   await expect(force).toHaveValue("2.5");
-  await expect(panel.getByRole("slider", { name: "Область разлёта", exact: true })).toHaveValue("1.05");
+  await expect(panel.getByRole("slider", { name: "Область разлёта", exact: true })).toHaveValue("0.7");
   await page.getByRole("button", { name: "Сбросить настройки" }).click();
-  await expect(force).toHaveValue("0.25");
-  await expect(panel.getByRole("slider", { name: "Удержание на круге", exact: true })).toHaveValue("1");
-  await expect(panel.getByRole("slider", { name: "Область разлёта", exact: true })).toHaveValue("1");
+  await expect(force).toHaveValue("0.2");
+  await expect(panel.getByRole("slider", { name: "Удержание на круге", exact: true })).toHaveValue("0.7");
+  await expect(panel.getByRole("slider", { name: "Область разлёта", exact: true })).toHaveValue("0.65");
   await page.goto("./");
   await expect(page.getByRole("button", { name: "Настроить разлёт", exact: true })).toHaveCount(0);
 });
@@ -189,6 +195,6 @@ test("ранее сохранённые параметры разлёта сох
   await page.getByRole("button", { name: "Настроить разлёт", exact: true }).click();
   await expect(page.getByRole("slider", { name: "Сила разлёта", exact: true })).toHaveValue("1.2");
   await expect(page.getByRole("slider", { name: "Область разлёта", exact: true })).toHaveValue("1.4");
-  await expect(page.getByRole("slider", { name: "Расстояние от курсора", exact: true })).toHaveValue("70");
-  await expect(page.getByRole("slider", { name: "Удержание на круге", exact: true })).toHaveValue("1");
+  await expect(page.getByRole("slider", { name: "Расстояние от курсора", exact: true })).toHaveValue("60");
+  await expect(page.getByRole("slider", { name: "Удержание на круге", exact: true })).toHaveValue("0.7");
 });

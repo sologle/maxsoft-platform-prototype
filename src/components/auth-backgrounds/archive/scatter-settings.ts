@@ -11,14 +11,14 @@ export interface ScatterSettings {
 }
 
 export const defaultScatterSettings: Readonly<ScatterSettings> = Object.freeze({
-  force: 0.25, radius: 1, spring: 14, damping: 5.5, spin: 1, trail: 1, variation: 1,
-  orbitRadius: 70, orbitStrength: 1,
+  force: 0.2, radius: 0.65, spring: 20, damping: 6.3, spin: 1, trail: 1, variation: 1,
+  orbitRadius: 60, orbitStrength: 0.7,
 });
 
 export const scatterGroups = [
   { id: "orbit", title: "Круг вокруг мыши", hint: "Штрихи держатся здесь, даже когда мышь стоит." },
-  { id: "scatter", title: "Разлёт при движении", hint: "Проведи мышью по буквам, чтобы увидеть разницу." },
-  { id: "return", title: "Возвращение на место", hint: "Уведи мышь от надписи и посмотри, как она собирается." },
+  { id: "scatter", title: "Разлёт при движении", hint: "Проведи мышью или пальцем по буквам, чтобы увидеть разницу." },
+  { id: "return", title: "Возвращение на место", hint: "Уведи мышь или отпусти палец — надпись снова соберётся." },
   { id: "appearance", title: "Вид летящих палочек", hint: "Вращение и след заметнее при быстром взмахе." },
 ] as const;
 

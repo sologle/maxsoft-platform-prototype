@@ -18,6 +18,7 @@ export const createScatterWordmark = (width: number, height: number, readSetting
   const targets = createWordTargets(width, height / 2, count);
   const baseRadius = Math.min(165, Math.max(75, width * 0.15));
   const wordHalfLength = width < 640 ? 1.3 : 2.2;
+  const strokeScale = width < 640 ? 2 / 3 : 1;
   const points = Array.from({ length: count }, (_, index) => ({
     homeX: (index % columns) * spacing + spacing / 2,
     homeY: Math.floor(index / columns) * spacing + spacing / 2,
@@ -116,7 +117,7 @@ export const createScatterWordmark = (width: number, height: number, readSetting
       const halfLength = 3 + (wordHalfLength - 3) * morph + energy * 5 + point.orbit * 2;
       const x = anchorX + point.x;
       const y = anchorY + point.y;
-      context.lineWidth = 1.25 + morph * 0.55;
+      context.lineWidth = (1.25 + morph * 0.55) * strokeScale;
       if (energy > 0.12 && settings.trail > 0) {
         context.strokeStyle = `rgba(${color},${energy * 0.13})`;
         context.beginPath();
