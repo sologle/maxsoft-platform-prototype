@@ -23,16 +23,36 @@ const centerInk = (page: Page) => page.getByTestId("auth-reactive-canvas").evalu
   return total;
 });
 
-for (const variant of ["wordmark", "scatter"]) {
+for (const variant of ["main", "wordmark", "scatter"]) {
   test(`${variant}: движение пальцем действует на надпись, отпускание и отмена возвращают её`, async ({ page }) => {
+    // Two complete touch/return cycles render over 16 seconds of animation.
+    test.slow();
     await page.emulateMedia({ colorScheme: "light" });
-    await page.goto(`./?page=landing&role=guest&backgroundArchive=1&background=${variant}`);
-    await expect(page.getByTestId("auth-reactive-canvas")).toBeVisible();
-    await page.getByRole("button", { name: /01.*Тишина/ }).click();
-    await expect(page.locator(".portal-auth-grid")).toBeVisible();
+    if (variant === "main") {
+      // Saved experiment controls must not disable the approved main-page interaction.
+      await page.addInitScript(() => localStorage.setItem("maxsoft-scatter-settings-v1", JSON.stringify({
+        force: 0, radius: 0.55, spring: 20, damping: 3.8, spin: 0, trail: 0, variation: 1, orbitRadius: 60, orbitStrength: 0,
+      })));
+      await page.goto("./");
+      await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "scatter");
+      await expect(page.getByRole("group", { name: "Варианты фона" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Настроить разлёт", exact: true })).toHaveCount(0);
+    } else {
+      await page.goto(`./?page=landing&role=guest&backgroundArchive=1&background=${variant}`);
+      await expect(page.getByTestId("auth-reactive-canvas")).toBeVisible();
+      await page.getByRole("button", { name: /01.*Тишина/ }).click();
+      await expect(page.locator(".portal-auth-grid")).toBeVisible();
+    }
     await page.clock.install({ time: 0 });
     await page.clock.pauseAt(1000);
-    await page.getByRole("button", { name: variant === "scatter" ? /07.*Разлёт/ : /06.*MaxSoft/ }).evaluate((button: HTMLButtonElement) => button.click());
+    if (variant === "main") {
+      const viewport = page.viewportSize()!;
+      await page.setViewportSize({ ...viewport, width: viewport.width - 1 });
+      await page.waitForTimeout(100);
+      await page.setViewportSize(viewport);
+    } else {
+      await page.getByRole("button", { name: variant === "scatter" ? /07.*Разлёт/ : /06.*MaxSoft/ }).evaluate((button: HTMLButtonElement) => button.click());
+    }
     await expect(page.getByTestId("auth-reactive-canvas")).toBeVisible();
     await page.waitForTimeout(100);
     await page.clock.runFor(1600);

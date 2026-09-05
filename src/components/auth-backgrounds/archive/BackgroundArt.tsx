@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import type { AuthBackground } from "../background-state";
 import { ReactiveCanvas } from "../ReactiveCanvas";
-import { createAmbientField, createLivingField } from "../field-scene";
+import { createAmbientField, createLivingField, createWordmarkField } from "../field-scene";
 import type { ScenePointer } from "../scene-types";
 import { createEcho } from "./echo-scene";
 import { createSilk } from "./silk-scene";
@@ -14,9 +14,10 @@ const colors = { echo: "#0d1825", silk: "#101c29", ribbon: "#0c1724", "living-fi
 
 export default function ArchivedBackgroundArt({ variant, pointer, showWordmark }: {
   showWordmark: boolean;
-  variant: Exclude<AuthBackground, "wordmark">;
+  variant: AuthBackground;
   pointer: RefObject<ScenePointer>;
 }) {
+  if (variant === "wordmark") return <ReactiveCanvas pointer={pointer} createScene={showWordmark ? createWordmarkField : createAmbientField} darkBackground="#0c1722" />;
   if (variant === "scatter") return showWordmark ? <ScatterExperiment pointer={pointer} /> : <ReactiveCanvas pointer={pointer} createScene={createAmbientField} darkBackground="#0c1722" />;
   if (variant === "minimal") return (
     <>

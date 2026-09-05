@@ -10,12 +10,12 @@ test("главная MaxSoft оставляет две кнопки и откр�
   await landing.getByRole("button", { name: "Войти", exact: true }).click();
   await expect(page.getByLabel("Электронная почта")).toBeVisible();
   await expect(page).toHaveURL(/page=login/);
-  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "wordmark");
+  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "scatter");
   await page.getByRole("button", { name: "Вернуться на главную" }).click();
   await expect(landing).toBeVisible();
   await landing.getByRole("button", { name: "Регистрация", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Регистрация в портале" })).toBeVisible();
-  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "wordmark");
+  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "scatter");
   await page.getByRole("button", { name: "Уже есть аккаунт" }).click();
   await page.getByRole("button", { name: "Вернуться на главную" }).click();
   await page.goto("./?page=landing&role=guest&backgroundArchive=1&background=living-field");

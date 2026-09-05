@@ -1,19 +1,4 @@
-export interface ScatterSettings {
-  force: number;
-  radius: number;
-  spring: number;
-  damping: number;
-  spin: number;
-  trail: number;
-  variation: number;
-  orbitRadius: number;
-  orbitStrength: number;
-}
-
-export const defaultScatterSettings: Readonly<ScatterSettings> = Object.freeze({
-  force: 0.2, radius: 0.65, spring: 20, damping: 6.3, spin: 1, trail: 1, variation: 1,
-  orbitRadius: 60, orbitStrength: 0.7,
-});
+import { defaultScatterSettings, type ScatterSettings } from "../scatter-preset";
 
 export const scatterGroups = [
   { id: "orbit", title: "Круг вокруг мыши", hint: "Штрихи держатся здесь, даже когда мышь стоит." },

@@ -72,7 +72,7 @@ export const AuthStage = ({ children, layout }: {
       ref={stageRef}
     >
       <div aria-hidden="true" className="portal-auth-backdrop" data-background={variant} data-testid="portal-auth-backdrop">
-        <BackgroundArt key={variant} pointer={pointerRef} variant={variant} showWordmark={layout === "landing"} />
+        <BackgroundArt comparing={comparing} key={variant} pointer={pointerRef} variant={variant} showWordmark={layout === "landing"} />
       </div>
       {comparing ? <Suspense fallback={null}><BackgroundPicker onChange={changeBackground} value={variant} /></Suspense> : null}
       <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6"><ThemeToggle /></div>

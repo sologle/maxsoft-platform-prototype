@@ -103,7 +103,7 @@ test("эксперимент удерживает штрихи на орбите
   expect((await ink(page)).total).toBe(0);
   await page.clock.resume();
   await page.goto("./", { waitUntil: "domcontentloaded" });
-  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "wordmark");
+  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "scatter");
   await expect(page.getByRole("group", { name: "Варианты фона" })).toHaveCount(0);
 });
 
@@ -133,9 +133,9 @@ test("настройки разлёта применяются сразу, ко�
   await expect(page.getByRole("button", { name: "Свернуть настройки" })).toBeFocused();
   await expect(panel.getByRole("slider")).toHaveCount(9);
   const preset = [
-    ["Сила разлёта", "0.2"], ["Область разлёта", "0.65"], ["Тяга обратно", "20"],
-    ["Торможение", "6.3"], ["Кручение палочек", "1"], ["Длина хвостика", "1"],
-    ["Неравномерность разлёта", "1"], ["Расстояние от курсора", "60"], ["Удержание на круге", "0.7"],
+    ["Сила разлёта", "0.3"], ["Область разлёта", "0.55"], ["Тяга обратно", "20"],
+    ["Торможение", "3.8"], ["Кручение палочек", "0.8"], ["Длина хвостика", "0"],
+    ["Неравномерность разлёта", "1"], ["Расстояние от курсора", "60"], ["Удержание на круге", "0.6"],
   ];
   for (const [name, value] of preset) await expect(panel.getByRole("slider", { name, exact: true })).toHaveValue(value);
   const force = panel.getByRole("slider", { name: "Сила разлёта", exact: true });
@@ -152,7 +152,7 @@ test("настройки разлёта применяются сразу, ко�
   await page.getByRole("button", { name: "Скопировать настройки" }).click();
   await expect(panel.getByRole("status")).toHaveText("Настройки скопированы — отправь их в чат.");
   const copied = JSON.parse(await page.locator("html").getAttribute("data-copied-settings") as string);
-  expect(copied).toMatchObject({ experiment: "maxsoft-scatter-v2", settings: { force: 2.5, radius: 0.7 } });
+  expect(copied).toMatchObject({ experiment: "maxsoft-scatter-v2", settings: { force: 2.5, radius: 0.6 } });
   await page.getByRole("button", { name: "Свернуть настройки" }).click();
   await sweepWord(page);
   await page.clock.runFor(120);
@@ -162,11 +162,11 @@ test("настройки разлёта применяются сразу, ко�
   await page.reload();
   await page.getByRole("button", { name: "Настроить разлёт", exact: true }).click();
   await expect(force).toHaveValue("2.5");
-  await expect(panel.getByRole("slider", { name: "Область разлёта", exact: true })).toHaveValue("0.7");
+  await expect(panel.getByRole("slider", { name: "Область разлёта", exact: true })).toHaveValue("0.6");
   await page.getByRole("button", { name: "Сбросить настройки" }).click();
-  await expect(force).toHaveValue("0.2");
-  await expect(panel.getByRole("slider", { name: "Удержание на круге", exact: true })).toHaveValue("0.7");
-  await expect(panel.getByRole("slider", { name: "Область разлёта", exact: true })).toHaveValue("0.65");
+  await expect(force).toHaveValue("0.3");
+  await expect(panel.getByRole("slider", { name: "Удержание на круге", exact: true })).toHaveValue("0.6");
+  await expect(panel.getByRole("slider", { name: "Область разлёта", exact: true })).toHaveValue("0.55");
   await page.goto("./");
   await expect(page.getByRole("button", { name: "Настроить разлёт", exact: true })).toHaveCount(0);
 });
@@ -196,5 +196,5 @@ test("ранее сохранённые параметры разлёта сох
   await expect(page.getByRole("slider", { name: "Сила разлёта", exact: true })).toHaveValue("1.2");
   await expect(page.getByRole("slider", { name: "Область разлёта", exact: true })).toHaveValue("1.4");
   await expect(page.getByRole("slider", { name: "Расстояние от курсора", exact: true })).toHaveValue("60");
-  await expect(page.getByRole("slider", { name: "Удержание на круге", exact: true })).toHaveValue("0.7");
+  await expect(page.getByRole("slider", { name: "Удержание на круге", exact: true })).toHaveValue("0.6");
 });

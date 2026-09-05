@@ -2,7 +2,8 @@ import { Copy, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { Button } from "../../ui";
 import type { ScenePointer } from "../scene-types";
-import { defaultScatterSettings, exportScatterSettings, formatScatterValue, scatterControls, scatterGroups, type ScatterSettings } from "./scatter-settings";
+import { defaultScatterSettings, type ScatterSettings } from "../scatter-preset";
+import { exportScatterSettings, formatScatterValue, scatterControls, scatterGroups } from "./scatter-settings";
 import "./scatter-controls.css";
 
 export const ScatterControls = ({ settings, onChange, pointer, storageError }: {

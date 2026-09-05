@@ -3,8 +3,9 @@ import { createPortal } from "react-dom";
 import { ReactiveCanvas } from "../ReactiveCanvas";
 import type { ScenePointer } from "../scene-types";
 import { ScatterControls } from "./ScatterControls";
-import { createScatterWordmark } from "./scatter-scene";
-import { readScatterSettings, saveScatterSettings, type ScatterSettings } from "./scatter-settings";
+import { createScatterWordmark } from "../scatter-scene";
+import type { ScatterSettings } from "../scatter-preset";
+import { readScatterSettings, saveScatterSettings } from "./scatter-settings";
 
 export const ScatterExperiment = ({ pointer }: { pointer: RefObject<ScenePointer> }) => {
   const [settings, setSettings] = useState(readScatterSettings);

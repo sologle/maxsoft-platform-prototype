@@ -32,10 +32,10 @@ test("обычный вход не показывает панель сравн�
   await page.goto("./?page=login&role=guest");
   await expect(page.getByRole("group", { name: "Варианты фона" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Войти", exact: true })).toBeVisible();
-  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "wordmark");
+  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "scatter");
   await page.goto("./?page=login&role=guest&background=minimal");
   await expect(page.getByRole("group", { name: "Варианты фона" })).toHaveCount(0);
-  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "wordmark");
+  await expect(page.getByTestId("portal-auth-backdrop")).toHaveAttribute("data-background", "scatter");
 });
 
 

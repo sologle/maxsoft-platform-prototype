@@ -1,17 +1,23 @@
 import { lazy, Suspense, type RefObject } from "react";
 import type { AuthBackground } from "./background-state";
 import { ReactiveCanvas } from "./ReactiveCanvas";
-import { createAmbientField, createWordmarkField } from "./field-scene";
+import { createAmbientField } from "./field-scene";
+import { createScatterWordmark } from "./scatter-scene";
+import { defaultScatterSettings } from "./scatter-preset";
 import type { ScenePointer } from "./scene-types";
 
 const ArchivedBackgroundArt = lazy(() => import("./archive/BackgroundArt"));
 
-export const BackgroundArt = ({ variant, pointer, showWordmark }: {
+const createMainWordmark = (width: number, height: number) =>
+  createScatterWordmark(width, height, () => defaultScatterSettings);
+
+export const BackgroundArt = ({ variant, pointer, showWordmark, comparing }: {
   variant: AuthBackground;
+  comparing: boolean;
   showWordmark: boolean;
   pointer: RefObject<ScenePointer>;
-}) => variant === "wordmark" ? (
-  <ReactiveCanvas pointer={pointer} createScene={showWordmark ? createWordmarkField : createAmbientField} darkBackground="#0c1722" />
+}) => !comparing ? (
+  <ReactiveCanvas pointer={pointer} createScene={showWordmark ? createMainWordmark : createAmbientField} darkBackground="#0c1722" />
 ) : (
   <Suspense fallback={null}>
     <ArchivedBackgroundArt variant={variant} pointer={pointer} showWordmark={showWordmark} />

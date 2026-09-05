@@ -1,6 +1,6 @@
-import type { ScatterSettings } from "./scatter-settings";
-import { createWordTargets } from "../field-word";
-import { drawHalo, type DrawScene } from "../scene-types";
+import type { ScatterSettings } from "./scatter-preset";
+import { createWordTargets } from "./field-word";
+import { drawHalo, type DrawScene } from "./scene-types";
 
 const MAX_MARKS = 1800;
 const MIN_MARKS = 750;
@@ -19,14 +19,21 @@ export const createScatterWordmark = (width: number, height: number, readSetting
   const baseRadius = Math.min(165, Math.max(75, width * 0.15));
   const wordHalfLength = width < 640 ? 1.3 : 2.2;
   const strokeScale = width < 640 ? 2 / 3 : 1;
+  let wordIndex = 0;
   const points = Array.from({ length: count }, (_, index) => ({
+    index,
     homeX: (index % columns) * spacing + spacing / 2,
     homeY: Math.floor(index / columns) * spacing + spacing / 2,
     word: index % 5 !== 0 ? targets[index] : null,
     variation: Math.sin(index * 2.4) * 0.35,
     orbitLane: (Math.sin(index * 1.7) + Math.cos(index * 0.7)) * ORBIT_BAND_SPREAD / 2,
     x: 0, y: 0, vx: 0, vy: 0, spin: 0, spinVelocity: 0, orbit: 0, angle: -Math.PI / 4,
-  }));
+  })).filter((point) => {
+    if (width >= 640 || !point.word) return true;
+    // Omit every fifth word fragment on phones, including its physics work.
+    wordIndex += 1;
+    return wordIndex % 5 !== 0;
+  });
   const previous = { x: 0, y: 0, active: false };
   let startedAt: number | null = null;
   let glow = 0;
@@ -55,7 +62,8 @@ export const createScatterWordmark = (width: number, height: number, readSetting
     if (active && glow > 0.005) drawHalo(context, pointer.x, pointer.y, radius * 1.35, color, glow * (dark ? 0.12 : 0.07));
     context.lineCap = "round";
 
-    for (const [index, point] of points.entries()) {
+    for (const point of points) {
+      const { index } = point;
       const mobility = 1 + point.variation * settings.variation;
       const morph = point.word ? assembly : 0;
       const anchorX = point.homeX + (point.word ? (point.word.x - point.homeX) * morph : 0);
