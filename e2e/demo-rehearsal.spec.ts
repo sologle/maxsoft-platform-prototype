@@ -43,6 +43,10 @@ test("репетиция короткого маршрута по пяти ро�
   await button("Войти").click();
   await expect(page.getByRole("heading", { name: "Рабочее пространство" })).toBeVisible();
   await nav("База знаний");
+  if (info.project.name.includes("mobile")) await button("Показать разделы").click();
+  await button("НАВИСА").click();
+  if (info.project.name.includes("mobile")) await button("Показать разделы").click();
+  await button("Вся база знаний").click();
   await button("Крупные карточки").click();
   await button("Открыть материал: Настройка сетевой лицензии").click();
   await button("Развернуть содержание статьи").click();

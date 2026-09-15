@@ -35,11 +35,24 @@ test("PL-02–04: масштаб, якоря и панель в обоих ре�
       for (const title of ["Перед началом работы", "Диагностика"]) {
         await open();
         await page.getByRole("link", { name: title, exact: true }).click();
-        const box = await page.getByRole("heading", { name: title, exact: true }).boundingBox();
-        const header =
-          mode === "standard"
-            ? await page.locator("header").evaluate((node) => node.getBoundingClientRect().height)
-            : 0;
+        // The anchor scroll runs on the next animation frame after collapsing the panel.
+        await expect
+          .poll(() =>
+            page.getByRole("heading", { name: title, exact: true }).evaluate(
+              (node, state) => {
+                const rect = node.getBoundingClientRect();
+                const header = state.standard
+                  ? document.querySelector("header")!.getBoundingClientRect().height
+                  : 0;
+                const panel = state.mobile
+                  ? document.querySelector(".reading-tools")!.getBoundingClientRect().height
+                  : 0;
+                return rect.top >= header + panel && rect.bottom <= window.innerHeight;
+              },
+              { standard: mode === "standard", mobile },
+            ),
+          )
+          .toBe(true);
         if (mobile && mode === "fullscreen") {
           const tools = await page.locator(".reading-tools").boundingBox();
           const exit = await page
@@ -49,13 +62,6 @@ test("PL-02–04: масштаб, якоря и панель в обоих ре�
           expect(exit!.y).toBeGreaterThanOrEqual(0);
           expect(exit!.y + exit!.height).toBeLessThanOrEqual(tools!.y + tools!.height);
         }
-        const panel = mobile
-          ? await page
-              .locator(".reading-tools")
-              .evaluate((node) => node.getBoundingClientRect().height)
-          : 0;
-        expect(box!.y).toBeGreaterThanOrEqual(header + panel);
-        expect(box!.y + box!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
       }
       await page.screenshot({
         animations: "disabled",
@@ -160,9 +166,12 @@ test("PL-09: домены строками, ошибки и заголовки �
     element.scrollTop = 300;
     element.scrollLeft = 100;
   });
-  const head = await page.locator("thead").boundingBox();
-  const box = await table.boundingBox();
-  expect(head!.y).toBeCloseTo(box!.y + 1, 0);
+  // Read both boxes in one frame: the page entrance translates their common parent.
+  const headOffset = await table.evaluate(
+    (node) =>
+      node.querySelector("thead")!.getBoundingClientRect().top - node.getBoundingClientRect().top,
+  );
+  expect(headOffset).toBeCloseTo(1, 0);
   await page.getByRole("button", { name: "Пояснение: Обязательное" }).focus();
   await expect(page.getByRole("tooltip")).toBeVisible();
   await page.screenshot({ animations: "disabled", path: "/tmp/demo-table-sticky-tooltip.png" });
