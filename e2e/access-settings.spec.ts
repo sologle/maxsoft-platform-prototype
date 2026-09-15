@@ -7,14 +7,22 @@ test("отзыв доступа скрывает статьи и общее вл
     const toggle = page.getByRole("switch", { name: `Доступ: ${title}`, exact: true });
     await expect(toggle).toHaveAttribute("aria-checked", "true");
     await toggle.click();
+    await page.getByRole("button", { name: "Применить", exact: true }).click();
   }
   await page.getByRole("button", { name: "Сохранить изменения" }).click();
   await page.reload();
   await page.getByLabel("Компания для проверки", { exact: true }).selectOption("integrator-pro");
-  await expect(page.getByRole("switch", { name: "Доступ: Настройка сетевой лицензии", exact: true })).toHaveAttribute("aria-checked", "false");
+  await expect(
+    page.getByRole("switch", { name: "Доступ: Настройка сетевой лицензии", exact: true }),
+  ).toHaveAttribute("aria-checked", "false");
   await page.goto("./?page=knowledge&role=client-employee");
-  await expect(page.getByRole("button", { name: "Открыть материал: Настройка сетевой лицензии", exact: true })).toHaveCount(0);
-  const file = page.getByRole("button", { name: "Просмотреть файл: инструкция_активации.pdf", exact: true });
+  await expect(
+    page.getByRole("button", { name: "Открыть материал: Настройка сетевой лицензии", exact: true }),
+  ).toHaveCount(0);
+  const file = page.getByRole("button", {
+    name: "Просмотреть файл: инструкция_активации.pdf",
+    exact: true,
+  });
   await expect(file).toHaveCount(0);
   await page.getByRole("button", { name: "Крупные карточки" }).click();
   await expect(file).toHaveCount(0);
@@ -27,6 +35,7 @@ test("маршруты без resource проверяют ACL демонстра
   await page.getByLabel("Компания для проверки", { exact: true }).selectOption("integrator-pro");
   for (const title of ["Настройка сетевой лицензии", "Настройка интеграции с САПР-комплексом"]) {
     await page.getByRole("switch", { name: `Доступ: ${title}`, exact: true }).click();
+    await page.getByRole("button", { name: "Применить", exact: true }).click();
   }
   await page.getByRole("button", { name: "Сохранить изменения" }).click();
   for (const route of ["article", "video", "file-preview"]) {

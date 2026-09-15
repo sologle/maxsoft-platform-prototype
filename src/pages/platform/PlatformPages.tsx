@@ -1,3 +1,6 @@
+import { goBack } from "../../components/BackButton";
+import { InfoHint } from "../../components/InfoHint";
+import { excludedRegistrationFields, getCompanyFields } from "../../data/registration-fields";
 import {
   Activity,
   ArrowRight,
@@ -18,9 +21,22 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { AppPage, Navigate } from "../../app/types";
-import { Badge, Button, EmptyState, Field, PageHeading, SelectField, Switch } from "../../components/ui";
-import { auditEvents, companyFields as initialFields, type AuditEvent } from "../../data/platform-data";
-import { appendPrototypeValue, prototypeStorageKeys, readPrototypeValue, writePrototypeValue } from "../../data/prototype-store";
+import {
+  Badge,
+  Button,
+  EmptyState,
+  Field,
+  PageHeading,
+  SelectField,
+  Switch,
+} from "../../components/ui";
+import { auditEvents, type AuditEvent } from "../../data/platform-data";
+import {
+  appendPrototypeValue,
+  prototypeStorageKeys,
+  readPrototypeValue,
+  writePrototypeValue,
+} from "../../data/prototype-store";
 
 interface PlatformProps {
   onNavigate: Navigate;
@@ -117,17 +133,21 @@ export const AdministrationPage = ({ onNavigate }: PlatformProps) => {
   );
 };
 
-export const IntegrationsPage = ({ onNotice }: PlatformProps) => {
+export const IntegrationsPage = ({ onNotice, onNavigate }: PlatformProps) => {
   const [mailEnabled, setMailEnabled] = useState(true);
   const [bitrixEnabled, setBitrixEnabled] = useState(true);
   const [mailHost, setMailHost] = useState("smtp.maxsoft.ru");
   const [bitrixUrl, setBitrixUrl] = useState("https://maxsoft.bitrix24.ru");
   const [checking, setChecking] = useState<"mail" | "bitrix" | null>(null);
-  const [result, setResult] = useState<{ kind: "mail" | "bitrix"; status: "success" | "error" } | null>(null);
+  const [result, setResult] = useState<{
+    kind: "mail" | "bitrix";
+    status: "success" | "error";
+  } | null>(null);
   useEffect(() => {
     if (!checking) return;
     const timeout = window.setTimeout(() => {
-      const invalid = checking === "mail" ? mailHost.includes("invalid") : bitrixUrl.includes("invalid");
+      const invalid =
+        checking === "mail" ? mailHost.includes("invalid") : bitrixUrl.includes("invalid");
       setResult({ kind: checking, status: invalid ? "error" : "success" });
       setChecking(null);
     }, 1200);
@@ -155,6 +175,7 @@ export const IntegrationsPage = ({ onNotice }: PlatformProps) => {
       <PageHeading
         eyebrow="Администрирование"
         subtitle="Подключения инфраструктуры для уведомлений и карточек клиентов."
+        onBack={() => goBack(onNavigate, "administration")}
         title="Интеграции"
       />
       <div className="grid min-w-0 gap-5 xl:grid-cols-2">
@@ -165,7 +186,9 @@ export const IntegrationsPage = ({ onNotice }: PlatformProps) => {
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="font-heading text-xl font-bold">Почтовые уведомления</h2>
-              <p className="mt-1 text-sm text-[var(--ms-muted)]">Исходящие письма со ссылками на портал.</p>
+              <p className="mt-1 text-sm text-[var(--ms-muted)]">
+                Исходящие письма со ссылками на портал.
+              </p>
             </div>
             <Switch
               checked={mailEnabled}
@@ -176,7 +199,11 @@ export const IntegrationsPage = ({ onNotice }: PlatformProps) => {
           <div
             className={`mt-6 grid gap-4 transition ${mailEnabled ? "opacity-100" : "pointer-events-none opacity-45"}`}
           >
-            <Field label="SMTP-сервер" onChange={(event) => setMailHost(event.target.value)} value={mailHost} />
+            <Field
+              label="SMTP-сервер"
+              onChange={(event) => setMailHost(event.target.value)}
+              value={mailHost}
+            />
             <div className="grid gap-4 sm:grid-cols-2">
               <Field defaultValue="587" label="Порт" inputMode="numeric" />
               <SelectField defaultValue="STARTTLS" label="Шифрование">
@@ -205,7 +232,9 @@ export const IntegrationsPage = ({ onNotice }: PlatformProps) => {
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="font-heading text-xl font-bold">Битрикс24</h2>
-              <p className="mt-1 text-sm text-[var(--ms-muted)]">Ссылки на внешние карточки компаний.</p>
+              <p className="mt-1 text-sm text-[var(--ms-muted)]">
+                Ссылки на внешние карточки компаний.
+              </p>
             </div>
             <Switch
               checked={bitrixEnabled}
@@ -216,7 +245,12 @@ export const IntegrationsPage = ({ onNotice }: PlatformProps) => {
           <div
             className={`mt-6 grid gap-4 transition ${bitrixEnabled ? "opacity-100" : "pointer-events-none opacity-45"}`}
           >
-            <Field label="Адрес портала" onChange={(event) => setBitrixUrl(event.target.value)} type="url" value={bitrixUrl} />
+            <Field
+              label="Адрес портала"
+              onChange={(event) => setBitrixUrl(event.target.value)}
+              type="url"
+              value={bitrixUrl}
+            />
             <Field defaultValue="••••••••••••••••" label="Вебхук" type="password" />
             <div className="flex min-h-6 items-center justify-between gap-3">
               {status("bitrix")}
@@ -233,7 +267,9 @@ export const IntegrationsPage = ({ onNotice }: PlatformProps) => {
         </section>
       </div>
       <div className="mt-5 flex justify-end">
-        <Button onClick={() => onNotice("Настройки интеграций сохранены.")}>Сохранить настройки</Button>
+        <Button onClick={() => onNotice("Настройки интеграций сохранены.")}>
+          Сохранить настройки
+        </Button>
       </div>
     </>
   );
@@ -251,7 +287,9 @@ export const AuditPage = ({ onNavigate }: PlatformProps) => {
       events.filter(
         (event) =>
           (type === "all" || event.category === type) &&
-          `${event.user} ${event.action} ${event.object}`.toLowerCase().includes(query.toLowerCase()),
+          `${event.user} ${event.action} ${event.object}`
+            .toLowerCase()
+            .includes(query.toLowerCase()),
       ),
     [events, query, type],
   );
@@ -260,6 +298,7 @@ export const AuditPage = ({ onNavigate }: PlatformProps) => {
       <PageHeading
         eyebrow="Администрирование"
         subtitle="Изменения статей, компаний, пользователей и прав доступа."
+        onBack={() => goBack(onNavigate, "administration")}
         title="Журнал действий"
       />
       <div className="mb-4 flex min-w-0 flex-col gap-3 rounded-2xl border border-[var(--ms-border)] bg-white p-3 shadow-[var(--ms-card-shadow)] sm:flex-row">
@@ -342,13 +381,12 @@ export const AuditPage = ({ onNavigate }: PlatformProps) => {
   );
 };
 
-export const FieldsPage = ({ onNotice }: PlatformProps) => {
-  const [fields, setFields] = useState(
-    () => readPrototypeValue(prototypeStorageKeys.companyFields, initialFields),
-  );
+export const FieldsPage = ({ onNotice, onNavigate }: PlatformProps) => {
+  const [fields, setFields] = useState(() => getCompanyFields());
   const [dirty, setDirty] = useState(false);
   const [validation, setValidation] = useState<"idle" | "checking" | "error">("idle");
-  type FieldSetting = "visible" | "required" | "unique" | "manager" | "registration" | "creation" | "editing";
+  type FieldSetting =
+    "visible" | "required" | "unique" | "manager" | "registration" | "creation" | "editing";
   const toggle = (id: string, key: FieldSetting) => {
     setDirty(true);
     setValidation("idle");
@@ -372,13 +410,31 @@ export const FieldsPage = ({ onNotice }: PlatformProps) => {
           return { ...field, [key]: true, visible: true };
         if (["registration", "creation", "editing"].includes(key) && field[key]) {
           const remainingOperations = ["registration", "creation", "editing"].filter(
-            (operation) => operation !== key && field[operation as "registration" | "creation" | "editing"],
+            (operation) =>
+              operation !== key && field[operation as "registration" | "creation" | "editing"],
           );
-          return { ...field, [key]: false, required: remainingOperations.length ? field.required : false };
+          return {
+            ...field,
+            [key]: false,
+            required: remainingOperations.length ? field.required : false,
+          };
         }
         return { ...field, [key]: !field[key] };
       }),
     );
+  };
+  const fieldHints: Record<string, string> = {
+    visible:
+      "Отключение скрывает поле во всех операциях и отключает связанные флаги. Значения в компаниях сохраняются.",
+    required:
+      "Без заполнения поля форму нельзя сохранить. Новая обязательность регистрации требует согласования.",
+    unique:
+      "Значение не должно повторяться у другой компании. Перед включением проверяются существующие данные.",
+    manager: "Разрешает менеджеру видеть поле в форме. Назначение типа регулируется отдельно.",
+    registration:
+      "Участие поля компании в саморегистрации. Домен выводится из email; личные сведения хранятся у пользователя.",
+    creation: "Показывает поле сотруднику MaxSoft при создании компании.",
+    editing: "Показывает поле при редактировании. Отключение не удаляет сохранённые значения.",
   };
   const columns = [
     { key: "visible" as const, label: "В форме" },
@@ -394,27 +450,42 @@ export const FieldsPage = ({ onNotice }: PlatformProps) => {
       <PageHeading
         eyebrow="Администрирование"
         subtitle="Настройте отображение и правила заполнения данных компании для разных операций."
+        onBack={() => goBack(onNavigate, "administration")}
         title="Поля компании"
       />
       <div className="mb-4 flex flex-col gap-2 rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-900 sm:flex-row sm:items-center">
         <span className="flex-1">
-          Скрытое поле не может быть обязательным. Внутренний тип компании никогда не показывается при самостоятельной регистрации.
+          Скрытое поле не может быть обязательным. Тип, сокращённое имя, домены и общий email не
+          запрашиваются при регистрации; домен получается из почты. Личный телефон относится к
+          пользователю. Сохранённые настройки остальных операций не сбрасываются.
         </span>
-        {dirty ? <Badge tone="amber">Есть несохранённые изменения</Badge> : <Badge tone="green">Настройки сохранены</Badge>}
+        {dirty ? (
+          <Badge tone="amber">Есть несохранённые изменения</Badge>
+        ) : (
+          <Badge tone="green">Настройки сохранены</Badge>
+        )}
       </div>
       {validation === "error" ? (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700" role="alert">
-          Не удалось включить уникальность телефона: в существующих данных есть совпадения. Устраните их и повторите проверку. Код: PLAT_FIELD_UNIQUENESS_CONFLICT.
+        <div
+          className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
+          role="alert"
+        >
+          Не удалось включить уникальность телефона: в существующих данных есть совпадения.
+          Устраните их и повторите проверку. Код: PLAT_FIELD_UNIQUENESS_CONFLICT.
         </div>
       ) : null}
-      <div className="hidden overflow-x-auto rounded-2xl border border-[var(--ms-border)] bg-white shadow-[var(--ms-card-shadow)] lg:block">
+      <div className="hidden overflow-x-auto rounded-2xl border border-[var(--ms-border)] bg-white shadow-[var(--ms-card-shadow)] lg:block ms-table-scroll">
         <table className="w-full min-w-[1050px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-[var(--ms-border)]">
               <th className="px-5 py-4">Поле</th>
               {columns.map((column) => (
-                <th className="px-3 py-4 text-center text-xs text-[var(--ms-muted)]" key={column.key}>
+                <th
+                  className="px-3 py-4 text-center text-xs text-[var(--ms-muted)]"
+                  key={column.key}
+                >
                   {column.label}
+                  <InfoHint label={column.label} text={fieldHints[column.key]} />
                 </th>
               ))}
             </tr>
@@ -428,7 +499,10 @@ export const FieldsPage = ({ onNotice }: PlatformProps) => {
                     <span className="inline-flex">
                       <Switch
                         checked={field[column.key]}
-                        disabled={field.id === "type" && column.key === "registration"}
+                        disabled={
+                          excludedRegistrationFields.includes(field.id) &&
+                          column.key === "registration"
+                        }
                         label={`${column.label}: ${field.label}`}
                         onChange={() => toggle(field.id, column.key)}
                       />
@@ -453,10 +527,15 @@ export const FieldsPage = ({ onNotice }: PlatformProps) => {
                   className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2"
                   key={column.key}
                 >
-                  <span className="text-xs font-semibold text-[var(--ms-muted)]">{column.label}</span>
+                  <span className="text-xs font-semibold text-[var(--ms-muted)]">
+                    {column.label}
+                    <InfoHint label={column.label} text={fieldHints[column.key]} />
+                  </span>
                   <Switch
                     checked={field[column.key]}
-                    disabled={field.id === "type" && column.key === "registration"}
+                    disabled={
+                      excludedRegistrationFields.includes(field.id) && column.key === "registration"
+                    }
                     label={`${column.label}: ${field.label}`}
                     onChange={() => toggle(field.id, column.key)}
                   />
@@ -475,7 +554,9 @@ export const FieldsPage = ({ onNotice }: PlatformProps) => {
               const phone = fields.find((field) => field.id === "phone");
               if (phone?.unique) {
                 setValidation("error");
-                onNotice("Проверка существующих данных выявила конфликт. Код: PLAT_FIELD_UNIQUENESS_CONFLICT.");
+                onNotice(
+                  "Проверка существующих данных выявила конфликт. Код: PLAT_FIELD_UNIQUENESS_CONFLICT.",
+                );
                 return;
               }
               setValidation("idle");

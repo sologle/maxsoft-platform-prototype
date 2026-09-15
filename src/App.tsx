@@ -27,7 +27,9 @@ const clearLocation = () => {
 };
 
 const downloadMockFile = () => {
-  const url = URL.createObjectURL(new Blob([mockDownload.content], { type: "text/plain;charset=utf-8" }));
+  const url = URL.createObjectURL(
+    new Blob([mockDownload.content], { type: "text/plain;charset=utf-8" }),
+  );
   const link = document.createElement("a");
   link.href = url;
   link.download = mockDownload.filename;
@@ -40,7 +42,12 @@ const PlatformApp = () => {
   const [notice, setNotice] = useState<NoticeState | null>(null);
 
   useEffect(() => {
-    const onPopState = () => setLocation(readLocation());
+    const onPopState = () => {
+      setLocation(readLocation());
+      requestAnimationFrame(() =>
+        window.scrollTo({ top: window.history.state?.scrollY ?? 0, behavior: "instant" }),
+      );
+    };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
@@ -57,53 +64,51 @@ const PlatformApp = () => {
 
   const navigate = useCallback(
     (page: AppPage, resource?: string) => {
-      setLocation((current) => {
-        const next: AppLocation = {
-          companyId: current.companyId,
-          companyType: current.companyType,
-          page: canOpenLocation(page, current.role, resource, current.companyType)
-            ? page
-            : current.role === "guest"
-              ? "landing"
-              : "access-denied",
-          resource,
-          role: current.role,
-        };
-        writeLocation(next);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        if (next.page === "access-denied") showNotice("Этот раздел недоступен выбранной роли.");
-        return next;
-      });
+      const next: AppLocation = {
+        companyId: location.companyId,
+        companyType: location.companyType,
+        role: location.role,
+        resource,
+        page: canOpenLocation(page, location.role, resource, location.companyType)
+          ? page
+          : location.role === "guest"
+            ? "landing"
+            : "access-denied",
+      };
+      window.history.replaceState({ ...window.history.state, scrollY: window.scrollY }, "");
+      writeLocation(next);
+      window.history.replaceState({ maxsoftBack: true }, "");
+      setLocation(next);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      if (next.page === "access-denied")
+        showNotice("Этот раздел недоступен выбранной роли. Код: APP_ACCESS_DENIED.");
     },
-    [showNotice],
+    [location, showNotice],
   );
 
-  const changeRole: Authenticate = useCallback(
-    (role: UserRole, companyId?: string) => {
-      setLocation((current) => {
-        setActiveClientCompany(role, companyId);
-        const companyContext = companyContextForRole(role, companyId);
-        const canReturn = Boolean(
-          current?.returnPage &&
-            canOpenLocation(
-              current.returnPage,
-              role,
-              current.returnResource,
-              companyContext.companyType,
-            ),
-        );
-        const next: AppLocation = current?.returnPage
-          ? canReturn
-            ? { ...companyContext, page: current.returnPage, resource: current.returnResource, role }
-            : { ...companyContext, page: "access-denied", role }
-          : { ...companyContext, page: startPageForRole(role), role };
-        writeLocation(next);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return next;
-      });
-    },
-    [],
-  );
+  const changeRole: Authenticate = useCallback((role: UserRole, companyId?: string) => {
+    setLocation((current) => {
+      setActiveClientCompany(role, companyId);
+      const companyContext = companyContextForRole(role, companyId);
+      const canReturn = Boolean(
+        current?.returnPage &&
+        canOpenLocation(
+          current.returnPage,
+          role,
+          current.returnResource,
+          companyContext.companyType,
+        ),
+      );
+      const next: AppLocation = current?.returnPage
+        ? canReturn
+          ? { ...companyContext, page: current.returnPage, resource: current.returnResource, role }
+          : { ...companyContext, page: "access-denied", role }
+        : { ...companyContext, page: startPageForRole(role), role };
+      writeLocation(next);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return next;
+    });
+  }, []);
 
   const exit = useCallback(() => {
     setLocation({ page: "landing", role: "guest" });
@@ -113,6 +118,7 @@ const PlatformApp = () => {
 
   const page = (
     <PageRouter
+      key={`${location.page}:${location.resource ?? ""}:${location.role}`}
       location={location}
       onAuthenticate={changeRole}
       onDownload={downloadMockFile}
@@ -137,7 +143,9 @@ const PlatformApp = () => {
         onNavigate={navigate}
         onRoleChange={changeRole}
       />
-      {notice ? <Toast key={notice.id} message={notice.message} onClose={() => setNotice(null)} /> : null}
+      {notice ? (
+        <Toast key={notice.id} message={notice.message} onClose={() => setNotice(null)} />
+      ) : null}
     </>
   );
 };

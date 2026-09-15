@@ -1,4 +1,19 @@
-import { BookOpen, ChevronRight, FileText, Filter, Search, SlidersHorizontal, Video, X } from "lucide-react";
+import { usePageState } from "../../hooks/usePageState";
+import { KnowledgeTree } from "./KnowledgeTree";
+import { getKnowledgeTree, sectionArticleIds } from "../../data/knowledge-tree";
+import { GroupedTagPicker, getTagGroups } from "../../components/GroupedTagPicker";
+import { fileContent } from "../../data/file-content";
+import { files } from "../../data/platform-data";
+import {
+  BookOpen,
+  ChevronRight,
+  FileText,
+  Filter,
+  Search,
+  SlidersHorizontal,
+  Video,
+  X,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Navigate, UserRole } from "../../app/types";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
@@ -7,11 +22,9 @@ import {
   articles,
   canRoleAccessArticle,
   isArticlePublished,
-  tagGroups,
   type ArticleSummary,
 } from "../../data/platform-data";
 import { getArticleSections, getArticleTags } from "../../data/prototype-entities";
-import { prototypeStorageKeys, readPrototypeValue } from "../../data/prototype-store";
 
 interface SearchPageProps {
   companyType?: string;
@@ -25,11 +38,6 @@ const searchableContent: Record<
 > = {
   "network-license": {
     articleText: "Установка сервера лицензий, подключение рабочего места и диагностика соединения.",
-    file: {
-      name: "инструкция_активации.pdf",
-      text: "Проверьте адрес сервера лицензии и доступность порта 1947 из корпоративной сети.",
-      type: "PDF",
-    },
   },
   "cad-integration": {
     articleText: "Подключение модуля, настройка обмена и проверка первой синхронизации.",
@@ -47,6 +55,7 @@ const searchableContent: Record<
 
 type SearchMatch = {
   label: string;
+  fileName?: string;
   snippet?: string;
   source: "article" | "description" | "file" | "tag" | "title";
 };
@@ -54,7 +63,8 @@ type SearchMatch = {
 const wordMatches = (text: string, words: string[]) => {
   const normalized = text.toLowerCase();
   return words.every(
-    (word) => normalized.includes(word) || (word.length > 5 && normalized.includes(word.slice(0, -1))),
+    (word) =>
+      normalized.includes(word) || (word.length > 5 && normalized.includes(word.slice(0, -1))),
   );
 };
 
@@ -65,7 +75,12 @@ const findMatch = (
   availableTags: string[],
 ): SearchMatch | null => {
   const content = searchableContent[article.id];
-  const candidates: Array<{ label: string; source: SearchMatch["source"]; text?: string }> = [
+  const candidates: Array<{
+    label: string;
+    source: SearchMatch["source"];
+    text?: string;
+    fileName?: string;
+  }> = [
     { label: "Совпадение в заголовке статьи", source: "title", text: article.title },
     { label: "Совпадение в описании статьи", source: "description", text: article.description },
     {
@@ -74,16 +89,22 @@ const findMatch = (
       text: articleTags.filter((tag) => availableTags.includes(tag)).join(" "),
     },
     { label: "Совпадение в тексте статьи", source: "article", text: content?.articleText },
-    {
-      label: content?.file ? `Совпадение в тексте ${content.file.type}` : "",
-      source: "file",
-      text: content?.file?.text,
-    },
+    ...files
+      .filter((file) => file.relatedArticleIds.includes(article.id) && fileContent[file.name])
+      .map((file) => ({
+        label: `Совпадение в тексте ${file.type}`,
+        source: "file" as const,
+        fileName: file.name,
+        text: fileContent[file.name].map((part) => part.text).join(" "),
+      })),
   ];
-  const match = candidates.find((candidate) => candidate.text && wordMatches(candidate.text, words));
+  const match = candidates.find(
+    (candidate) => candidate.text && wordMatches(candidate.text, words),
+  );
   if (!match) return null;
   return {
     label: match.label,
+    fileName: match.fileName,
     snippet: match.text,
     source: match.source,
   };
@@ -112,33 +133,44 @@ const Highlight = ({ query, text }: { query: string; text: string }) => {
 };
 
 export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) => {
-  const [availableTags] = useState(() =>
-    readPrototypeValue<Array<{ tags: Array<{ name: string }> }>>(
-      prototypeStorageKeys.tags,
-      tagGroups.map((group) => ({ tags: group.tags.map((name) => ({ name })) })),
-    ).flatMap((group) => group.tags.map((tag) => tag.name)),
+  const groups = getTagGroups();
+  const visibleTagNames = new Set(
+    articles
+      .filter((article) => canRoleAccessArticle(article, role, companyType))
+      .flatMap(getArticleTags),
   );
-  const [query, setQuery] = useState("лицензия");
-  const [draftQuery, setDraftQuery] = useState("лицензия");
-  const [tags, setTags] = useState<string[]>([]);
-  const [section, setSection] = useState("all");
+  const visibleGroups = groups
+    .map((group) => ({ ...group, tags: group.tags.filter((tag) => visibleTagNames.has(tag.name)) }))
+    .filter((group) => group.tags.length);
+  const availableTags = groups.flatMap((group) => group.tags.map((tag) => tag.name));
+  const initialQuery = new URL(window.location.href).searchParams.get("resource") ?? "лицензия";
+  const [query, setQuery] = usePageState("query", initialQuery);
+  const [draftQuery, setDraftQuery] = usePageState("draftQuery", initialQuery);
+  const [tags, setTags] = usePageState<string[]>("tags", []);
+  const [section, setSection] = usePageState("section", "all");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const canSeeDrafts = role === "portal-admin" || role === "support-engineer" || role === "manager";
 
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return [];
+    if (!normalized && !tags.length && section === "all") return [];
     return articles.flatMap((article) => {
       if (!canSeeDrafts && !isArticlePublished(article)) return [];
       if (!canRoleAccessArticle(article, role, companyType)) return [];
       const words = normalized.split(/\s+/).filter(Boolean);
       const articleTags = getArticleTags(article);
-      const articleSections = getArticleSections(article);
-      const match = findMatch(article, articleTags, words, availableTags);
+      const match = normalized
+        ? findMatch(article, articleTags, words, availableTags)
+        : {
+            label: "По выбранным фильтрам",
+            source: "tag" as const,
+            snippet: articleTags.join(" · "),
+            fileName: undefined,
+          };
       const matchesTags = tags.length === 0 || tags.every((tag) => articleTags.includes(tag));
       const matchesSection =
-        section === "all" || articleSections.some((articleSection) => articleSection.includes(section));
+        section === "all" || sectionArticleIds(getKnowledgeTree(), section).includes(article.id);
       return match && matchesTags && matchesSection ? [{ article, match }] : [];
     });
   }, [availableTags, canSeeDrafts, companyType, query, role, section, tags]);
@@ -156,36 +188,21 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
     <div className="space-y-6">
       <section>
         <h3 className="mb-3 text-sm font-bold">Раздел</h3>
-        <div className="space-y-2">
-          {["all", "НАВИСА", "Продукты"].map((value) => (
-            <label className="option-row" key={value}>
-              <input
-                checked={section === value}
-                name="search-section"
-                onChange={() => setSection(value)}
-                type="radio"
-              />
-              <span>{value === "all" ? "Вся база знаний" : value}</span>
-            </label>
-          ))}
-        </div>
+        <KnowledgeTree selected={section} onSelect={setSection} />
       </section>
       <section>
         <h3 className="mb-3 text-sm font-bold">Теги</h3>
-        <div className="flex flex-wrap gap-2">
-          {availableTags.map((tag) => (
-            <button
-              aria-pressed={tags.includes(tag)}
-              className={`rounded-full px-3 py-2 text-sm font-semibold ring-1 transition ${tags.includes(tag) ? "bg-[var(--ms-primary)] text-white ring-[var(--ms-primary)]" : "bg-white text-[var(--ms-muted)] ring-[var(--ms-border-strong)] hover:ring-[var(--ms-primary)]"}`}
-              key={tag}
-              onClick={() => toggleTag(tag)}
-              type="button"
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
+        <GroupedTagPicker groups={visibleGroups} selected={tags} onToggle={toggleTag} />
       </section>
+      <Button
+        tone="ghost"
+        onClick={() => {
+          setTags([]);
+          setSection("all");
+        }}
+      >
+        Сбросить фильтры
+      </Button>
       {showApply ? (
         <Button
           className="w-full"
@@ -204,7 +221,7 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
     <>
       <PageHeading
         eyebrow="Поиск"
-        subtitle="Совпадения в статьях, описаниях, тегах и текстовом содержимом файлов."
+        subtitle="Совпадения в статьях, тегах и содержимом PDF/DOCX. Демонстрационный набор, без индексации загружаемых файлов."
         title="Результаты поиска"
       />
       <form
@@ -248,15 +265,17 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
         </button>
         {focused && draftQuery ? (
           <div className="absolute inset-x-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-xl border border-[var(--ms-border)] bg-white p-2 shadow-[0_18px_50px_rgba(24,43,66,.18)]">
-            {["лицензия активация", "лицензия сервер", "лицензирование НАВИСА"]
-              .filter((item) => item.includes(draftQuery.toLowerCase()) || draftQuery.length < 4)
+            {[...visibleTagNames]
+              .filter((item) => item.toLowerCase().includes(draftQuery.toLowerCase()))
               .map((item) => (
                 <button
                   className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition hover:bg-[var(--ms-primary-soft)]"
                   key={item}
                   onClick={() => {
                     setDraftQuery(item);
-                    setQuery(item);
+                    setQuery("");
+                    setDraftQuery("");
+                    if (!tags.includes(item)) setTags([...tags, item]);
                     setFocused(false);
                   }}
                   type="button"
@@ -275,7 +294,7 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
             <SlidersHorizontal className="h-5 w-5 text-[var(--ms-primary)]" aria-hidden="true" />
             <h2 className="font-heading font-bold">Фильтры</h2>
           </div>
-          <Filters />
+          {Filters({})}
         </aside>
         <section className="min-w-0">
           <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -308,7 +327,9 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
                   aria-label={`Открыть материал: ${article.title}`}
                   className="group min-w-0 cursor-pointer rounded-xl border border-[var(--ms-border)] border-l-[3px] border-l-[var(--ms-primary)] bg-white p-4 transition hover:border-[var(--ms-primary)] hover:bg-[var(--ms-primary-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)]"
                   key={article.id}
-                  onClick={() => onNavigate(article.kind === "video" ? "video" : "article", article.id)}
+                  onClick={() =>
+                    onNavigate(article.kind === "video" ? "video" : "article", article.id)
+                  }
                   onKeyDown={(event) => {
                     if (event.key !== "Enter" && event.key !== " ") return;
                     event.preventDefault();
@@ -328,7 +349,9 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--ms-muted)]">
                         <span>{getArticleSections(article).join(" · ")}</span>
-                        <span className="rounded-full bg-[var(--ms-primary-soft)] px-2 py-1 text-[var(--ms-primary)]">{match.label}</span>
+                        <span className="rounded-full bg-[var(--ms-primary-soft)] px-2 py-1 text-[var(--ms-primary)]">
+                          {match.label}
+                        </span>
                       </div>
                       <h2 className="mt-1.5 font-heading text-base font-bold sm:text-lg">
                         <Highlight query={query} text={article.title} />
@@ -344,8 +367,8 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
                   {match.source === "file" ? (
                     <div className="mt-4 flex min-w-0 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-[var(--ms-muted)]">
                       <FileText className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      <span className="truncate">
-                        {searchableContent[article.id]?.file?.name} · «
+                      <span className="break-words">
+                        {match.fileName} · «
                         <Highlight query={query} text={match.snippet ?? ""} />»
                       </span>
                     </div>
@@ -387,8 +410,12 @@ export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) =
         </section>
       </div>
 
-      <ResponsiveOverlay label="Фильтры поиска" onClose={() => setFiltersOpen(false)} open={filtersOpen}>
-        <Filters showApply />
+      <ResponsiveOverlay
+        label="Фильтры поиска"
+        onClose={() => setFiltersOpen(false)}
+        open={filtersOpen}
+      >
+        {Filters({ showApply: true })}
       </ResponsiveOverlay>
     </>
   );

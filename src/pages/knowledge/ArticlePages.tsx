@@ -1,28 +1,12 @@
 import { demoResources } from "../../app/demo-resources";
-import { FileTypeIcon } from "../../components/FileTypeIcon";
-import {
-  ArrowLeft,
-  Bookmark,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Maximize2,
-  Minimize2,
-  Minus,
-  Pause,
-  Pencil,
-  Play,
-  Plus,
-  Type,
-  Volume2,
-} from "lucide-react";
-import { useEffect, useState, type CSSProperties } from "react";
+import { Bookmark, Maximize2, Pause, Pencil, Play, Volume2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import type { Navigate, UserRole } from "../../app/types";
 import { Badge, Breadcrumbs, Button } from "../../components/ui";
 import { articles, isArticlePublished, type ArticleSummary } from "../../data/platform-data";
 import { getArticleSections, getArticleTags } from "../../data/prototype-entities";
-
+import { ReadingLayout } from "./ReadingLayout";
+import { ArticleAttachments } from "./ArticleAttachments";
 interface ArticlePageProps {
   onDownload: () => void;
   onNavigate: Navigate;
@@ -30,7 +14,6 @@ interface ArticlePageProps {
   resource?: string;
   role: UserRole;
 }
-
 const ArticleHeader = ({
   article,
   onNavigate,
@@ -59,7 +42,9 @@ const ArticleHeader = ({
             <Badge tone={isArticlePublished(article) ? "green" : "amber"}>
               {isArticlePublished(article) ? "Опубликована" : "Черновик"}
             </Badge>
-            {getArticleTags(article).map((tag) => <Badge key={tag}>{tag}</Badge>)}
+            {getArticleTags(article).map((tag) => (
+              <Badge key={tag}>{tag}</Badge>
+            ))}
           </div>
           <h1 className="font-heading text-[clamp(1.9rem,5vw,2.8rem)] font-bold leading-[1.12] tracking-[-.03em]">
             {article.title}
@@ -68,10 +53,12 @@ const ArticleHeader = ({
             Анна Смирнова · Обновлено сегодня в 10:42 · 8 минут чтения
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
+        <div className="article-actions flex shrink-0 flex-wrap gap-2">
           <Button
             aria-pressed={saved}
-            icon={<Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} aria-hidden="true" />}
+            icon={
+              <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} aria-hidden="true" />
+            }
             onClick={() => setSaved((current) => !current)}
             tone="secondary"
           >
@@ -91,179 +78,127 @@ const ArticleHeader = ({
   );
 };
 
-
 const articleSections: Record<string, Array<{ id: string; text: string; title: string }>> = {
   "network-license": [
-    { id: "preparation", title: "Перед началом работы", text: "Убедитесь, что сервер лицензий доступен из корпоративной сети, а системное время на сервере и рабочих станциях синхронизировано." },
-    { id: "installation", title: "Установка сервера лицензий", text: "Скачайте актуальный дистрибутив, запустите установщик от имени администратора и укажите каталог хранения лицензий." },
-    { id: "connection", title: "Подключение рабочего места", text: "Откройте настройки продукта, выберите сетевой тип лицензирования и укажите адрес сервера server.company.local:1947." },
-    { id: "diagnostics", title: "Диагностика", text: "Если лицензия не найдена, проверьте доступность порта, журнал службы и совместимость версий." },
+    {
+      id: "preparation",
+      title: "Перед началом работы",
+      text: "Убедитесь, что сервер лицензий доступен из корпоративной сети, а системное время на сервере и рабочих станциях синхронизировано.",
+    },
+    {
+      id: "installation",
+      title: "Установка сервера лицензий",
+      text: "Скачайте актуальный дистрибутив, запустите установщик от имени администратора и укажите каталог хранения лицензий.",
+    },
+    {
+      id: "connection",
+      title: "Подключение рабочего места",
+      text: "Откройте настройки продукта, выберите сетевой тип лицензирования и укажите адрес сервера server.company.local:1947.",
+    },
+    {
+      id: "diagnostics",
+      title: "Диагностика",
+      text: "Если лицензия не найдена, проверьте доступность порта, журнал службы и совместимость версий.",
+    },
   ],
   "project-template": [
-    { id: "preparation", title: "Подготовка структуры", text: "Создайте единый корневой каталог проекта и согласуйте правила именования файлов с командой." },
-    { id: "installation", title: "Шаблоны проекта", text: "Добавьте утверждённые шаблоны, библиотеки и общие параметры до начала моделирования." },
-    { id: "connection", title: "Совместная работа", text: "Назначьте владельцев разделов и настройте регулярную синхронизацию изменений." },
-    { id: "diagnostics", title: "Контроль качества", text: "Перед публикацией проверьте структуру, ссылки и обязательные свойства моделей." },
+    {
+      id: "preparation",
+      title: "Подготовка структуры",
+      text: "Создайте единый корневой каталог проекта и согласуйте правила именования файлов с командой.",
+    },
+    {
+      id: "installation",
+      title: "Шаблоны проекта",
+      text: "Добавьте утверждённые шаблоны, библиотеки и общие параметры до начала моделирования.",
+    },
+    {
+      id: "connection",
+      title: "Совместная работа",
+      text: "Назначьте владельцев разделов и настройте регулярную синхронизацию изменений.",
+    },
+    {
+      id: "diagnostics",
+      title: "Контроль качества",
+      text: "Перед публикацией проверьте структуру, ссылки и обязательные свойства моделей.",
+    },
   ],
   "server-migration": [
-    { id: "preparation", title: "Подготовка миграции", text: "Зафиксируйте текущие лицензии, сделайте резервную копию и уведомите пользователей о техническом окне." },
-    { id: "installation", title: "Перенос службы", text: "Установите сервер лицензий на новом узле и восстановите проверенную конфигурацию." },
-    { id: "connection", title: "Переключение клиентов", text: "Обновите адрес сервера на рабочих местах и проверьте выдачу лицензий тестовой группе." },
-    { id: "diagnostics", title: "Завершение", text: "После контрольного периода отключите старую службу и сохраните журнал миграции." },
+    {
+      id: "preparation",
+      title: "Подготовка миграции",
+      text: "Зафиксируйте текущие лицензии, сделайте резервную копию и уведомите пользователей о техническом окне.",
+    },
+    {
+      id: "installation",
+      title: "Перенос службы",
+      text: "Установите сервер лицензий на новом узле и восстановите проверенную конфигурацию.",
+    },
+    {
+      id: "connection",
+      title: "Переключение клиентов",
+      text: "Обновите адрес сервера на рабочих местах и проверьте выдачу лицензий тестовой группе.",
+    },
+    {
+      id: "diagnostics",
+      title: "Завершение",
+      text: "После контрольного периода отключите старую службу и сохраните журнал миграции.",
+    },
   ],
   "update-2026": [
-    { id: "preparation", title: "Перед обновлением", text: "Сделайте резервную копию проектов и проверьте системные требования версии 2026." },
-    { id: "installation", title: "Обновление компонентов", text: "Устанавливайте компоненты в согласованном порядке и фиксируйте результат каждого шага." },
-    { id: "connection", title: "Проверка модулей", text: "Откройте контрольный проект и проверьте совместимость подключённых модулей." },
-    { id: "diagnostics", title: "Возврат к работе", text: "После успешной проверки обновите рабочие места и сообщите пользователям о завершении." },
+    {
+      id: "preparation",
+      title: "Перед обновлением",
+      text: "Сделайте резервную копию проектов и проверьте системные требования версии 2026.",
+    },
+    {
+      id: "installation",
+      title: "Обновление компонентов",
+      text: "Устанавливайте компоненты в согласованном порядке и фиксируйте результат каждого шага.",
+    },
+    {
+      id: "connection",
+      title: "Проверка модулей",
+      text: "Откройте контрольный проект и проверьте совместимость подключённых модулей.",
+    },
+    {
+      id: "diagnostics",
+      title: "Возврат к работе",
+      text: "После успешной проверки обновите рабочие места и сообщите пользователям о завершении.",
+    },
   ],
-};
-
-const articleAttachment: Record<string, string | undefined> = {
-  "network-license": "инструкция_активации.pdf",
-  "update-2026": "регламент_обновления.docx",
 };
 
 export const ArticlePage = ({ onNavigate, resource, role }: ArticlePageProps) => {
-  const [fontScale, setFontScale] = useState(1);
-  const [readingMode, setReadingMode] = useState(false);
-  const [tocOpen, setTocOpen] = useState(false);
-  const article = articles.find((candidate) => candidate.id === (resource ?? demoResources.article))!;
+  const article = articles.find((item) => item.id === (resource ?? demoResources.article))!;
   const sections = articleSections[article.id];
-  const attachment = articleAttachment[article.id];
-
-  useEffect(() => {
-    if (!readingMode) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [readingMode]);
-
   return (
-  <article
-    className={
-      readingMode
-        ? "fixed inset-0 z-[85] overflow-y-auto bg-white p-4 sm:p-8 lg:p-10"
-        : "mx-auto max-w-[1180px] rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] sm:p-8 lg:p-10"
-    }
-    data-reading-mode={readingMode ? "fullscreen" : "standard"}
-    style={{ "--article-font-size": `${fontScale}rem` } as CSSProperties}
-  >
-    <div className={readingMode ? "mx-auto max-w-[1480px]" : undefined}>
-      <div className="mb-5 flex flex-wrap items-center justify-end gap-2 rounded-xl border border-[var(--ms-border)] bg-slate-50 p-2">
-        <span className="mr-auto flex items-center gap-2 px-2 text-xs font-bold uppercase tracking-[.1em] text-[var(--ms-muted)]">
-          <Type className="h-4 w-4" aria-hidden="true" />
-          Размер текста
-        </span>
-        <button
-          aria-label="Уменьшить размер текста"
-          className="icon-button bg-white"
-          disabled={fontScale <= 0.7}
-          onClick={() => setFontScale((current) => Math.max(0.7, Number((current - 0.1).toFixed(1))))}
-          type="button"
-        >
-          <Minus className="h-4 w-4" aria-hidden="true" />
-        </button>
-        <span aria-live="polite" className="min-w-12 text-center text-sm font-bold">
-          {Math.round(fontScale * 100)}%
-        </span>
-        <button
-          aria-label="Увеличить размер текста"
-          className="icon-button bg-white"
-          disabled={fontScale >= 1.4}
-          onClick={() => setFontScale((current) => Math.min(1.4, Number((current + 0.1).toFixed(1))))}
-          type="button"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-        </button>
-        <Button
-          aria-label={readingMode ? "Выйти из полноэкранного режима" : "На весь экран"}
-          icon={
-            readingMode ? (
-              <Minimize2 className="h-4 w-4" aria-hidden="true" />
-            ) : (
-              <Maximize2 className="h-4 w-4" aria-hidden="true" />
-            )
-          }
-          onClick={() => setReadingMode((current) => !current)}
-          tone="secondary"
-        >
-          {readingMode ? "Обычный режим" : "Режим чтения"}
-        </Button>
-      </div>
+    <ReadingLayout
+      onNavigate={onNavigate}
+      sections={[...sections, { id: "attachments-title", title: "Вложения" }]}
+    >
       <ArticleHeader article={article} onNavigate={onNavigate} role={role} />
-    <div className={`mt-8 grid min-w-0 gap-5 lg:gap-8 ${tocOpen ? "lg:grid-cols-[minmax(0,1fr)_250px]" : "lg:grid-cols-[minmax(0,1fr)_56px]"}`}>
-      <div className="article-content min-w-0">
-        <p className="article-lead">
-          {article.description}
-        </p>
-        {sections.map((section, index) => <div key={section.id}>
-          <h2 id={section.id}>{section.title}</h2>
-          <p>{section.text}</p>
-          {article.id === "network-license" && index === 0 ? <div className="my-6 rounded-2xl border border-sky-100 bg-sky-50 p-4 sm:p-5">
-          <p className="flex items-start gap-3 text-sm leading-6 text-sky-900">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" aria-hidden="true" />
-            Для установки потребуются права администратора и файл лицензии, полученный от менеджера MaxSoft.
-          </p>
-          </div> : null}
-        </div>)}
-
-        {attachment ? <section
-          className="mt-10 border-t border-[var(--ms-border)] pt-7"
-          aria-labelledby="attachments-title"
-        >
-          <h2 className="!mt-0" id="attachments-title">
-            Вложения
-          </h2>
-          <button
-            className="mt-4 flex w-full min-w-0 items-center gap-3 rounded-2xl border border-[var(--ms-border)] p-4 text-left transition hover:border-[var(--ms-primary)] hover:bg-[var(--ms-primary-soft)]"
-            onClick={() => onNavigate("file-preview", attachment)}
-            type="button"
-          >
-            <FileTypeIcon type={attachment.endsWith(".pdf") ? "PDF" : "DOCX"} />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-bold">{attachment}</span>
-              <span className="mt-1 block text-xs text-[var(--ms-muted)]">Файл · открыть предпросмотр</span>
-            </span>
-            <Eye className="h-5 w-5 shrink-0 text-[var(--ms-primary)]" aria-hidden="true" />
-          </button>
-        </section> : null}
+      <div className="article-content mt-8">
+        <p className="article-lead">{article.description}</p>
+        {sections.map((section, index) => (
+          <section key={section.id}>
+            <h2 id={section.id}>{section.title}</h2>
+            <p>{section.text}</p>
+            {article.id === "network-license" && index === 0 ? (
+              <div className="my-6 rounded-xl border border-sky-100 bg-sky-50 p-4">
+                <p className="text-sm text-sky-900">
+                  Для установки потребуются права администратора и файл лицензии, полученный от
+                  менеджера MaxSoft.
+                </p>
+              </div>
+            ) : null}
+          </section>
+        ))}
+        <ArticleAttachments articleId={article.id} onNavigate={onNavigate} />
       </div>
-      <aside className="order-first min-w-0 lg:order-last">
-        <nav aria-label="Содержание статьи" className={`sticky ${readingMode ? "top-5" : "top-28"} rounded-2xl border border-[var(--ms-border)] bg-slate-50 ${tocOpen ? "p-3 sm:p-4" : "p-2"}`}>
-          <div className={`flex items-center gap-2 ${tocOpen ? "mb-2" : "justify-center"}`}>
-            {tocOpen ? <p className="min-w-0 flex-1 pl-1 text-xs font-bold uppercase tracking-[.12em] text-slate-400">В этой статье</p> : null}
-            <button
-              aria-label={tocOpen ? "Свернуть содержание статьи" : "Развернуть содержание статьи"}
-              aria-expanded={tocOpen}
-              className="icon-button bg-white shadow-sm"
-              onClick={() => setTocOpen((current) => !current)}
-              type="button"
-            >
-              {tocOpen ? <ChevronRight className="h-4 w-4" aria-hidden="true" /> : <ChevronLeft className="h-4 w-4" aria-hidden="true" />}
-            </button>
-          </div>
-          <div className={tocOpen ? "block" : "hidden"}>
-            {sections.map(({ id, title: label }) => (
-              <a
-                className="block rounded-lg px-2 py-2 text-sm text-[var(--ms-muted)] transition hover:bg-white hover:text-[var(--ms-primary)]"
-                href={`#${id}`}
-                key={id}
-              >
-                {label}
-              </a>
-            ))}
-          </div>
-        </nav>
-      </aside>
-    </div>
-    </div>
-  </article>
+    </ReadingLayout>
   );
 };
-
 const timecodes = [
   { label: "00:00", seconds: 0, title: "Введение и требования" },
   { label: "02:15", seconds: 135, title: "Подключение модуля" },
@@ -291,7 +226,13 @@ export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProp
       .padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
 
   return (
-    <article className="mx-auto max-w-[1180px] rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] sm:p-8 lg:p-10">
+    <ReadingLayout
+      onNavigate={onNavigate}
+      sections={[
+        { id: "video-details", title: "Что показано в видео" },
+        { id: "attachments-title", title: "Вложения" },
+      ]}
+    >
       <ArticleHeader article={article} onNavigate={onNavigate} role={role} />
       <div className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_330px]">
         <section className="min-w-0">
@@ -316,7 +257,9 @@ export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProp
                 className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/25"
                 onClick={(event) => {
                   const bounds = event.currentTarget.getBoundingClientRect();
-                  setProgress(Math.round(((event.clientX - bounds.left) / bounds.width) * videoDuration));
+                  setProgress(
+                    Math.round(((event.clientX - bounds.left) / bounds.width) * videoDuration),
+                  );
                 }}
                 type="button"
               >
@@ -344,13 +287,14 @@ export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProp
             </div>
           </div>
           <div className="article-content mt-7">
-            <p className="article-lead">
-              {article.description}
+            <p className="article-lead">{article.description}</p>
+            <h2 id="video-details">Что показано в видео</h2>
+            <p className="text-sm text-[var(--ms-muted)]">
+              Демонстрация плеера и таймкодов; видеозапись не подключена.
             </p>
-            <h2>Что показано в видео</h2>
             <p>
-              Подготовка интеграционного модуля, выбор проекта, сопоставление справочников и контроль первой
-              синхронизации.
+              Подготовка интеграционного модуля, выбор проекта, сопоставление справочников и
+              контроль первой синхронизации.
             </p>
           </div>
         </section>
@@ -383,14 +327,9 @@ export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProp
           </div>
         </aside>
       </div>
-      <Button
-        className="mt-8"
-        icon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}
-        onClick={() => onNavigate("knowledge")}
-        tone="ghost"
-      >
-        Вернуться в раздел
-      </Button>
-    </article>
+      <div className="article-content">
+        <ArticleAttachments articleId={article.id} onNavigate={onNavigate} />
+      </div>
+    </ReadingLayout>
   );
 };

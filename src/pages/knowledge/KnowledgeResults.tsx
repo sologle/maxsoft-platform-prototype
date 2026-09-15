@@ -15,7 +15,11 @@ const openArticle = (article: ArticleSummary, onNavigate: Navigate) =>
 
 const MaterialIcon = ({ kind }: { kind: ArticleSummary["kind"] }) => (
   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
-    {kind === "video" ? <Video className="h-5 w-5" aria-hidden="true" /> : <FileText className="h-5 w-5" aria-hidden="true" />}
+    {kind === "video" ? (
+      <Video className="h-5 w-5" aria-hidden="true" />
+    ) : (
+      <FileText className="h-5 w-5" aria-hidden="true" />
+    )}
   </span>
 );
 
@@ -32,9 +36,16 @@ export const KnowledgeResults = ({
 }) => {
   if (view === "table") {
     return (
-      <div className="overflow-hidden rounded-2xl border border-[var(--ms-border)] bg-white" data-testid="knowledge-table-view">
-        <div className="hidden grid-cols-[minmax(0,1.35fr)_minmax(160px,.8fr)_120px_36px] gap-4 border-b border-[var(--ms-border)] bg-slate-50 px-4 py-2.5 text-xs font-bold uppercase tracking-[.08em] text-slate-400 md:grid">
-          <span>Материал</span><span>Раздел</span><span>Обновлено</span><span />
+      <div
+        className="ms-table-scroll rounded-2xl border border-[var(--ms-border)] bg-white"
+        data-testid="knowledge-table-view"
+      >
+        <div className="sticky top-0 z-10 hidden grid-cols-[40px_minmax(0,1.35fr)_minmax(160px,.8fr)_120px_28px] gap-4 border-b border-[var(--ms-border)] bg-slate-50 px-4 py-2.5 text-xs font-bold uppercase tracking-[.08em] text-slate-400 md:grid">
+          <span />
+          <span>Материал</span>
+          <span>Раздел</span>
+          <span>Обновлено</span>
+          <span />
         </div>
         {articles.map((article) => (
           <button
@@ -46,12 +57,22 @@ export const KnowledgeResults = ({
           >
             <MaterialIcon kind={article.kind} />
             <span className="min-w-0">
-              <span className="flex min-w-0 items-center gap-2"><span className="truncate text-sm font-bold">{article.title}</span>{!isArticlePublished(article) ? <Badge tone="amber">Черновик</Badge> : null}</span>
-              <span className="mt-1 block truncate text-xs text-[var(--ms-muted)]">{article.description}</span>
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="truncate text-sm font-bold">{article.title}</span>
+                {!isArticlePublished(article) ? <Badge tone="amber">Черновик</Badge> : null}
+              </span>
+              <span className="mt-1 block truncate text-xs text-[var(--ms-muted)]">
+                {article.description}
+              </span>
             </span>
-            <span className="hidden min-w-0 truncate text-xs text-[var(--ms-muted)] md:block">{getArticleSections(article).join(" · ")}</span>
+            <span className="hidden min-w-0 truncate text-xs text-[var(--ms-muted)] md:block">
+              {getArticleSections(article).join(" · ")}
+            </span>
             <span className="hidden text-xs text-slate-400 md:block">{article.updated}</span>
-            <ArrowRight className="h-4 w-4 text-[var(--ms-primary)] transition group-hover:translate-x-0.5" aria-hidden="true" />
+            <ArrowRight
+              className="h-4 w-4 text-[var(--ms-primary)] transition group-hover:translate-x-0.5"
+              aria-hidden="true"
+            />
           </button>
         ))}
         {showAttachedFile ? (
@@ -62,10 +83,18 @@ export const KnowledgeResults = ({
             type="button"
           >
             <FileTypeIcon type="PDF" />
-            <span className="min-w-0"><span className="block truncate text-sm font-bold">инструкция_активации.pdf</span><span className="mt-1 block text-xs text-[var(--ms-muted)]">PDF · 2,4 МБ</span></span>
-            <span className="hidden truncate text-xs text-[var(--ms-muted)] md:block">НАВИСА · Установка</span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-bold">инструкция_активации.pdf</span>
+              <span className="mt-1 block text-xs text-[var(--ms-muted)]">PDF · 2,4 МБ</span>
+            </span>
+            <span className="hidden truncate text-xs text-[var(--ms-muted)] md:block">
+              НАВИСА · Установка
+            </span>
             <span className="hidden text-xs text-slate-400 md:block">Сегодня</span>
-            <ArrowRight className="h-4 w-4 text-[var(--ms-primary)] transition group-hover:translate-x-0.5" aria-hidden="true" />
+            <ArrowRight
+              className="h-4 w-4 text-[var(--ms-primary)] transition group-hover:translate-x-0.5"
+              aria-hidden="true"
+            />
           </button>
         ) : null}
       </div>
@@ -93,8 +122,18 @@ export const KnowledgeResults = ({
             </div>
           </div>
           <p className="mt-3 text-sm leading-6 text-[var(--ms-muted)]">{article.description}</p>
-          <div className="mt-4 flex flex-wrap gap-2">{getArticleTags(article).map((tag) => <Badge key={tag}>{tag}</Badge>)}</div>
-          <div className="mt-auto flex items-center justify-between gap-3 pt-5"><span className="text-xs text-slate-400">Обновлено: {article.updated}</span><ArrowRight className="h-4 w-4 text-[var(--ms-primary)] transition group-hover:translate-x-1" aria-hidden="true" /></div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {getArticleTags(article).map((tag) => (
+              <Badge key={tag}>{tag}</Badge>
+            ))}
+          </div>
+          <div className="mt-auto flex items-center justify-between gap-3 pt-5">
+            <span className="text-xs text-slate-400">Обновлено: {article.updated}</span>
+            <ArrowRight
+              className="h-4 w-4 text-[var(--ms-primary)] transition group-hover:translate-x-1"
+              aria-hidden="true"
+            />
+          </div>
         </button>
       ))}
       {showAttachedFile ? (
@@ -104,9 +143,21 @@ export const KnowledgeResults = ({
           onClick={() => onNavigate("file-preview", "инструкция_активации.pdf")}
           type="button"
         >
-          <div className="flex items-start gap-3"><FileTypeIcon type="PDF" /><div><Badge tone="red">PDF</Badge><h2 className="mt-2 break-words font-heading text-lg font-bold">инструкция_активации.pdf</h2></div></div>
-          <p className="mt-3 text-sm leading-6 text-[var(--ms-muted)]">Инструкция по активации сетевой лицензии. Файл наследует доступ связанной статьи.</p>
-          <span className="mt-auto pt-5 text-xs text-slate-400">PDF · 2,4 МБ · обновлено сегодня</span>
+          <div className="flex items-start gap-3">
+            <FileTypeIcon type="PDF" />
+            <div>
+              <Badge tone="red">PDF</Badge>
+              <h2 className="mt-2 break-words font-heading text-lg font-bold">
+                инструкция_активации.pdf
+              </h2>
+            </div>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-[var(--ms-muted)]">
+            Инструкция по активации сетевой лицензии. Файл наследует доступ связанной статьи.
+          </p>
+          <span className="mt-auto pt-5 text-xs text-slate-400">
+            PDF · 2,4 МБ · обновлено сегодня
+          </span>
         </button>
       ) : null}
     </div>

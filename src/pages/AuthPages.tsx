@@ -1,20 +1,12 @@
-import {
-  Building2,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  KeyRound,
-  Mail,
-  ShieldCheck,
-} from "lucide-react";
+import { getCompanyFields } from "../data/registration-fields";
+import { Building2, CheckCircle2, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { lazy, Suspense, useState, type FormEvent } from "react";
-import type { AppPage, Authenticate, Navigate } from "../app/types";
+import type { Authenticate, Navigate } from "../app/types";
 import { ResponsiveOverlay } from "../components/ResponsiveOverlay";
 import { WordmarkLanding } from "./auth/WordmarkLanding";
 import { AuthStage } from "../components/AuthStage";
 import { Button, Field } from "../components/ui";
 import {
-  companyFields as initialCompanyFields,
   companyTypes as initialCompanyTypes,
   type CompanyRecord,
   type UserRecord,
@@ -41,9 +33,15 @@ const ArchivedLanding = lazy(() => import("../components/auth-backgrounds/archiv
 
 export const LandingPage = ({ onNavigate }: AuthPageProps) => (
   <AuthStage layout="landing">
-    {(variant) => (variant === "wordmark" || variant === "scatter") ? <WordmarkLanding onNavigate={onNavigate} /> : (
-      <Suspense fallback={null}><ArchivedLanding onNavigate={onNavigate} /></Suspense>
-    )}
+    {(variant) =>
+      variant === "wordmark" || variant === "scatter" ? (
+        <WordmarkLanding onNavigate={onNavigate} />
+      ) : (
+        <Suspense fallback={null}>
+          <ArchivedLanding onNavigate={onNavigate} />
+        </Suspense>
+      )
+    }
   </AuthStage>
 );
 
@@ -63,17 +61,23 @@ export const LoginPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
         <div className="portal-auth-glass grid w-full overflow-hidden rounded-[28px] md:grid-cols-[.9fr_1.1fr]">
           <div className="portal-auth-glass-intro hidden p-10 md:flex md:flex-col md:justify-between">
             <div>
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--ms-primary-soft)] font-heading text-lg font-black text-[var(--ms-primary)]">M</span>
+              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--ms-primary-soft)] font-heading text-lg font-black text-[var(--ms-primary)]">
+                M
+              </span>
               <h1 className="mt-6 font-heading text-3xl font-bold">С возвращением</h1>
               <p className="mt-3 leading-7 text-[var(--ms-muted)]">
                 Войдите, чтобы продолжить работу с материалами вашей компании.
               </p>
             </div>
-            <p className="text-xs text-[var(--ms-muted)]">Доступ защищён ролевой моделью и правами компании.</p>
+            <p className="text-xs text-[var(--ms-muted)]">
+              Доступ защищён ролевой моделью и правами компании.
+            </p>
           </div>
           <form className="p-5 sm:p-8 lg:p-12" onSubmit={submit}>
             <h1 className="font-heading text-3xl font-bold md:hidden">Вход</h1>
-            <p className="mt-2 text-sm text-[var(--ms-muted)] md:hidden">Используйте корпоративную почту.</p>
+            <p className="mt-2 text-sm text-[var(--ms-muted)] md:hidden">
+              Используйте корпоративную почту.
+            </p>
             <Field
               className="mt-6 md:mt-0"
               error={submitted && !email.trim() ? "Введите корпоративную почту" : undefined}
@@ -141,10 +145,9 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
   const [email, setEmail] = useState("admin@severprom.ru");
   const [result, setResult] = useState<"existing" | "new" | "review" | null>(null);
   const [registeredCompanyId, setRegisteredCompanyId] = useState<string | null>(null);
-  const registrationFields = readPrototypeValue(
-    prototypeStorageKeys.companyFields,
-    initialCompanyFields,
-  ).filter((field) => field.visible && field.registration && field.id !== "type");
+  const registrationFields = getCompanyFields().filter(
+    (field) => field.visible && field.registration && field.id !== "type",
+  );
   const registrationDemoValues: Record<string, string> = {
     bitrix: "",
     contract: "",
@@ -173,15 +176,13 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
     };
     const companies = getPrototypeCompanies();
     const inn = formValue("inn");
-    const configuredDomains = formValue("domains")
-      .split(",")
-      .map((domain) => domain.trim().toLocaleLowerCase("ru"))
-      .filter(Boolean);
-    const registrationDomains = configuredDomains.length ? configuredDomains : [emailDomain];
+    const registrationDomains = [emailDomain];
     const domainCompany = companies.find((company) => company.domains.includes(emailDomain));
     const innCompany = inn ? companies.find((company) => company.inn === inn) : undefined;
     const workingDomainCompany = companies.find((company) =>
-      company.domains.some((domain) => registrationDomains.includes(domain.toLocaleLowerCase("ru"))),
+      company.domains.some((domain) =>
+        registrationDomains.includes(domain.toLocaleLowerCase("ru")),
+      ),
     );
     const companyTypes = readPrototypeValue(prototypeStorageKeys.companyTypes, initialCompanyTypes);
     const defaultCompanyType = companyTypes.find((type) => type.isDefault);
@@ -190,13 +191,13 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
     const companyId = `company-${Date.now()}`;
     const company: CompanyRecord = {
       id: companyId,
-      name: formValue("name") || emailDomain,
-      shortName: formValue("shortName") || emailDomain,
+      name: formValue("name"),
+      shortName: "",
       inn,
       kpp: formValue("kpp"),
       legalAddress: formValue("legalAddress"),
-      primaryEmail: formValue("primaryEmail") || email,
-      phone: formValue("phone"),
+      primaryEmail: "",
+      phone: "",
       type: defaultCompanyType.name,
       status: "Активна",
       statusUntil: formValue("statusUntil"),
@@ -218,7 +219,6 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
     );
     const domainInnConflict = Boolean(domainCompany && inn && domainCompany.inn !== inn);
     if (
-      email.includes("conflict") ||
       domainInnConflict ||
       (domainCompany && innCompany && domainCompany.id !== innCompany.id) ||
       (!domainCompany && (innCompany || workingDomainCompany)) ||
@@ -228,29 +228,44 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
       setResult("review");
       return;
     }
-    if (domainCompany) {
-      setRegisteredCompanyId(domainCompany.id);
-      setResult("existing");
-      return;
-    }
     const firstName = form.get("firstName");
     const lastName = form.get("lastName");
     if (typeof firstName !== "string" || typeof lastName !== "string")
       throw new Error("ACC_REGISTRATION_USER_NAME_MISSING: имя пользователя отсутствует");
     const user: UserRecord = {
       id: `user-${Date.now()}`,
-      name: `${firstName.trim()} ${lastName.trim()}`,
+      name: [firstName.trim(), String(form.get("middleName") ?? "").trim(), lastName.trim()]
+        .filter(Boolean)
+        .join(" "),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      middleName: String(form.get("middleName") ?? "").trim(),
+      department: String(form.get("department") ?? "").trim(),
+      phone: String(form.get("personalPhone") ?? "").trim(),
       email: email.trim(),
-      company: company.name,
+      company: domainCompany ? domainCompany.name : company.name,
       role: "Администратор клиента",
-      position: "Не указана",
+      position: String(form.get("position") ?? "").trim(),
       status: "Активен",
       lastLogin: "Только что",
     };
-    writePrototypeCompanies([...companies, company]);
+    const existingUser = getPrototypeUsers().find(
+      (user) => user.email.toLowerCase() === email.trim().toLowerCase(),
+    );
+    if (existingUser) {
+      setResult("review");
+      return;
+    }
+    writePrototypeCompanies(
+      domainCompany
+        ? companies.map((item) =>
+            item.id === domainCompany.id ? { ...item, users: item.users + 1 } : item,
+          )
+        : [...companies, company],
+    );
     writePrototypeUsers([...getPrototypeUsers(), user]);
-    setRegisteredCompanyId(companyId);
-    setResult("new");
+    setRegisteredCompanyId(domainCompany ? domainCompany.id : companyId);
+    setResult(domainCompany ? "existing" : "new");
   };
   return (
     <AuthLayout>
@@ -260,14 +275,21 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
               <Building2 className="h-5 w-5" aria-hidden="true" />
             </span>
-            <h1 className="mt-5 font-heading text-3xl font-bold sm:text-4xl">Регистрация в портале</h1>
+            <h1 className="mt-5 font-heading text-3xl font-bold sm:text-4xl">
+              Регистрация в портале
+            </h1>
             <p className="mt-3 text-sm leading-6 text-[var(--ms-muted)] sm:text-base">
-              Компания определится по корпоративному домену и ИНН. При конфликте заявка уйдёт на проверку.
+              Демонстрация регистрации. Компания определяется по корпоративной почте и ИНН; отправка
+              писем и настоящая авторизация не подключены.
             </p>
           </div>
           <form className="mt-8 grid gap-4 sm:grid-cols-2" onSubmit={submit}>
             <Field label="Имя" defaultValue="Анна" name="firstName" required />
             <Field label="Фамилия" defaultValue="Смирнова" name="lastName" required />
+            <Field label="Отчество" name="middleName" />
+            <Field label="Должность" name="position" />
+            <Field label="Отдел" name="department" />
+            <Field label="Личный контактный телефон" name="personalPhone" type="tel" />
             <Field
               className="sm:col-span-2"
               label="Корпоративная почта"
@@ -324,7 +346,7 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
       </section>
       <ResponsiveOverlay
         desktop="modal"
-        label={result === "review" ? "Заявка отправлена на проверку" : "Регистрация завершена"}
+        label={result === "review" ? "Нужна проверка данных" : "Демонстрация регистрации завершена"}
         onClose={() => setResult(null)}
         open={Boolean(result)}
       >
@@ -347,10 +369,10 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
           </h3>
           <p className="mt-2 text-sm leading-6 text-[var(--ms-muted)]">
             {result === "existing"
-              ? "Аккаунт привязан к ООО «СеверПромБИМ»."
+              ? `Демонстрационный аккаунт привязан к ${getPrototypeCompanies().find((item) => item.id === registeredCompanyId)?.name}.`
               : result === "new"
                 ? "Создана компания с базовым доступом к порталу."
-                : "Мы сверим домен и ИНН. После подтверждения на почту придёт ссылка для входа."}
+                : "Проверьте домен, ИНН и email. В прототипе заявка не отправляется. Код: ACC_REGISTRATION_REVIEW."}
           </p>
           {result === "review" ? (
             <Button className="mt-6 w-full" onClick={() => onNavigate("login")} tone="secondary">
@@ -411,7 +433,12 @@ export const RecoverPage = ({ onNavigate }: AuthPageProps) => {
                 setStep("password");
               }}
             >
-              <Field defaultValue="employee@severprom.ru" label="Электронная почта" required type="email" />
+              <Field
+                defaultValue="employee@severprom.ru"
+                label="Электронная почта"
+                required
+                type="email"
+              />
               <Button className="mt-5 w-full" type="submit">
                 Получить ссылку
               </Button>
@@ -425,8 +452,18 @@ export const RecoverPage = ({ onNavigate }: AuthPageProps) => {
                 setStep("done");
               }}
             >
-              <Field defaultValue="new-maxsoft-demo" label="Новый пароль" required type="password" />
-              <Field defaultValue="new-maxsoft-demo" label="Повторите пароль" required type="password" />
+              <Field
+                defaultValue="new-maxsoft-demo"
+                label="Новый пароль"
+                required
+                type="password"
+              />
+              <Field
+                defaultValue="new-maxsoft-demo"
+                label="Повторите пароль"
+                required
+                type="password"
+              />
               <Button className="w-full" type="submit">
                 Сохранить пароль
               </Button>

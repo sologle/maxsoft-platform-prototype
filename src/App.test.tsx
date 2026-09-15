@@ -1,13 +1,25 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 
 // Canvas animation is covered by browser tests; jsdom has no Canvas2D renderer.
 vi.mock("./components/auth-backgrounds/ReactiveCanvas", () => ({ ReactiveCanvas: () => null }));
 
 describe("адаптивная оболочка платформы", () => {
+  beforeEach(() => {
+    // jsdom has no layout observer; header geometry is covered in Playwright.
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect() {}
+        unobserve() {}
+      },
+    );
+  });
   afterEach(() => {
     cleanup();
+    vi.unstubAllGlobals();
     window.history.replaceState({}, "", "/");
   });
 

@@ -1,116 +1,65 @@
-import { BookOpen, ChevronDown, ChevronRight, Folder, FolderOpen } from "lucide-react";
+import { ChevronDown, ChevronRight, Folder } from "lucide-react";
 import { useState } from "react";
-
-interface KnowledgeTreeProps {
-  onSelect: (section: string) => void;
+import { getKnowledgeTree, sectionArticleIds, type TreeNode } from "../../data/knowledge-tree";
+export const KnowledgeTree = ({
+  onSelect,
+  selected,
+}: {
+  onSelect: (id: string) => void;
   selected: string;
-}
-
-const branches = [
-  { id: "installation", label: "Установка", count: 12 },
-  { id: "settings", label: "Настройка", count: 18 },
-  { id: "updates", label: "Обновление", count: 9 },
-  { id: "cases", label: "Кейсы внедрения", count: 7 },
-  { id: "administration", label: "Администрирование", count: 11 },
-];
-
-export const KnowledgeTree = ({ onSelect, selected }: KnowledgeTreeProps) => {
-  const [navisaOpen, setNavisaOpen] = useState(true);
-  const [productsOpen, setProductsOpen] = useState(true);
-
+}) => {
+  const tree = getKnowledgeTree();
+  const [expanded, setExpanded] = useState(new Set(["products", "navisa"]));
+  const render = (nodes: TreeNode[]) =>
+    nodes.map((node) => (
+      <div key={node.id}>
+        <div className="flex items-center min-w-0">
+          {node.children?.length ? (
+            <button
+              className="icon-button shrink-0"
+              aria-label={`${expanded.has(node.id) ? "Свернуть" : "Развернуть"} раздел ${node.name}`}
+              aria-expanded={expanded.has(node.id)}
+              onClick={() =>
+                setExpanded((current) => {
+                  const next = new Set(current);
+                  next.has(node.id) ? next.delete(node.id) : next.add(node.id);
+                  return next;
+                })
+              }
+            >
+              {expanded.has(node.id) ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </button>
+          ) : null}
+          <button
+            aria-label={node.name}
+            className={`tree-item min-w-0 flex-1 ${selected === node.id ? "tree-item-active" : ""}`}
+            onClick={() => onSelect(node.id)}
+          >
+            <Folder className="h-4 w-4 shrink-0" />
+            <span className="flex-1 text-left break-words">{node.name}</span>
+            <span className="text-xs text-slate-400">
+              {sectionArticleIds(tree, node.id).length}
+            </span>
+          </button>
+        </div>
+        {node.children && expanded.has(node.id) ? (
+          <div className="pl-3 border-l border-[var(--ms-border)]">{render(node.children)}</div>
+        ) : null}
+      </div>
+    ));
   return (
-    <nav aria-label="Дерево базы знаний" className="min-w-0 text-sm">
+    <nav aria-label="Дерево разделов">
       <button
         className={`tree-item ${selected === "all" ? "tree-item-active" : ""}`}
         onClick={() => onSelect("all")}
-        type="button"
       >
-        <BookOpen className="h-[18px] w-[18px]" aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate text-left font-semibold">Все материалы</span>
-        <span className="text-xs text-slate-400">57</span>
+        Вся база знаний
       </button>
-
-      <div className="mt-1">
-        <button
-          aria-expanded={productsOpen}
-          aria-label={`${productsOpen ? "Свернуть" : "Развернуть"} раздел Продукты`}
-          className="tree-item"
-          onClick={() => setProductsOpen((current) => !current)}
-          type="button"
-        >
-          {productsOpen ? (
-            <ChevronDown className="h-4 w-4" aria-hidden="true" />
-          ) : (
-            <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          )}
-          {productsOpen ? (
-            <FolderOpen className="h-[18px] w-[18px] text-amber-500" aria-hidden="true" />
-          ) : (
-            <Folder className="h-[18px] w-[18px] text-amber-500" aria-hidden="true" />
-          )}
-          <span className="min-w-0 flex-1 truncate text-left font-semibold">Продукты</span>
-          <span className="text-xs text-slate-400">43</span>
-        </button>
-        <div
-          aria-hidden={!productsOpen}
-          className="tree-children grid pl-4"
-          data-open={productsOpen ? "true" : "false"}
-          inert={!productsOpen || undefined}
-        >
-          <div className="min-h-0 overflow-hidden">
-            <button
-              aria-expanded={navisaOpen}
-              aria-label={`${navisaOpen ? "Свернуть" : "Развернуть"} раздел НАВИСА`}
-              className={`tree-item mt-1 ${selected === "navisa" ? "tree-item-active" : ""}`}
-              onClick={() => {
-                setNavisaOpen((current) => !current);
-                onSelect("navisa");
-              }}
-              type="button"
-            >
-              {navisaOpen ? (
-                <ChevronDown className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              )}
-              {navisaOpen ? (
-                <FolderOpen className="h-[18px] w-[18px] text-amber-500" aria-hidden="true" />
-              ) : (
-                <Folder className="h-[18px] w-[18px] text-amber-500" aria-hidden="true" />
-              )}
-              <span className="min-w-0 flex-1 truncate text-left font-semibold">НАВИСА</span>
-              <span className="text-xs text-slate-400">36</span>
-            </button>
-            <div
-              aria-hidden={!navisaOpen}
-              className="tree-children grid pl-7"
-              data-open={navisaOpen ? "true" : "false"}
-              inert={!navisaOpen || undefined}
-            >
-              <div className="min-h-0 overflow-hidden py-1">
-                {branches.map((branch) => (
-                  <button
-                    aria-label={branch.label}
-                    className={`tree-item py-2 ${selected === branch.id ? "tree-item-active" : ""}`}
-                    key={branch.id}
-                    onClick={() => onSelect(branch.id)}
-                    type="button"
-                  >
-                    <Folder className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
-                    <span className="min-w-0 flex-1 truncate text-left">{branch.label}</span>
-                    <span className="text-xs text-slate-400">{branch.count}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <button className="tree-item" onClick={() => onSelect("model-studio")} type="button">
-              <Folder className="h-[18px] w-[18px] text-amber-500" aria-hidden="true" />
-              <span className="min-w-0 flex-1 truncate text-left font-semibold">Model Studio CS</span>
-              <span className="text-xs text-slate-400">7</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      {render(tree)}
     </nav>
   );
 };

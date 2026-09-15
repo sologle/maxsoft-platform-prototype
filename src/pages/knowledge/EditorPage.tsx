@@ -1,3 +1,6 @@
+import { GroupedTagPicker, getTagGroups } from "../../components/GroupedTagPicker";
+import { flattenTree, getKnowledgeTree } from "../../data/knowledge-tree";
+import { goBack } from "../../components/BackButton";
 import {
   Bold,
   Check,
@@ -24,7 +27,6 @@ import {
   articles,
   companyTypes,
   isArticlePublished,
-  tagGroups,
   type AuditEvent,
 } from "../../data/platform-data";
 import {
@@ -33,7 +35,11 @@ import {
   getArticleTags,
   writeArticleSettings,
 } from "../../data/prototype-entities";
-import { appendPrototypeValue, prototypeStorageKeys, readPrototypeValue } from "../../data/prototype-store";
+import {
+  appendPrototypeValue,
+  prototypeStorageKeys,
+  readPrototypeValue,
+} from "../../data/prototype-store";
 
 interface EditorPageProps {
   onNavigate: Navigate;
@@ -54,17 +60,16 @@ const toolbarActions = [
 ];
 
 export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) => {
-  const sourceArticle = articles.find((article) => article.id === (resource ?? "network-license"))!;
-  const [availableTags] = useState(() =>
-    readPrototypeValue<Array<{ tags: Array<{ name: string }> }>>(
-      prototypeStorageKeys.tags,
-      tagGroups.map((group) => ({ tags: group.tags.map((name) => ({ name })) })),
-    ).flatMap((group) => group.tags.map((tag) => tag.name)),
-  );
+  const sourceArticle = articles.find(
+    (article) => article.id === (resource ?? "server-migration"),
+  )!;
+  const groups = getTagGroups();
+  const [importedDemo, setImportedDemo] = useState(false);
+  const [chosenFile, setChosenFile] = useState<File | null>(null);
   const [availableCompanyTypes] = useState(() =>
     readPrototypeValue(prototypeStorageKeys.companyTypes, companyTypes),
   );
-  const initialAccess = getArticleAccess(sourceArticle);
+  const initialAccess = resource ? getArticleAccess(sourceArticle) : "all";
   const [title, setTitle] = useState(sourceArticle.title);
   const [content, setContent] = useState(
     `${sourceArticle.description}\n\nМатериал открыт в редакторе и готов к изменению.`,
@@ -76,7 +81,9 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importPhase, setImportPhase] = useState<ImportPhase>("select");
-  const [published, setPublished] = useState(() => isArticlePublished(sourceArticle));
+  const [published, setPublished] = useState(() =>
+    resource ? isArticlePublished(sourceArticle) : false,
+  );
   const [allCompanies, setAllCompanies] = useState(initialAccess === "all");
   const [selectedCompanyTypes, setSelectedCompanyTypes] = useState(() =>
     initialAccess === "all"
@@ -106,23 +113,32 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
   };
 
   const finishImport = () => {
+    setImportedDemo(true);
+    setPublished(false);
+    setAllCompanies(true);
     setTitle("Регламент работы с проектами");
     setContent(
-      "Импортированный документ преобразован в редактируемую статью.\n\nСтруктура заголовков, списки и ссылки сохранены. Проверьте оформление перед публикацией.",
+      "Демонстрационный макет результата импорта.\n\nСодержимое выбранного файла не преобразовывалось. Макет не сохраняется в существующую статью.",
     );
     setImportOpen(false);
     setImportPhase("select");
     markChanged();
-    onNotice("Документ импортирован в черновик.");
+    onNotice("Открыт демонстрационный черновик. Исходная статья не изменена.");
   };
 
   return (
     <>
+      {importedDemo ? (
+        <p className="mb-4 rounded-xl bg-sky-50 p-4 text-sm text-sky-900">
+          Демонстрационный черновик. Настоящий импорт и сохранение файла не выполнены; существующие
+          статьи не изменяются.
+        </p>
+      ) : null}
       <div className="mx-auto max-w-[1280px]">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <Button
             icon={<ChevronLeft className="h-4 w-4" aria-hidden="true" />}
-            onClick={() => onNavigate("knowledge")}
+            onClick={() => goBack(onNavigate, "knowledge")}
             tone="ghost"
           >
             К материалам
@@ -134,9 +150,16 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
             {saved ? (
               <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
             ) : (
-              <LoaderCircle className="h-4 w-4 animate-spin text-[var(--ms-primary)]" aria-hidden="true" />
+              <LoaderCircle
+                className="h-4 w-4 animate-spin text-[var(--ms-primary)]"
+                aria-hidden="true"
+              />
             )}
-            {saved ? "Все изменения сохранены" : "Сохраняем…"}
+            {importedDemo
+              ? "Демонстрационный макет — не сохранён"
+              : saved
+                ? "Все изменения сохранены"
+                : "Сохраняем…"}
           </span>
         </div>
 
@@ -147,7 +170,8 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
                 Редактор статьи
               </p>
               <p className="mt-1 truncate text-sm text-[var(--ms-muted)]">
-                {published ? "Опубликована" : "Черновик"} · автосохранение включено
+                {published ? "Опубликована" : "Черновик"} ·{" "}
+                {importedDemo ? "без сохранения" : "автосохранение включено"}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -203,7 +227,9 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
                     key={id}
                     onClick={() => {
                       setActiveTools((current) =>
-                        current.includes(id) ? current.filter((tool) => tool !== id) : [...current, id],
+                        current.includes(id)
+                          ? current.filter((tool) => tool !== id)
+                          : [...current, id],
                       );
                       onNotice(`${label}: режим ${active ? "выключен" : "включён"}.`);
                     }}
@@ -288,6 +314,7 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
               </div>
               <Switch
                 checked={published}
+                disabled={importedDemo}
                 label="Публикация статьи"
                 onChange={() => {
                   setPublished((current) => !current);
@@ -299,20 +326,18 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
           <section>
             <h3 className="mb-3 font-heading text-lg font-bold">Разделы</h3>
             <div className="space-y-2">
-              {[
-                { label: "Установка", path: "НАВИСА / Установка" },
-                { label: "Настройка", path: "НАВИСА / Настройка" },
-                { label: "Администрирование", path: "НАВИСА / Администрирование" },
-              ].map((item) => (
-                <label className="option-row" key={item.path}>
-                  <input
-                    checked={sections.includes(item.path)}
-                    onChange={() => toggleItem(item.path, sections, setSections)}
-                    type="checkbox"
-                  />
-                  <span>{item.label}</span>
-                </label>
-              ))}
+              {flattenTree(getKnowledgeTree())
+                .map((item) => ({ ...item, label: item.path }))
+                .map((item) => (
+                  <label className="option-row" key={item.path}>
+                    <input
+                      checked={sections.includes(item.path)}
+                      onChange={() => toggleItem(item.path, sections, setSections)}
+                      type="checkbox"
+                    />
+                    <span>{item.label}</span>
+                  </label>
+                ))}
             </div>
             {!sections.length ? (
               <p className="mt-3 text-sm font-semibold text-red-600" role="alert">
@@ -322,19 +347,11 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
           </section>
           <section>
             <h3 className="mb-3 font-heading text-lg font-bold">Теги</h3>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.map((tag) => (
-                <button
-                  aria-pressed={tags.includes(tag)}
-                  className={`rounded-full px-3 py-2 text-sm font-semibold ring-1 transition ${tags.includes(tag) ? "bg-[var(--ms-primary)] text-white ring-[var(--ms-primary)]" : "bg-white text-[var(--ms-muted)] ring-[var(--ms-border-strong)] hover:ring-[var(--ms-primary)]"}`}
-                  key={tag}
-                  onClick={() => toggleItem(tag, tags, setTags)}
-                  type="button"
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
+            <GroupedTagPicker
+              groups={groups}
+              selected={tags}
+              onToggle={(tag) => toggleItem(tag, tags, setTags)}
+            />
           </section>
           <section>
             <h3 className="mb-3 font-heading text-lg font-bold">Доступ</h3>
@@ -385,17 +402,26 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
             ) : null}
             {published && !allCompanies ? (
               <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-700">
-                После сохранения исключённые типы компаний сразу потеряют доступ к статье и вложениям.
+                После сохранения исключённые типы компаний сразу потеряют доступ к статье и
+                вложениям.
               </p>
             ) : null}
-            <div className="mt-3 rounded-xl border border-[var(--ms-border)] bg-slate-50 p-3 text-sm leading-6" data-testid="article-access-summary">
+            <div
+              className="mt-3 rounded-xl border border-[var(--ms-border)] bg-slate-50 p-3 text-sm leading-6"
+              data-testid="article-access-summary"
+            >
               <strong>Итоговый доступ:</strong>{" "}
-              {allCompanies ? "все типы компаний" : selectedCompanyTypes.join(", ") || "не настроен"}.
+              {allCompanies
+                ? "все типы компаний"
+                : selectedCompanyTypes.join(", ") || "не настроен"}
+              .
             </div>
           </section>
           <Button
             className="w-full"
-            disabled={!sections.length || (!allCompanies && !selectedCompanyTypes.length)}
+            disabled={
+              importedDemo || !sections.length || (!allCompanies && !selectedCompanyTypes.length)
+            }
             onClick={() => {
               writeArticleSettings(sourceArticle, {
                 access: allCompanies ? "all" : selectedCompanyTypes,
@@ -425,7 +451,7 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
 
       <ResponsiveOverlay
         desktop="modal"
-        label="Импорт из Word"
+        label="Демонстрация импорта Word"
         onClose={() => {
           setImportOpen(false);
           setImportPhase("select");
@@ -444,28 +470,43 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
               </span>
               <span className="mt-4 block font-bold">Выберите DOCX-файл</span>
               <span className="mt-1 block text-sm text-[var(--ms-muted)]">
-                До 20 МБ, заголовки и списки будут сохранены
+                Выберите DOCX до 20 МБ. Покажем макет результата без конвертации файла.
               </span>
             </button>
             <input
               accept=".docx"
               className="sr-only"
-              onChange={() => onNotice("Файл выбран для импорта.")}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (!file.name.toLowerCase().endsWith(".docx") || file.size > 20 * 1024 * 1024) {
+                  setImportPhase("error");
+                  setChosenFile(null);
+                  return;
+                }
+                setChosenFile(file);
+              }}
               ref={fileInputRef}
               type="file"
             />
             <div className="mt-4 flex items-center gap-3 rounded-xl border border-[var(--ms-border)] p-3 text-left">
               <FileText className="h-5 w-5 shrink-0 text-[var(--ms-primary)]" aria-hidden="true" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-bold">регламент_работы_с_проектами.docx</span>
-                <span className="text-xs text-[var(--ms-muted)]">1,8 МБ</span>
+                <span className="block truncate text-sm font-bold">
+                  {chosenFile?.name ?? "Файл не выбран"}
+                </span>
+                <span className="text-xs text-[var(--ms-muted)]">
+                  {chosenFile ? `${Math.ceil(chosenFile.size / 1024)} КБ` : ""}
+                </span>
               </span>
             </div>
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button onClick={() => setImportPhase("error")} tone="ghost">
                 Показать ошибку
               </Button>
-              <Button onClick={() => setImportPhase("processing")}>Импортировать</Button>
+              <Button disabled={!chosenFile} onClick={() => setImportPhase("processing")}>
+                Показать демонстрацию
+              </Button>
             </div>
           </div>
         ) : null}
@@ -477,7 +518,7 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
             />
             <h3 className="mt-4 font-heading text-xl font-bold">Обрабатываем документ</h3>
             <p className="mt-2 text-sm text-[var(--ms-muted)]">
-              Распознаём структуру и переносим содержимое в редактор.
+              Готовим демонстрационный макет. Содержимое файла не преобразуется.
             </p>
           </div>
         ) : null}
@@ -486,10 +527,12 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
             <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-600">
               <Check className="h-7 w-7" aria-hidden="true" />
             </span>
-            <h3 className="mt-4 font-heading text-xl font-bold">Документ импортирован</h3>
-            <p className="mt-2 text-sm text-[var(--ms-muted)]">Черновик готов к проверке и оформлению.</p>
+            <h3 className="mt-4 font-heading text-xl font-bold">Демонстрация готова</h3>
+            <p className="mt-2 text-sm text-[var(--ms-muted)]">
+              Можно открыть макет черновика. Исходная статья не изменится.
+            </p>
             <Button className="mt-6 w-full" onClick={finishImport}>
-              Открыть импортированный черновик
+              Открыть демонстрационный черновик
             </Button>
           </div>
         ) : null}

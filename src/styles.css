@@ -71,7 +71,9 @@ select:not([multiple]):not(.styled-select) {
     calc(100% - 17px) calc(50% - 2px),
     calc(100% - 12px) calc(50% - 2px);
   background-repeat: no-repeat;
-  background-size: 5px 5px, 5px 5px;
+  background-size:
+    5px 5px,
+    5px 5px;
 }
 
 .styled-select {
@@ -537,5 +539,29 @@ div[data-state="closed"][aria-hidden="true"] {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+.ms-table-scroll {
+  max-height: min(60dvh, calc(100dvh - var(--portal-header-height, 72px) - 32px));
+  overflow: auto;
+}
+.ms-table-scroll thead {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--ms-surface, white);
+}
+.ms-table-scroll thead th {
+  background: var(--ms-surface, white);
+}
+html[data-theme="dark"] .ms-table-scroll thead,
+html[data-theme="dark"] .ms-table-scroll thead th,
+html[data-theme="dark"] .reading-tools {
+  background: var(--ms-surface, #152333);
+}
+@media (max-width: 639px) {
+  .access-node .access-node {
+    padding: 8px;
   }
 }

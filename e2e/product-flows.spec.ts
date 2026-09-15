@@ -14,7 +14,7 @@ test("гость проходит регистрацию и попадает в 
   await page.goto("./?page=register&role=guest");
   await page.getByLabel("Корпоративная почта").fill("admin@severprom.ru");
   await page.getByRole("button", { name: "Создать аккаунт" }).click();
-  const result = page.getByRole("dialog", { name: "Регистрация завершена" });
+  const result = page.getByRole("dialog", { name: "Демонстрация регистрации завершена" });
   await expect(result).toContainText("Компания найдена");
   await result.getByRole("button", { name: "Перейти в портал" }).click();
   await expect(page.getByRole("heading", { name: "Рабочее пространство" })).toBeVisible();
@@ -26,16 +26,15 @@ test("новая регистрация получает фактический 
   await page.goto("./?page=register&role=guest");
   await page.getByLabel("Корпоративная почта").fill("owner@new-company.ru");
   await page.getByLabel("Полное наименование").fill("ООО «Новая компания»");
-  await page.getByLabel("Сокращённое наименование").fill("Новая компания");
   await page.getByLabel("ИНН").fill("1234567001");
-  await page.getByLabel("Рабочие домены").fill("new-company.ru");
-  await page.getByLabel("Основной email").fill("owner@new-company.ru");
   await page.getByRole("button", { name: "Создать аккаунт" }).click();
-  const result = page.getByRole("dialog", { name: "Регистрация завершена" });
+  const result = page.getByRole("dialog", { name: "Демонстрация регистрации завершена" });
   await expect(result).toContainText("Компания создана");
   await result.getByRole("button", { name: "Перейти в портал" }).click();
   await expect(page.getByText("Настройка сетевой лицензии", { exact: true })).toBeVisible();
-  await expect(page.getByText("Настройка интеграции с САПР-комплексом", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText("Настройка интеграции с САПР-комплексом", { exact: true }),
+  ).toHaveCount(0);
   await expect(page.getByText("Подготовка шаблона проекта", { exact: true })).toHaveCount(0);
   await page.goto("./?page=article&resource=update-2026&role=client-admin");
   await expect(page.getByRole("heading", { name: "Нет доступа к разделу" })).toBeVisible();
@@ -45,12 +44,9 @@ test("регистрация соблюдает настроенную уник�
   await page.goto("./?page=register&role=guest");
   await page.getByLabel("Корпоративная почта").fill("owner@another-company.ru");
   await page.getByLabel("Полное наименование").fill("ООО «СеверПромБИМ»");
-  await page.getByLabel("Сокращённое наименование").fill("Другая компания");
   await page.getByLabel("ИНН").fill("1234567002");
-  await page.getByLabel("Рабочие домены").fill("another-company.ru");
-  await page.getByLabel("Основной email").fill("owner@another-company.ru");
   await page.getByRole("button", { name: "Создать аккаунт" }).click();
-  const result = page.getByRole("dialog", { name: "Заявка отправлена на проверку" });
+  const result = page.getByRole("dialog", { name: "Нужна проверка данных" });
   await expect(result).toContainText("Нужна ручная проверка");
 });
 
@@ -69,14 +65,20 @@ test("редактор импортирует DOCX, показывает оши�
   await page.getByLabel("Стиль абзаца").selectOption("Подзаголовок");
   await expect(page.getByRole("status").filter({ hasText: "Подзаголовок" })).toBeVisible();
   await page.getByRole("button", { name: "Импорт DOCX" }).click();
-  const importDialog = page.getByRole("dialog", { name: "Импорт из Word" });
+  const importDialog = page.getByRole("dialog", { name: "Демонстрация импорта Word" });
   await importDialog.getByRole("button", { name: "Показать ошибку" }).click();
   await expect(importDialog).toContainText("Не удалось импортировать файл");
   await importDialog.getByRole("button", { name: "Повторить" }).click();
-  await importDialog.getByRole("button", { name: "Импортировать" }).click();
-  await expect(importDialog).toContainText("Документ импортирован", { timeout: 4000 });
-  await importDialog.getByRole("button", { name: "Открыть импортированный черновик" }).click();
+  await importDialog
+    .locator('input[type="file"]')
+    .setInputFiles("e2e/fixtures/MaxSoft_demo_import.docx");
+  await importDialog.getByRole("button", { name: "Показать демонстрацию" }).click();
+  await expect(importDialog).toContainText("Демонстрация готова", { timeout: 4000 });
+  await importDialog.getByRole("button", { name: "Открыть демонстрационный черновик" }).click();
   await expect(page.getByLabel("Название статьи")).toHaveValue("Регламент работы с проектами");
+  await page.getByRole("button", { name: "Настройки", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Сохранить настройки" })).toBeDisabled();
+  await page.goto("./?page=editor&resource=network-license&role=portal-admin");
 
   await page.getByRole("button", { name: "Настройки" }).click();
   const settings = page.getByRole("dialog", { name: "Настройки статьи" });
@@ -86,7 +88,9 @@ test("редактор импортирует DOCX, показывает оши�
   await expect(settings.getByTestId("article-access-summary")).toContainText("Клиент");
   await expect(settings).toContainText("потеряют доступ к статье и вложениям");
   await settings.getByRole("button", { name: "Сохранить настройки" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Настройки статьи сохранены" })).toBeVisible();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Настройки статьи сохранены" }),
+  ).toBeVisible();
 });
 
 test("фильтры поиска применяются без пустого действия", async ({ page }, testInfo) => {
@@ -157,12 +161,20 @@ test("поиск меняет выдачу и открывает найденн�
   const input = page.getByRole("textbox", { name: "Поиск по базе знаний" });
   await input.fill("интеграция");
   await input.press("Enter");
-  await expect(page.getByRole("heading", { name: "Настройка интеграции с САПР-комплексом" })).toBeVisible();
-  await page.getByRole("button", { name: "Открыть материал: Настройка интеграции с САПР-комплексом" }).click();
-  await expect(page.getByRole("heading", { name: "Настройка интеграции с САПР-комплексом" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Настройка интеграции с САПР-комплексом" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Открыть материал: Настройка интеграции с САПР-комплексом" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Настройка интеграции с САПР-комплексом" }),
+  ).toBeVisible();
 });
 
-test("карточка материала открывается целиком, а раздел возвращается стрелкой", async ({ page }, testInfo) => {
+test("карточка материала открывается целиком, а раздел возвращается стрелкой", async ({
+  page,
+}, testInfo) => {
   await page.goto("./?page=knowledge&role=portal-admin");
   if (testInfo.project.name.startsWith("mobile")) {
     await page.getByRole("button", { name: "Показать разделы" }).click();
@@ -176,7 +188,9 @@ test("карточка материала открывается целиком,
   await expect(page.getByRole("heading", { name: "Настройка сетевой лицензии" })).toBeVisible();
 });
 
-test("реестр файлов переключается между карточками и таблицей и открывает просмотр", async ({ page }) => {
+test("реестр файлов переключается между карточками и таблицей и открывает просмотр", async ({
+  page,
+}) => {
   await page.goto("./?page=files&role=portal-admin");
   await page.getByRole("button", { name: "Табличный вид" }).click();
   await expect(page.getByTestId("files-table-view")).toBeVisible();
@@ -204,17 +218,26 @@ test("разные карточки сохраняют идентичность 
   await expect(page).toHaveURL(/resource=integrator-pro/);
 });
 
-test("поиск точно показывает источник и подсвечивает запрос без учёта регистра", async ({ page }) => {
+test("поиск точно показывает источник и подсвечивает запрос без учёта регистра", async ({
+  page,
+}) => {
   await page.goto("./?page=search&role=client-employee");
   const input = page.getByRole("textbox", { name: "Поиск по базе знаний" });
   await input.fill("адрес сервера");
   await input.press("Enter");
-  const pdfResult = page.getByRole("button", { name: /Открыть материал: Настройка сетевой лицензии/ });
+  const pdfResult = page.getByRole("button", {
+    name: /Открыть материал: Настройка сетевой лицензии/,
+  });
   await expect(pdfResult).toContainText("Совпадение в тексте PDF");
   await expect(pdfResult.locator("mark").first()).toBeVisible();
   await input.fill("ЛИЦЕНЗИЯ");
   await input.press("Enter");
-  await expect(page.getByRole("button", { name: /Открыть материал: Настройка сетевой лицензии/ }).locator("mark").first()).toBeVisible();
+  await expect(
+    page
+      .getByRole("button", { name: /Открыть материал: Настройка сетевой лицензии/ })
+      .locator("mark")
+      .first(),
+  ).toBeVisible();
 });
 
 test("поиск показывает подсвеченный фрагмент статьи и совпавший тег", async ({ page }) => {
@@ -237,15 +260,17 @@ test("поиск показывает подсвеченный фрагмент 
   await expect(tagResult.locator("mark")).toContainText("Стандарты");
 });
 
-test("файл наследует доступ статьи, реально поворачивается и возвращает клиента в БЗ", async ({ page }) => {
+test("файл наследует доступ статьи, реально поворачивается и возвращает клиента в БЗ", async ({
+  page,
+}) => {
   await page.goto("./?page=file-preview&resource=дистрибутив_модуля.zip&role=client-employee");
   await expect(page.getByRole("heading", { name: "Нет доступа к разделу" })).toBeVisible();
   await page.goto("./?page=file-preview&resource=инструкция_активации.pdf&role=client-employee");
   const document = page.getByTestId("file-preview-document");
-  await expect(document).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
+  const beforeRotation = await document.evaluate((node) => getComputedStyle(node).transform);
   await page.getByRole("button", { name: "Повернуть страницу" }).click();
-  await expect(document).not.toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
-  await page.getByRole("button", { name: "Вернуться в базу знаний" }).click();
+  await expect(document).not.toHaveCSS("transform", beforeRotation);
+  await page.getByRole("button", { name: "Назад", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Все материалы" })).toBeVisible();
 });
 
@@ -273,14 +298,21 @@ test("тип компании определяет доступ к статье"
   await companyEditor.getByLabel("Тип компании").selectOption("ВИП-клиент");
   await companyEditor.getByRole("button", { name: "Сохранить компанию" }).click();
   await page.goto("./?page=article&resource=update-2026&role=client-employee");
-  await expect(page.getByRole("heading", { name: "Обновление компонентов до версии 2026" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Обновление компонентов до версии 2026" }),
+  ).toBeVisible();
 });
 
-test("редактор сохраняет исходные права статьи и отклоняет неизвестный resource", async ({ page }) => {
+test("редактор сохраняет исходные права статьи и отклоняет неизвестный resource", async ({
+  page,
+}) => {
   await page.goto("./?page=editor&resource=update-2026&role=portal-admin");
   await page.getByRole("button", { name: "Настройки" }).click();
   const settings = page.getByRole("dialog", { name: "Настройки статьи" });
-  await expect(settings.getByRole("switch", { name: "Публикация статьи" })).toHaveAttribute("aria-checked", "true");
+  await expect(settings.getByRole("switch", { name: "Публикация статьи" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
   await expect(settings.getByTestId("article-access-summary")).toContainText("ВИП-клиент");
   await settings.getByRole("button", { name: "Сохранить настройки" }).click();
   await page.goto("./?page=article&resource=update-2026&role=client-employee");
@@ -295,10 +327,10 @@ test("административные справочники показываю
   const baseType = page.getByRole("article").filter({ hasText: "Базовый" });
   await baseType.getByRole("button", { name: "Удалить" }).click();
   const deleteDialog = page.getByRole("dialog", { name: "Удалить тип компании" });
-  await expect(deleteDialog).toContainText("назначен базовым");
+  await expect(deleteDialog).toContainText("тип базовый");
   await expect(deleteDialog.getByRole("button", { name: "Удалить тип" })).toBeDisabled();
-  await expect(deleteDialog.getByRole("button", { name: /Открыть компании/ })).toBeVisible();
-  await expect(deleteDialog.getByRole("button", { name: /Открыть статьи/ })).toBeVisible();
+  await expect(deleteDialog.getByLabel("Новый тип для компаний")).toBeVisible();
+  await expect(deleteDialog).toContainText("Статьи с потерей последней аудитории: 0");
   await deleteDialog.getByRole("button", { name: "Закрыть" }).click();
   await page.getByRole("button", { name: "Новый тип" }).click();
   const typeDialog = page.getByRole("dialog", { name: "Новый тип" });
@@ -352,7 +384,11 @@ test("переименование справочников мигрирует �
   await companyEditor.getByRole("button", { name: "Сохранить компанию" }).click();
 
   await page.goto("./?page=company-types&role=portal-admin");
-  await page.getByRole("article").filter({ hasText: "ВИП-клиент" }).getByRole("button", { name: "Изменить" }).click();
+  await page
+    .getByRole("article")
+    .filter({ hasText: "ВИП-клиент" })
+    .getByRole("button", { name: "Изменить" })
+    .click();
   const typeEditor = page.getByRole("dialog", { name: "Изменить тип" });
   await typeEditor.getByLabel("Название типа").fill("Премиум");
   await typeEditor.getByRole("button", { name: "Сохранить" }).click();
@@ -360,7 +396,9 @@ test("переименование справочников мигрирует �
   await page.getByRole("button", { name: "Настройки" }).click();
   await expect(page.getByTestId("article-access-summary")).toContainText("Премиум");
   await page.goto("./?page=article&resource=update-2026&role=client-employee");
-  await expect(page.getByRole("heading", { name: "Обновление компонентов до версии 2026" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Обновление компонентов до версии 2026" }),
+  ).toBeVisible();
 });
 
 test("административные настройки влияют на редактор и форму компании", async ({ page }) => {
@@ -394,7 +432,9 @@ test("административные настройки влияют на ре
   await expect(page.getByRole("status")).toContainText("серверной проверки", { timeout: 3000 });
   await page.goto("./?page=companies&role=portal-admin");
   await page.getByRole("button", { name: "Добавить компанию" }).click();
-  await expect(page.getByRole("dialog", { name: "Новая компания" }).getByLabel("Проект", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("dialog", { name: "Новая компания" }).getByLabel("Проект", { exact: true }),
+  ).toHaveCount(0);
 
   await page.goto("./?page=audit&role=portal-admin");
   await expect(page.getByText("Совместимость 2026")).toBeVisible();
@@ -417,7 +457,10 @@ test("удаление пользователя отзывает доступ и
   await page.goto("./?page=users&role=portal-admin");
   await page.getByRole("button", { name: "Действия: Анна Смирнова" }).click();
   await page.getByRole("menuitem", { name: "Отозвать доступ" }).click();
-  await page.getByRole("dialog", { name: "Отозвать доступ" }).getByRole("button", { name: "Подтвердить" }).click();
+  await page
+    .getByRole("dialog", { name: "Отозвать доступ" })
+    .getByRole("button", { name: "Подтвердить" })
+    .click();
   const record = testInfo.project.name.startsWith("mobile")
     ? page.getByRole("article").filter({ hasText: "Анна Смирнова" })
     : page.getByRole("row").filter({ hasText: "Анна Смирнова" });
@@ -433,7 +476,9 @@ test("удаление пользователя отзывает доступ и
   await expect(page.getByRole("heading", { name: "Журнал действий" })).toBeVisible();
 });
 
-test("поля компании показывают операции и блокируют противоречивые настройки", async ({ page }, testInfo) => {
+test("поля компании показывают операции и блокируют противоречивые настройки", async ({
+  page,
+}, testInfo) => {
   await page.goto("./?page=fields&role=portal-admin");
   const fieldSurface = testInfo.project.name.startsWith("mobile")
     ? page.getByRole("article").filter({ hasText: "ИНН" })
@@ -452,21 +497,25 @@ test("компания редактируется в modal или bottom sheet",
   await page.goto("./?page=company&role=portal-admin");
   await page.getByRole("button", { name: "Редактировать" }).click();
   const dialog = page.getByRole("dialog", { name: "Редактирование компании" });
-  await dialog.getByLabel("Рабочий домен").fill("new.severprom.ru");
+  await dialog.getByLabel("Рабочий домен 1", { exact: true }).fill("new.severprom.ru");
   await dialog.getByRole("button", { name: "Сохранить компанию" }).click();
   await expect(page.getByRole("status")).toContainText("Изменения компании сохранены");
 });
 
-test("созданная компания сохраняется в списке и открывается после перезагрузки", async ({ page }) => {
+test("созданная компания сохраняется в списке и открывается после перезагрузки", async ({
+  page,
+}) => {
   await page.goto("./?page=companies&role=portal-admin");
   await page.getByRole("button", { name: "Добавить компанию" }).click();
   const dialog = page.getByRole("dialog", { name: "Новая компания" });
   await dialog.getByLabel("Полное наименование").fill("ООО «Новая орбита»");
   await dialog.getByLabel("Сокращённое наименование").fill("Новая орбита");
   await dialog.getByLabel("ИНН").fill("1234567891");
-  await dialog.getByLabel("Рабочий домен").fill("new-orbit.ru");
+  await dialog.getByLabel("Рабочий домен 1", { exact: true }).fill("new-orbit.ru");
   await dialog.getByRole("button", { name: "Сохранить компанию" }).click();
-  await expect(page.getByRole("button", { name: "Открыть компанию: ООО «Новая орбита»" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Открыть компанию: ООО «Новая орбита»" }),
+  ).toBeVisible();
   await page.reload();
   await page.getByRole("button", { name: "Открыть компанию: ООО «Новая орбита»" }).click();
   await expect(page.getByRole("heading", { name: "ООО «Новая орбита»" })).toBeVisible();
@@ -486,14 +535,14 @@ test("новый тип нельзя удалить после назначен�
   await companyDialog.getByLabel("Сокращённое наименование").fill("Связанный контрагент");
   await companyDialog.getByLabel("ИНН").fill("1234567892");
   await companyDialog.getByLabel("Тип компании").selectOption("Контрагент");
-  await companyDialog.getByLabel("Рабочий домен").fill("linked-partner.ru");
+  await companyDialog.getByLabel("Рабочий домен 1", { exact: true }).fill("linked-partner.ru");
   await companyDialog.getByRole("button", { name: "Сохранить компанию" }).click();
 
   await page.goto("./?page=company-types&role=portal-admin");
   const typeCard = page.getByRole("article").filter({ hasText: "Контрагент" });
   await typeCard.getByRole("button", { name: "Удалить" }).click();
   const deleteDialog = page.getByRole("dialog", { name: "Удалить тип компании" });
-  await expect(deleteDialog).toContainText("1 компанией");
+  await expect(deleteDialog).toContainText("Компании: 1");
   await expect(deleteDialog.getByRole("button", { name: "Удалить тип" })).toBeDisabled();
 });
 
@@ -504,10 +553,10 @@ test("форма компании отклоняет некорректный и
   await dialog.getByLabel("Полное наименование").fill("ООО «Тест»");
   await dialog.getByLabel("Сокращённое наименование").fill("Тест");
   await dialog.getByLabel("ИНН").fill("1234567890");
-  await dialog.getByLabel("Рабочий домен").fill("не домен");
+  await dialog.getByLabel("Рабочий домен 1", { exact: true }).fill("не домен");
   await dialog.getByRole("button", { name: "Сохранить компанию" }).click();
   await expect(dialog).toContainText("ACC_DOMAIN_INVALID");
-  await dialog.getByLabel("Рабочий домен").fill("INTEGRATOR-PRO.RU");
+  await dialog.getByLabel("Рабочий домен 1", { exact: true }).fill("INTEGRATOR-PRO.RU");
   await dialog.getByRole("button", { name: "Сохранить компанию" }).click();
   await expect(dialog).toContainText("ACC_DOMAIN_CONFLICT");
 });
@@ -522,9 +571,13 @@ test("инженер приглашает пользователя без наз
   await dialog.getByLabel("Корпоративная почта").fill("i.petrov@severprom.ru");
   await dialog.getByRole("button", { name: "Отправить приглашение" }).click();
   await expect(page.getByRole("status")).toContainText("Приглашение отправлено");
-  await expect(page.getByText("Иван Петров", { exact: true }).filter({ visible: true })).toBeVisible();
+  await expect(
+    page.getByText("Иван Петров", { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
   await page.reload();
-  await expect(page.getByText("Иван Петров", { exact: true }).filter({ visible: true })).toBeVisible();
+  await expect(
+    page.getByText("Иван Петров", { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
 });
 
 test("приглашение пользователя обновляет счётчик компании", async ({ page }, testInfo) => {
@@ -542,9 +595,9 @@ test("приглашение пользователя обновляет счё�
       page.getByRole("button", { name: "Открыть компанию: ООО «СеверПромБИМ»" }),
     ).toContainText("19 пользователей");
   } else {
-    await expect(
-      page.getByRole("row").filter({ hasText: "ООО «СеверПромБИМ»" }),
-    ).toContainText("19");
+    await expect(page.getByRole("row").filter({ hasText: "ООО «СеверПромБИМ»" })).toContainText(
+      "19",
+    );
   }
 });
 
@@ -638,7 +691,7 @@ test("PLAT-04 управляет уникальностью всех полей 
   await editor.getByLabel("Сокращённое наименование").fill("Уникальное имя");
   await editor.getByLabel("ИНН").fill("2463128457");
   await editor.getByLabel("КПП").fill("246301001");
-  await editor.getByLabel("Рабочий домен").fill("severprom.ru");
+  await editor.getByLabel("Рабочий домен 1", { exact: true }).fill("severprom.ru");
   await editor.getByLabel("Основной email").fill("unique@example.ru");
   await editor.getByRole("button", { name: "Сохранить компанию" }).click();
   await expect(editor).toContainText("ACC_COMPANY_FIELD_CONFLICT");
@@ -676,7 +729,9 @@ test("интеграции и настройки полей реагируют �
   await expect(page.getByText("Подключение работает").first()).toBeVisible({ timeout: 3000 });
   await page.getByLabel("Адрес портала").fill("https://invalid.example");
   await page.getByRole("button", { name: "Проверить подключение" }).nth(1).click();
-  await expect(page.getByRole("alert")).toContainText("PLAT_INTEGRATION_CONNECTION_FAILED", { timeout: 3000 });
+  await expect(page.getByRole("alert")).toContainText("PLAT_INTEGRATION_CONNECTION_FAILED", {
+    timeout: 3000,
+  });
   await page.goto("./?page=fields&role=portal-admin");
   const fieldSwitch = page.getByRole("switch", { name: "Обязательное: Телефон" });
   const before = await fieldSwitch.getAttribute("aria-checked");
@@ -684,7 +739,9 @@ test("интеграции и настройки полей реагируют �
   await expect(fieldSwitch).toHaveAttribute("aria-checked", before === "true" ? "false" : "true");
   await page.getByRole("switch", { name: "Уникальное: Телефон" }).click();
   await page.getByRole("button", { name: "Сохранить настройки" }).click();
-  await expect(page.getByRole("alert")).toContainText("PLAT_FIELD_UNIQUENESS_CONFLICT", { timeout: 3000 });
+  await expect(page.getByRole("alert")).toContainText("PLAT_FIELD_UNIQUENESS_CONFLICT", {
+    timeout: 3000,
+  });
 });
 
 test("административные списки показывают ошибку загрузки и восстанавливаются", async ({ page }) => {

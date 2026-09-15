@@ -40,6 +40,11 @@ export interface UserRecord {
   company: string;
   role: string;
   position: string;
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  department?: string;
+  phone?: string;
   status: "Активен" | "Заблокирован" | "Приглашён" | "Доступ отозван";
   lastLogin: string;
 }
@@ -268,24 +273,51 @@ export const users: UserRecord[] = [
 
 export const tagGroups = [
   { id: "products", name: "Продукты", tags: ["НАВИСА", "Model Studio CS", "CADLib"] },
-  { id: "topics", name: "Темы", tags: ["Лицензирование", "Интеграция", "Обновление", "Проекты", "Стандарты"] },
+  {
+    id: "topics",
+    name: "Темы",
+    tags: ["Лицензирование", "Интеграция", "Обновление", "Проекты", "Стандарты"],
+  },
   { id: "audience", name: "Аудитория", tags: ["Администратор", "Проектировщик"] },
 ];
 
 export const files = [
-  { name: "инструкция_активации.pdf", type: "PDF", size: "2,4 МБ", relatedArticleIds: ["network-license", "cad-integration"], updated: "Сегодня, 10:42" },
-  { name: "схема_подключения.dwg", type: "DWG", size: "8,1 МБ", relatedArticleIds: ["cad-integration"], updated: "Вчера, 16:18" },
-  { name: "регламент_обновления.docx", type: "DOCX", size: "1,8 МБ", relatedArticleIds: ["network-license", "project-template", "update-2026"], updated: "29 августа" },
-  { name: "дистрибутив_модуля.zip", type: "ZIP", size: "42 МБ", relatedArticleIds: ["update-2026"], updated: "27 августа" },
+  {
+    name: "инструкция_активации.pdf",
+    type: "PDF",
+    size: "2,4 МБ",
+    relatedArticleIds: ["network-license", "cad-integration"],
+    updated: "Сегодня, 10:42",
+  },
+  {
+    name: "схема_подключения.dwg",
+    type: "DWG",
+    size: "8,1 МБ",
+    relatedArticleIds: ["cad-integration"],
+    updated: "Вчера, 16:18",
+  },
+  {
+    name: "регламент_обновления.docx",
+    type: "DOCX",
+    size: "1,8 МБ",
+    relatedArticleIds: ["network-license", "project-template", "update-2026"],
+    updated: "29 августа",
+  },
+  {
+    name: "дистрибутив_модуля.zip",
+    type: "ZIP",
+    size: "42 МБ",
+    relatedArticleIds: ["update-2026"],
+    updated: "27 августа",
+  },
 ].map((file) => ({ ...file, uses: file.relatedArticleIds.length }));
 
 const staffRoles: readonly UserRole[] = ["portal-admin", "support-engineer", "manager"];
 
 export const isArticlePublished = (article: ArticleSummary) =>
-  readPrototypeValue<Record<string, boolean>>(
-    prototypeStorageKeys.articlePublication,
-    {},
-  )[article.id] ?? (article.status === "Опубликована");
+  readPrototypeValue<Record<string, boolean>>(prototypeStorageKeys.articlePublication, {})[
+    article.id
+  ] ?? article.status === "Опубликована";
 
 export const canRoleAccessArticle = (
   article: ArticleSummary,
@@ -395,20 +427,62 @@ export const auditEvents: AuditEvent[] = [
 
 export const companyFields = [
   { id: "name", label: "Полное наименование", required: true, unique: true, registration: true },
-  { id: "shortName", label: "Сокращённое наименование", required: true, unique: true, registration: true },
+  {
+    id: "shortName",
+    label: "Сокращённое наименование",
+    required: true,
+    unique: true,
+    registration: false,
+  },
   { id: "inn", label: "ИНН", required: true, unique: true, registration: true },
   { id: "kpp", label: "КПП", required: false, unique: false, registration: false },
-  { id: "legalAddress", label: "Юридический адрес", required: false, unique: false, registration: false },
-  { id: "domains", label: "Рабочие домены", required: true, unique: true, registration: true },
-  { id: "primaryEmail", label: "Основной email", required: false, unique: true, registration: true },
-  { id: "phone", label: "Телефон", required: false, unique: false, registration: true },
+  {
+    id: "legalAddress",
+    label: "Юридический адрес",
+    required: false,
+    unique: false,
+    registration: false,
+  },
+  { id: "domains", label: "Рабочие домены", required: true, unique: true, registration: false },
+  {
+    id: "primaryEmail",
+    label: "Основной email",
+    required: false,
+    unique: true,
+    registration: false,
+  },
+  { id: "phone", label: "Телефон", required: false, unique: false, registration: false },
   { id: "type", label: "Тип компании", required: true, unique: false, registration: false },
   { id: "status", label: "Статус компании", required: true, unique: false, registration: false },
-  { id: "statusUntil", label: "Срок действия статуса", required: false, unique: false, registration: false },
-  { id: "contract", label: "Договор / основание", required: false, unique: false, registration: false },
-  { id: "contractDate", label: "Дата договора", required: false, unique: false, registration: false },
+  {
+    id: "statusUntil",
+    label: "Срок действия статуса",
+    required: false,
+    unique: false,
+    registration: false,
+  },
+  {
+    id: "contract",
+    label: "Договор / основание",
+    required: false,
+    unique: false,
+    registration: false,
+  },
+  {
+    id: "contractDate",
+    label: "Дата договора",
+    required: false,
+    unique: false,
+    registration: false,
+  },
   { id: "project", label: "Проект", required: false, unique: false, registration: false },
-  { id: "bitrix", label: "Ссылка на Битрикс24", required: false, unique: true, registration: false },
+  {
+    id: "bitrix",
+    label: "Ссылка на Битрикс24",
+    required: false,
+    unique: true,
+    registration: false,
+  },
 ].map((field) => ({
   ...field,
   visible: true,

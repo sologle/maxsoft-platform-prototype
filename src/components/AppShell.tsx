@@ -66,7 +66,8 @@ const NavLinks = ({
     {navigationForRole(location).map(({ icon: Icon, label, page }) => {
       const active =
         location.page === page ||
-        (page === "knowledge" && ["article", "video", "editor", "file-preview"].includes(location.page));
+        (page === "knowledge" &&
+          ["article", "video", "editor", "file-preview"].includes(location.page));
       return (
         <a
           aria-current={active ? "page" : undefined}
@@ -91,6 +92,17 @@ const NavLinks = ({
 );
 
 export const AppShell = ({ children, location, onExit, onNavigate }: AppShellProps) => {
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const observer = new ResizeObserver(() =>
+      document.documentElement.style.setProperty(
+        "--portal-header-height",
+        `${headerRef.current!.getBoundingClientRect().height}px`,
+      ),
+    );
+    observer.observe(headerRef.current!);
+    return () => observer.disconnect();
+  }, []);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const menuMounted = usePresence(menuOpen);
@@ -133,7 +145,10 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
 
   return (
     <div className="min-h-dvh min-w-0 overflow-x-clip bg-[var(--ms-background)] text-[var(--ms-text)]">
-      <header className="sticky top-0 z-50 border-b border-[var(--ms-border)] bg-white/94 shadow-[0_2px_12px_rgba(27,51,75,.06)] backdrop-blur-xl">
+      <header
+        ref={headerRef}
+        className="sticky top-0 z-50 border-b border-[var(--ms-border)] bg-white/94 shadow-[0_2px_12px_rgba(27,51,75,.06)] backdrop-blur-xl"
+      >
         <div className="flex h-16 w-full items-center gap-2 px-4 sm:px-6 lg:h-[72px] lg:px-8 2xl:px-10">
           <button
             aria-label="Открыть меню"
@@ -186,7 +201,9 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
                 {profile.shortLabel.slice(0, 1)}
               </span>
               <span className="hidden min-w-0 2xl:block">
-                <span className="block max-w-48 truncate text-sm font-semibold">{profile.shortLabel}</span>
+                <span className="block max-w-48 truncate text-sm font-semibold">
+                  {profile.shortLabel}
+                </span>
                 <span className="block text-xs text-[var(--ms-muted)]">Демо-профиль</span>
               </span>
               <ChevronDown
@@ -212,7 +229,12 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
                   <UserRound className="h-4 w-4" aria-hidden="true" />
                   Профиль
                 </button>
-                <button className="menu-action text-red-600" onClick={onExit} role="menuitem" type="button">
+                <button
+                  className="menu-action text-red-600"
+                  onClick={onExit}
+                  role="menuitem"
+                  type="button"
+                >
                   <LogOut className="h-4 w-4" aria-hidden="true" />
                   Сменить роль
                 </button>

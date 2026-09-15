@@ -21,7 +21,7 @@ export const ScenarioPanel = ({ location, onBack, onExit, onNavigate, onRoleChan
     return (
       <button
         aria-label="Открыть панель сценариев"
-        className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-[70] flex h-12 items-center justify-center gap-2 rounded-full bg-[#172b42] px-4 text-sm font-semibold text-white shadow-[0_12px_32px_rgba(0,0,0,.26)] transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--ms-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)]"
+        className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-20 flex h-12 items-center justify-center gap-2 rounded-full bg-[#172b42] px-4 text-sm font-semibold text-white shadow-[0_12px_32px_rgba(0,0,0,.26)] transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--ms-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)]"
         onClick={() => setOpen(true)}
         type="button"
       >

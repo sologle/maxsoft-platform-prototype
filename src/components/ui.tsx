@@ -1,9 +1,5 @@
 import { AlertCircle, ArrowLeft, Check, ChevronRight, SearchX } from "lucide-react";
-import {
-  type ButtonHTMLAttributes,
-  type InputHTMLAttributes,
-  type ReactNode,
-} from "react";
+import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
 
 type ButtonTone = "primary" | "secondary" | "ghost" | "danger";
 
@@ -22,7 +18,13 @@ const buttonTone: Record<ButtonTone, string> = {
   danger: "bg-red-600 text-white hover:bg-red-700",
 };
 
-export const Button = ({ children, className = "", icon, tone = "primary", ...props }: ButtonProps) => (
+export const Button = ({
+  children,
+  className = "",
+  icon,
+  tone = "primary",
+  ...props
+}: ButtonProps) => (
   <button
     className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)] disabled:cursor-not-allowed disabled:opacity-50 ${buttonTone[tone]} ${className}`}
     type="button"
@@ -44,13 +46,19 @@ export const Field = ({ className = "", error, label, id, ...props }: FieldProps
     <label className={`block ${className}`} htmlFor={fieldId}>
       <span className="mb-1.5 block text-sm font-semibold text-[var(--ms-text)]">{label}</span>
       <input
+        aria-label={label}
         aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${fieldId}-error` : undefined}
         className="h-12 w-full min-w-0 rounded-xl border border-[var(--ms-border-strong)] bg-white px-3.5 text-[15px] outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)]"
         id={fieldId}
         {...props}
       />
       {error ? (
-        <span className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-650" role="alert">
+        <span
+          id={`${fieldId}-error`}
+          className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-650"
+          role="alert"
+        >
           <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
           {error}
         </span>
@@ -121,13 +129,23 @@ export const PageHeading = ({
           {title}
         </h1>
       </div>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ms-muted)] sm:text-base">{subtitle}</p>
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ms-muted)] sm:text-base">
+        {subtitle}
+      </p>
     </div>
     {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
   </div>
 );
 
-export const EmptyState = ({ action, text, title }: { action?: ReactNode; text: string; title: string }) => (
+export const EmptyState = ({
+  action,
+  text,
+  title,
+}: {
+  action?: ReactNode;
+  text: string;
+  title: string;
+}) => (
   <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--ms-border-strong)] bg-white p-8 text-center">
     <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
       <SearchX className="h-6 w-6" aria-hidden="true" />
@@ -166,14 +184,20 @@ export const Switch = ({
   </button>
 );
 
-export const Breadcrumbs = ({ items }: { items: Array<{ label: string; onClick?: () => void }> }) => (
+export const Breadcrumbs = ({
+  items,
+}: {
+  items: Array<{ label: string; onClick?: () => void }>;
+}) => (
   <nav
     aria-label="Хлебные крошки"
     className="mb-5 flex min-w-0 items-center gap-1.5 overflow-hidden text-sm text-[var(--ms-muted)]"
   >
     {items.map((item, index) => (
       <span className="flex min-w-0 items-center gap-1.5" key={`${item.label}-${index}`}>
-        {index > 0 ? <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" /> : null}
+        {index > 0 ? (
+          <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+        ) : null}
         {item.onClick ? (
           <button
             className="truncate transition hover:text-[var(--ms-primary)]"

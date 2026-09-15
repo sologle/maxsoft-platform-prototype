@@ -1,3 +1,4 @@
+import { flattenTree, getKnowledgeTree } from "./knowledge-structure";
 import {
   articles,
   companies,
@@ -49,9 +50,7 @@ export const getCompanyUniquenessConflicts = (
     const candidateValue = normalizeCompanyValue(readValue(candidate));
     return (
       Boolean(candidateValue) &&
-      otherCompanies.some(
-        (company) => normalizeCompanyValue(readValue(company)) === candidateValue,
-      )
+      otherCompanies.some((company) => normalizeCompanyValue(readValue(company)) === candidateValue)
     );
   });
 
@@ -122,7 +121,10 @@ export const getArticleSections = (article: ArticleSummary) =>
           article.id
         ] ?? [article.section]
       ).map((section) =>
-        section.includes(" / ") ? section : `${article.section.split(" / ")[0]} / ${section}`,
+        section.includes(" / ") ||
+        flattenTree(getKnowledgeTree()).some((node) => node.path === section)
+          ? section
+          : `${article.section.split(" / ")[0]} / ${section}`,
       ),
     ),
   );
@@ -217,9 +219,7 @@ export const renameCompanyTypeRelationships = (previousName: string, nextName: s
         article.id,
         access === "all"
           ? access
-          : access.map((companyType) =>
-              companyType === previousName ? nextName : companyType,
-            ),
+          : access.map((companyType) => (companyType === previousName ? nextName : companyType)),
       ];
     }),
   );

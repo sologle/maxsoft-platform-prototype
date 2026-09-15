@@ -1,4 +1,13 @@
-import { Ban, CheckCircle2, FileClock, Plus, Search, Trash2, UserCog, UserRoundCheck } from "lucide-react";
+import {
+  Ban,
+  CheckCircle2,
+  FileClock,
+  Plus,
+  Search,
+  Trash2,
+  UserCog,
+  UserRoundCheck,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import type { UserRole } from "../../app/types";
 import { ActionMenu } from "../../components/ActionMenu";
@@ -101,7 +110,7 @@ const UserRows = ({
   );
   return (
     <>
-      <div className="hidden overflow-visible rounded-2xl border border-[var(--ms-border)] bg-white shadow-[var(--ms-card-shadow)] md:block">
+      <div className="hidden overflow-visible rounded-2xl border border-[var(--ms-border)] bg-white shadow-[var(--ms-card-shadow)] md:block ms-table-scroll">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-[var(--ms-border)] text-xs uppercase tracking-[.08em] text-[var(--ms-muted)]">
@@ -132,7 +141,13 @@ const UserRows = ({
                 <td className="px-5 py-4">
                   <Badge
                     tone={
-                      user.status === "Активен" ? "green" : user.status === "Заблокирован" ? "red" : user.status === "Доступ отозван" ? "slate" : "amber"
+                      user.status === "Активен"
+                        ? "green"
+                        : user.status === "Заблокирован"
+                          ? "red"
+                          : user.status === "Доступ отозван"
+                            ? "slate"
+                            : "amber"
                     }
                   >
                     {user.status}
@@ -175,7 +190,13 @@ const UserRows = ({
               <div className="flex shrink-0 flex-col items-end gap-1">
                 <Badge
                   tone={
-                    user.status === "Активен" ? "green" : user.status === "Заблокирован" ? "red" : user.status === "Доступ отозван" ? "slate" : "amber"
+                    user.status === "Активен"
+                      ? "green"
+                      : user.status === "Заблокирован"
+                        ? "red"
+                        : user.status === "Доступ отозван"
+                          ? "slate"
+                          : "amber"
                   }
                 >
                   {user.status}
@@ -211,7 +232,10 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
   const [company, setCompany] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [action, setAction] = useState<{ type: "role" | "delete" | "block"; user: UserRecord } | null>(null);
+  const [action, setAction] = useState<{
+    type: "role" | "delete" | "block";
+    user: UserRecord;
+  } | null>(null);
   const [nextRole, setNextRole] = useState("Менеджер");
   const [nextCompany, setNextCompany] = useState("Внутренний пользователь MaxSoft");
   const availableCompanies = getPrototypeCompanies();
@@ -316,7 +340,10 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
     <>
       <PageHeading
         actions={
-          <Button icon={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setInviteOpen(true)}>
+          <Button
+            icon={<Plus className="h-4 w-4" aria-hidden="true" />}
+            onClick={() => setInviteOpen(true)}
+          >
             Пригласить пользователя
           </Button>
         }
@@ -396,20 +423,33 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
           </Button>
         ) : null}
       </div>
-      {visible.length ? <UserRows
-        onAction={(user, type) => {
-          setAction({ type, user });
-          if (type === "role") {
-            setNextRole(user.role);
-            setNextCompany(user.company);
-          }
-        }}
-        onOpenAudit={() => onNavigate?.("audit")}
-        records={visible}
-        role={role}
-      /> : (
+      {visible.length ? (
+        <UserRows
+          onAction={(user, type) => {
+            setAction({ type, user });
+            if (type === "role") {
+              setNextRole(user.role);
+              setNextCompany(user.company);
+            }
+          }}
+          onOpenAudit={() => onNavigate?.("audit")}
+          records={visible}
+          role={role}
+        />
+      ) : (
         <EmptyState
-          action={<Button onClick={() => { setQuery(""); setCompany("all"); setRoleFilter("all"); setStatus("all"); }}>Сбросить фильтры</Button>}
+          action={
+            <Button
+              onClick={() => {
+                setQuery("");
+                setCompany("all");
+                setRoleFilter("all");
+                setStatus("all");
+              }}
+            >
+              Сбросить фильтры
+            </Button>
+          }
           text="Измените имя, компанию, роль или статус пользователя."
           title="Пользователи не найдены"
         />
@@ -429,7 +469,13 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Имя" name="firstName" required />
             <Field label="Фамилия" name="lastName" required />
-            <Field className="sm:col-span-2" label="Корпоративная почта" name="email" required type="email" />
+            <Field
+              className="sm:col-span-2"
+              label="Корпоративная почта"
+              name="email"
+              required
+              type="email"
+            />
             <SelectField className="sm:col-span-2" label="Компания" name="company" required>
               {availableCompanies.map((company) => (
                 <option key={company.id}>{company.name}</option>
@@ -473,18 +519,35 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
       >
         {action?.type === "role" ? (
           <div className="grid gap-4">
-            <SelectField label="Новая роль" onChange={(event) => setNextRole(event.target.value)} value={nextRole}>
-              <option>Менеджер</option><option>Инженер ТП / автор</option><option>Администратор портала</option><option>Администратор клиента</option><option>Сотрудник клиента</option>
+            <SelectField
+              label="Новая роль"
+              onChange={(event) => setNextRole(event.target.value)}
+              value={nextRole}
+            >
+              <option>Менеджер</option>
+              <option>Инженер ТП / автор</option>
+              <option>Администратор портала</option>
+              <option>Администратор клиента</option>
+              <option>Сотрудник клиента</option>
             </SelectField>
-            <SelectField label="Компания" onChange={(event) => setNextCompany(event.target.value)} value={nextCompany}>
+            <SelectField
+              label="Компания"
+              onChange={(event) => setNextCompany(event.target.value)}
+              value={nextCompany}
+            >
               <option>Внутренний пользователь MaxSoft</option>
-              {availableCompanies.map((company) => <option key={company.id}>{company.name}</option>)}
+              {availableCompanies.map((company) => (
+                <option key={company.id}>{company.name}</option>
+              ))}
             </SelectField>
-            <p className="text-sm leading-6 text-[var(--ms-muted)]">Новые права применятся сразу. Изменение будет записано в журнал.</p>
+            <p className="text-sm leading-6 text-[var(--ms-muted)]">
+              Новые права применятся сразу. Изменение будет записано в журнал.
+            </p>
           </div>
         ) : (
           <p className="text-sm leading-6 text-[var(--ms-muted)]">
-            Подтвердите действие для пользователя «{action?.user.name}». Изменение будет записано в журнал.
+            Подтвердите действие для пользователя «{action?.user.name}». Изменение будет записано в
+            журнал.
           </p>
         )}
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -513,9 +576,9 @@ export const ClientUsersPage = ({ companyId, onNotice, role }: UsersPageProps) =
   const toggle = () => {
     if (!action) return;
     const nextRecords: UserRecord[] = records.map((user) =>
-        user.id === action.id
-          ? { ...user, status: user.status === "Заблокирован" ? "Активен" : "Заблокирован" }
-          : user,
+      user.id === action.id
+        ? { ...user, status: user.status === "Заблокирован" ? "Активен" : "Заблокирован" }
+        : user,
     );
     setRecords(nextRecords);
     const changedUser = nextRecords.find((user) => user.id === action.id);
@@ -530,7 +593,8 @@ export const ClientUsersPage = ({ companyId, onNotice, role }: UsersPageProps) =
         : "Сотрудник заблокирован. История изменения сохранена.",
     );
     appendPrototypeValue<AuditEvent>(prototypeStorageKeys.audit, {
-      action: action.status === "Заблокирован" ? "Разблокировал сотрудника" : "Заблокировал сотрудника",
+      action:
+        action.status === "Заблокирован" ? "Разблокировал сотрудника" : "Заблокировал сотрудника",
       category: "user",
       date: "Только что",
       object: action.name,
@@ -544,7 +608,10 @@ export const ClientUsersPage = ({ companyId, onNotice, role }: UsersPageProps) =
     <>
       <PageHeading
         actions={
-          <Button icon={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setInviteOpen(true)}>
+          <Button
+            icon={<Plus className="h-4 w-4" aria-hidden="true" />}
+            onClick={() => setInviteOpen(true)}
+          >
             Добавить сотрудника
           </Button>
         }
@@ -585,6 +652,8 @@ export const ClientUsersPage = ({ companyId, onNotice, role }: UsersPageProps) =
               company: clientCompanyName,
               role: selectedRole,
               position: position.trim(),
+              department: String(form.get("department") ?? "").trim(),
+              phone: String(form.get("phone") ?? "").trim(),
               status: "Приглашён",
               lastLogin: "Ещё не входил",
             };
@@ -607,7 +676,13 @@ export const ClientUsersPage = ({ companyId, onNotice, role }: UsersPageProps) =
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Имя" name="firstName" required />
             <Field label="Фамилия" name="lastName" required />
-            <Field className="sm:col-span-2" label="Корпоративная почта" name="email" required type="email" />
+            <Field
+              className="sm:col-span-2"
+              label="Корпоративная почта"
+              name="email"
+              required
+              type="email"
+            />
             <Field label="Должность" name="position" required />
             <Field label="Отдел" name="department" />
             <Field label="Телефон" name="phone" type="tel" />
@@ -626,7 +701,11 @@ export const ClientUsersPage = ({ companyId, onNotice, role }: UsersPageProps) =
       </ResponsiveOverlay>
       <ResponsiveOverlay
         desktop="modal"
-        label={action?.status === "Заблокирован" ? "Разблокировать сотрудника" : "Заблокировать сотрудника"}
+        label={
+          action?.status === "Заблокирован"
+            ? "Разблокировать сотрудника"
+            : "Заблокировать сотрудника"
+        }
         onClose={() => setAction(null)}
         open={Boolean(action)}
       >

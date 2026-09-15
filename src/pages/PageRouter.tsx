@@ -1,3 +1,4 @@
+import { CompanyTypesPage } from "./organizations/CompanyTypesPage";
 import { CloudOff, LockKeyhole, RotateCcw } from "lucide-react";
 import type { AppLocation, AppPage, Authenticate, Navigate } from "../app/types";
 import { Button } from "../components/ui";
@@ -10,9 +11,14 @@ import { KnowledgeLibrary } from "./knowledge/KnowledgeLibrary";
 import { SearchPage } from "./knowledge/SearchPage";
 import { StructurePage } from "./knowledge/StructurePage";
 import { TagsPage } from "./knowledge/TagsPage";
-import { CompaniesPage, CompanyPage, CompanyTypesPage } from "./organizations/CompaniesPages";
+import { CompaniesPage, CompanyPage } from "./organizations/CompaniesPages";
 import { ClientUsersPage, UsersPage } from "./organizations/UsersPages";
-import { AdministrationPage, AuditPage, FieldsPage, IntegrationsPage } from "./platform/PlatformPages";
+import {
+  AdministrationPage,
+  AuditPage,
+  FieldsPage,
+  IntegrationsPage,
+} from "./platform/PlatformPages";
 import { AccessSettingsPage } from "./platform/AccessSettingsPage";
 
 interface PageRouterProps {
@@ -75,11 +81,7 @@ export const PageRouter = ({
       return <RecoverPage onAuthenticate={onAuthenticate} onNavigate={onNavigate} />;
     case "home":
       return (
-        <HomePage
-          companyType={location.companyType}
-          onNavigate={onNavigate}
-          role={location.role}
-        />
+        <HomePage companyType={location.companyType} onNavigate={onNavigate} role={location.role} />
       );
     case "knowledge":
       return (
@@ -94,11 +96,13 @@ export const PageRouter = ({
     case "video":
       return <VideoArticlePage onDownload={onDownload} resource={location.resource} {...common} />;
     case "editor":
-      return <EditorPage onNavigate={onNavigate} onNotice={onNotice} resource={location.resource} />;
+      return (
+        <EditorPage onNavigate={onNavigate} onNotice={onNotice} resource={location.resource} />
+      );
     case "structure":
-      return <StructurePage onNotice={onNotice} />;
+      return <StructurePage onNotice={onNotice} onNavigate={onNavigate} />;
     case "tags":
-      return <TagsPage onNotice={onNotice} />;
+      return <TagsPage onNotice={onNotice} onNavigate={onNavigate} />;
     case "files":
       return (
         <FilesPage
@@ -138,11 +142,7 @@ export const PageRouter = ({
       return <UsersPage onNavigate={onNavigate} onNotice={onNotice} role={location.role} />;
     case "client-users":
       return (
-        <ClientUsersPage
-          companyId={location.companyId}
-          onNotice={onNotice}
-          role={location.role}
-        />
+        <ClientUsersPage companyId={location.companyId} onNotice={onNotice} role={location.role} />
       );
     case "administration":
       return <AdministrationPage onNavigate={onNavigate} onNotice={onNotice} />;
@@ -162,7 +162,8 @@ export const PageRouter = ({
           </span>
           <h1 className="mt-6 font-heading text-3xl font-bold">Нет доступа к разделу</h1>
           <p className="mt-3 max-w-lg text-sm leading-6 text-[var(--ms-muted)]">
-            Выбранная роль не может открыть этот раздел. Прямая ссылка проверена, данные не показаны.
+            Выбранная роль не может открыть этот раздел. Прямая ссылка проверена, данные не
+            показаны.
           </p>
           <Button className="mt-6" onClick={() => onNavigate("home")}>
             Вернуться на главную

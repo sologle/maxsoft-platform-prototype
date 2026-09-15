@@ -1,3 +1,13 @@
+import type { Navigate } from "../../app/types";
+import { goBack } from "../../components/BackButton";
+import {
+  flattenTree,
+  getKnowledgeTree,
+  saveKnowledgeTree,
+  sectionArticleIds,
+  subtreeIds,
+  type TreeNode,
+} from "../../data/knowledge-tree";
 import {
   ChevronDown,
   ChevronRight,
@@ -13,41 +23,11 @@ import { ActionMenu } from "../../components/ActionMenu";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
 import { Button, Field, PageHeading, SelectField } from "../../components/ui";
 
-interface TreeNode {
-  children?: TreeNode[];
-  id: string;
-  name: string;
-  articles: number;
-}
-
-const initialTree: TreeNode[] = [
-  {
-    id: "products",
-    name: "Продукты",
-    articles: 43,
-    children: [
-      {
-        id: "navisa",
-        name: "НАВИСА",
-        articles: 36,
-        children: [
-          { id: "installation", name: "Установка", articles: 12 },
-          { id: "settings", name: "Настройка", articles: 18 },
-          { id: "updates", name: "Обновление", articles: 6 },
-        ],
-      },
-      { id: "model-studio", name: "Model Studio CS", articles: 7 },
-    ],
-  },
-  {
-    id: "administration",
-    name: "Администрирование",
-    articles: 11,
-    children: [{ id: "licenses", name: "Лицензирование", articles: 11 }],
-  },
-];
-
-const replaceNode = (nodes: TreeNode[], id: string, update: (node: TreeNode) => TreeNode): TreeNode[] =>
+const replaceNode = (
+  nodes: TreeNode[],
+  id: string,
+  update: (node: TreeNode) => TreeNode,
+): TreeNode[] =>
   nodes.map((node) =>
     node.id === id
       ? update(node)
@@ -71,13 +51,29 @@ const reorderSiblings = (nodes: TreeNode[], draggedId: string, targetId: string)
     return next;
   }
   return nodes.map((node) =>
-    node.children ? { ...node, children: reorderSiblings(node.children, draggedId, targetId) } : node,
+    node.children
+      ? { ...node, children: reorderSiblings(node.children, draggedId, targetId) }
+      : node,
   );
 };
 
-export const StructurePage = ({ onNotice }: { onNotice: (message: string) => void }) => {
-  const [tree, setTree] = useState(initialTree);
-  const [expanded, setExpanded] = useState(() => new Set(["products", "navisa", "administration"]));
+export const StructurePage = ({
+  onNotice,
+  onNavigate,
+}: {
+  onNotice: (message: string) => void;
+  onNavigate: Navigate;
+}) => {
+  const [tree, updateTree] = useState(getKnowledgeTree);
+  const setTree = (update: (current: TreeNode[]) => TreeNode[]) => {
+    const next = update(tree);
+    saveKnowledgeTree(next);
+    updateTree(next);
+  };
+  const [formError, setFormError] = useState("");
+  const [expanded, setExpanded] = useState(
+    () => new Set(flattenTree(getKnowledgeTree()).map((node) => node.id)),
+  );
   const [menu, setMenu] = useState<string | null>(null);
   const [dialog, setDialog] = useState<"add" | "rename" | "move" | null>(null);
   const [selected, setSelected] = useState<TreeNode | null>(null);
@@ -87,33 +83,70 @@ export const StructurePage = ({ onNotice }: { onNotice: (message: string) => voi
 
   const openDialog = (mode: "add" | "rename" | "move", node?: TreeNode) => {
     setSelected(node ?? null);
+    setParent(mode === "add" ? (node?.id ?? "root") : "root");
+    setFormError("");
     setName(mode === "rename" && node ? node.name : "");
     setDialog(mode);
     setMenu(null);
   };
 
   const save = () => {
+    const siblings =
+      parent === "root"
+        ? tree
+        : (flattenTree(tree).find((node) => node.id === parent)?.children ?? []);
+    const targetName = dialog === "move" ? selected?.name : name.trim();
+    const peers = dialog === "rename" ? flattenTree(tree) : siblings;
+    if (
+      peers.some(
+        (node) => node.id !== selected?.id && node.name.toLowerCase() === targetName?.toLowerCase(),
+      )
+    ) {
+      setFormError("Раздел с таким названием уже существует. Код: KB_SECTION_DUPLICATE.");
+      return;
+    }
     if (dialog === "add") {
-      const nextNode: TreeNode = { id: `section-${Date.now()}`, name: name.trim(), articles: 0 };
+      const nextNode: TreeNode = { id: `section-${Date.now()}`, name: name.trim() };
       setTree((current) =>
-        replaceNode(current, parent, (node) => ({ ...node, children: [...(node.children ?? []), nextNode] })),
+        parent === "root"
+          ? [...current, nextNode]
+          : replaceNode(current, parent, (node) => ({
+              ...node,
+              children: [...(node.children ?? []), nextNode],
+            })),
       );
       setExpanded((current) => new Set([...current, parent]));
       onNotice("Новый раздел добавлен в структуру.");
     }
     if (dialog === "rename" && selected) {
-      setTree((current) => replaceNode(current, selected.id, (node) => ({ ...node, name: name.trim() })));
+      setTree((current) =>
+        replaceNode(current, selected.id, (node) => ({ ...node, name: name.trim() })),
+      );
       onNotice("Название раздела изменено.");
     }
     if (dialog === "move" && selected) {
-      onNotice(`Раздел «${selected.name}» перемещён в «${parent === "products" ? "Продукты" : "НАВИСА"}».`);
+      if (subtreeIds(selected).includes(parent)) {
+        setFormError("Нельзя переместить раздел внутрь самого себя. Код: KB_SECTION_CYCLE.");
+        return;
+      }
+      setTree((current) => {
+        const remaining = removeNode(current, selected.id);
+        return parent === "root"
+          ? [...remaining, selected]
+          : replaceNode(remaining, parent, (node) => ({
+              ...node,
+              children: [...(node.children ?? []), selected],
+            }));
+      });
+      setExpanded((current) => new Set([...current, parent]));
+      onNotice(`Раздел «${selected.name}» перемещён.`);
     }
     setDialog(null);
   };
 
   const remove = (node: TreeNode) => {
     setMenu(null);
-    if (node.articles > 0 || node.children?.length) {
+    if (sectionArticleIds(tree, node.id).length > 0 || node.children?.length) {
       onNotice("Нельзя удалить непустой раздел. Сначала переместите статьи и вложенные разделы.");
       return;
     }
@@ -174,8 +207,20 @@ export const StructurePage = ({ onNotice }: { onNotice: (message: string) => voi
               ) : (
                 <Folder className="h-5 w-5 shrink-0 text-amber-500" aria-hidden="true" />
               )}
-              <span className="min-w-0 flex-1 truncate text-sm font-semibold sm:text-base">{node.name}</span>
-              <span className="hidden text-xs text-[var(--ms-muted)] sm:block">{node.articles} статей</span>
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold sm:text-base">
+                {node.name}
+              </span>
+              <span className="hidden text-xs text-[var(--ms-muted)] sm:block">
+                {sectionArticleIds(tree, node.id).length} статей
+              </span>
+              <button
+                className="icon-button shrink-0"
+                type="button"
+                aria-label={`Добавить подраздел: ${node.name}`}
+                onClick={() => openDialog("add", node)}
+              >
+                <Plus className="h-4 w-4" />
+              </button>
               <ActionMenu
                 label={`Действия: ${node.name}`}
                 onOpenChange={(open) => setMenu(open ? node.id : null)}
@@ -217,7 +262,7 @@ export const StructurePage = ({ onNotice }: { onNotice: (message: string) => voi
                 data-open={open ? "true" : "false"}
                 inert={!open || undefined}
               >
-                <div className="min-h-0 overflow-hidden pl-5 pt-2 sm:pl-10">
+                <div className="min-h-0 overflow-hidden pl-2 pt-2 sm:pl-6">
                   {renderNodes(node.children!, level + 1)}
                 </div>
               </div>
@@ -231,8 +276,12 @@ export const StructurePage = ({ onNotice }: { onNotice: (message: string) => voi
   return (
     <>
       <PageHeading
+        onBack={() => goBack(onNavigate, "administration")}
         actions={
-          <Button icon={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => openDialog("add")}>
+          <Button
+            icon={<Plus className="h-4 w-4" aria-hidden="true" />}
+            onClick={() => openDialog("add")}
+          >
             Добавить раздел
           </Button>
         }
@@ -242,7 +291,8 @@ export const StructurePage = ({ onNotice }: { onNotice: (message: string) => voi
       />
       <div className="rounded-2xl border border-[var(--ms-border)] bg-slate-50 p-3 shadow-[var(--ms-card-shadow)] sm:p-5 lg:p-6">
         <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-900">
-          Перетащите строку за маркер, чтобы изменить порядок. На сенсорном экране используйте меню раздела.
+          Перетащите строку за маркер, чтобы изменить порядок. На сенсорном экране используйте меню
+          раздела.
         </div>
         {renderNodes(tree)}
       </div>
@@ -262,7 +312,17 @@ export const StructurePage = ({ onNotice }: { onNotice: (message: string) => voi
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            if ((dialog === "move" || name.trim()) && dialog) save();
+            if ((dialog === "move" || name.trim()) && dialog) {
+              try {
+                save();
+              } catch (error) {
+                setFormError(
+                  error instanceof Error
+                    ? error.message
+                    : "KB_STRUCTURE_SAVE_FAILED: Не удалось сохранить структуру. Повторите действие.",
+                );
+              }
+            }
           }}
         >
           {dialog !== "move" ? (
@@ -286,9 +346,23 @@ export const StructurePage = ({ onNotice }: { onNotice: (message: string) => voi
               onChange={(event) => setParent(event.target.value)}
               value={parent}
             >
-              <option value="products">Продукты</option>
-              <option value="navisa">Продукты / НАВИСА</option>
+              <option value="root">Корень базы знаний</option>
+              {flattenTree(tree)
+                .filter(
+                  (node) =>
+                    dialog !== "move" || !selected || !subtreeIds(selected).includes(node.id),
+                )
+                .map((node) => (
+                  <option key={node.id} value={node.id}>
+                    {node.path}
+                  </option>
+                ))}
             </SelectField>
+          ) : null}
+          {formError ? (
+            <p className="mt-4 text-sm text-red-600" role="alert">
+              {formError}
+            </p>
           ) : null}
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button onClick={() => setDialog(null)} tone="ghost">

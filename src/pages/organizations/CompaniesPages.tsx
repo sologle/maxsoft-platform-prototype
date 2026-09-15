@@ -1,3 +1,5 @@
+import { BackButton } from "../../components/BackButton";
+import { usePageState } from "../../hooks/usePageState";
 import {
   Building2,
   CalendarDays,
@@ -7,24 +9,27 @@ import {
   Pencil,
   Plus,
   Search,
-  Trash2,
-  UsersRound,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import type { AppPage, Navigate, UserRole } from "../../app/types";
+import { useMemo, useState } from "react";
+import type { Navigate, UserRole } from "../../app/types";
 import { ActionMenu } from "../../components/ActionMenu";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
-import { Badge, Breadcrumbs, Button, EmptyState, Field, PageHeading, SelectField } from "../../components/ui";
-import { companyTypes as initialCompanyTypes, type AuditEvent, type CompanyRecord } from "../../data/platform-data";
 import {
-  countCompanyTypeReferences,
+  Badge,
+  Breadcrumbs,
+  Button,
+  EmptyState,
+  PageHeading,
+  SelectField,
+} from "../../components/ui";
+import { companyTypes as initialCompanyTypes, type CompanyRecord } from "../../data/platform-data";
+import {
   getPrototypeCompanies,
   getPrototypeUsers,
   renameCompanyRelationships,
-  renameCompanyTypeRelationships,
   writePrototypeCompanies,
 } from "../../data/prototype-entities";
-import { appendPrototypeValue, prototypeStorageKeys, readPrototypeValue, writePrototypeValue } from "../../data/prototype-store";
+import { prototypeStorageKeys, readPrototypeValue } from "../../data/prototype-store";
 import { CompanyForm } from "./CompanyForm";
 
 interface OrganizationProps {
@@ -35,25 +40,28 @@ interface OrganizationProps {
 }
 
 const formatDate = (value: string) => value.split("-").reverse().join(".");
-const instrumentalCount = (count: number, singular: string, plural: string) =>
-  `${count} ${count === 1 ? singular : plural}`;
 
 export const CompaniesPage = ({ onNavigate, onNotice, role }: OrganizationProps) => {
   const [records, setRecords] = useState<CompanyRecord[]>(getPrototypeCompanies);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = usePageState("query", "");
   const [status, setStatus] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
   const [formCompany, setFormCompany] = useState<CompanyRecord | undefined>();
   const [menu, setMenu] = useState<string | null>(null);
-  const availableCompanyTypes = readPrototypeValue(prototypeStorageKeys.companyTypes, initialCompanyTypes);
+  const availableCompanyTypes = readPrototypeValue(
+    prototypeStorageKeys.companyTypes,
+    initialCompanyTypes,
+  );
   const visible = useMemo(
     () =>
       records.filter(
         (company) =>
           (status === "all" || company.status === status) &&
           (typeFilter === "all" || company.type === typeFilter) &&
-          `${company.name} ${company.inn} ${company.domains.join(" ")}`.toLowerCase().includes(query.toLowerCase()),
+          `${company.name} ${company.inn} ${company.domains.join(" ")}`
+            .toLowerCase()
+            .includes(query.toLowerCase()),
       ),
     [query, records, status, typeFilter],
   );
@@ -61,7 +69,13 @@ export const CompaniesPage = ({ onNavigate, onNotice, role }: OrganizationProps)
     <>
       <PageHeading
         actions={
-          <Button icon={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => { setFormCompany(undefined); setFormOpen(true); }}>
+          <Button
+            icon={<Plus className="h-4 w-4" aria-hidden="true" />}
+            onClick={() => {
+              setFormCompany(undefined);
+              setFormOpen(true);
+            }}
+          >
             Добавить компанию
           </Button>
         }
@@ -92,7 +106,9 @@ export const CompaniesPage = ({ onNavigate, onNotice, role }: OrganizationProps)
         >
           <option value="all">Все типы</option>
           {availableCompanyTypes.map((type) => (
-            <option key={type.name} value={type.name}>{type.name}</option>
+            <option key={type.name} value={type.name}>
+              {type.name}
+            </option>
           ))}
         </SelectField>
         <SelectField
@@ -119,131 +135,158 @@ export const CompaniesPage = ({ onNavigate, onNotice, role }: OrganizationProps)
           </Button>
         ) : null}
       </div>
-      {visible.length ? <><div className="hidden overflow-visible rounded-2xl border border-[var(--ms-border)] bg-white shadow-[var(--ms-card-shadow)] md:block">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead>
-            <tr className="border-b border-[var(--ms-border)] text-xs uppercase tracking-[.08em] text-[var(--ms-muted)]">
-              <th className="px-5 py-4">Компания</th>
-              <th className="px-5 py-4">Тип</th>
-              <th className="px-5 py-4">Статус</th>
-              <th className="px-5 py-4">Пользователи</th>
-              <th className="w-16 px-3">
-                <span className="sr-only">Действия</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+      {visible.length ? (
+        <>
+          <div className="hidden overflow-visible rounded-2xl border border-[var(--ms-border)] bg-white shadow-[var(--ms-card-shadow)] md:block ms-table-scroll">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-[var(--ms-border)] text-xs uppercase tracking-[.08em] text-[var(--ms-muted)]">
+                  <th className="px-5 py-4">Компания</th>
+                  <th className="px-5 py-4">Тип</th>
+                  <th className="px-5 py-4">Статус</th>
+                  <th className="px-5 py-4">Пользователи</th>
+                  <th className="w-16 px-3">
+                    <span className="sr-only">Действия</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((company) => (
+                  <tr
+                    className="border-b border-[var(--ms-border)] last:border-0 hover:bg-slate-50"
+                    key={company.id}
+                  >
+                    <td className="px-5 py-4">
+                      <button
+                        aria-label={`Открыть компанию: ${company.name}`}
+                        className="font-bold hover:text-[var(--ms-primary)]"
+                        onClick={() => onNavigate("company", company.id)}
+                        type="button"
+                      >
+                        {company.name}
+                      </button>
+                      <p className="mt-1 text-xs text-[var(--ms-muted)]">
+                        ИНН {company.inn} · {company.domains.join(", ")}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <Badge>{company.type}</Badge>
+                    </td>
+                    <td className="px-5 py-4">
+                      <Badge tone={company.status === "Активна" ? "green" : "amber"}>
+                        {company.status}
+                      </Badge>
+                      <p className="mt-1 text-xs text-[var(--ms-muted)]">
+                        до {formatDate(company.statusUntil)}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <button
+                        className="font-semibold text-[var(--ms-primary)]"
+                        onClick={() => onNavigate("users")}
+                        type="button"
+                      >
+                        {company.users}
+                      </button>
+                    </td>
+                    <td className="px-3">
+                      <ActionMenu
+                        label={`Действия: ${company.name}`}
+                        onOpenChange={(open) => setMenu(open ? company.id : null)}
+                        open={menu === company.id}
+                        panelClassName="w-48"
+                      >
+                        <button
+                          className="menu-action"
+                          onClick={() => {
+                            setMenu(null);
+                            onNavigate("company", company.id);
+                          }}
+                          role="menuitem"
+                          type="button"
+                        >
+                          <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                          Открыть
+                        </button>
+                        <button
+                          className="menu-action"
+                          onClick={() => {
+                            setFormCompany(company);
+                            setFormOpen(true);
+                            setMenu(null);
+                          }}
+                          role="menuitem"
+                          type="button"
+                        >
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
+                          Редактировать
+                        </button>
+                      </ActionMenu>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="grid gap-3 md:hidden">
             {visible.map((company) => (
-              <tr
-                className="border-b border-[var(--ms-border)] last:border-0 hover:bg-slate-50"
+              <button
+                aria-label={`Открыть компанию: ${company.name}`}
+                className="min-w-0 rounded-2xl border border-[var(--ms-border)] bg-white p-4 text-left shadow-[var(--ms-card-shadow)] transition hover:border-[var(--ms-primary)]"
                 key={company.id}
+                onClick={() => onNavigate("company", company.id)}
+                type="button"
               >
-                <td className="px-5 py-4">
-                  <button
-                    aria-label={`Открыть компанию: ${company.name}`}
-                    className="font-bold hover:text-[var(--ms-primary)]"
-                    onClick={() => onNavigate("company", company.id)}
-                    type="button"
-                  >
-                    {company.name}
-                  </button>
-                  <p className="mt-1 text-xs text-[var(--ms-muted)]">
-                    ИНН {company.inn} · {company.domains.join(", ")}
-                  </p>
-                </td>
-                <td className="px-5 py-4">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
+                    <Building2 className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-bold leading-snug">{company.name}</span>
+                    <span className="mt-1 block break-all text-xs text-[var(--ms-muted)]">
+                      {company.domains.join(", ")} · ИНН {company.inn}
+                    </span>
+                  </span>
+                  <ChevronRight
+                    className="h-5 w-5 shrink-0 text-[var(--ms-primary)]"
+                    aria-hidden="true"
+                  />
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
                   <Badge>{company.type}</Badge>
-                </td>
-                <td className="px-5 py-4">
-                  <Badge tone={company.status === "Активна" ? "green" : "amber"}>{company.status}</Badge>
-                  <p className="mt-1 text-xs text-[var(--ms-muted)]">до {formatDate(company.statusUntil)}</p>
-                </td>
-                <td className="px-5 py-4">
-                  <button
-                    className="font-semibold text-[var(--ms-primary)]"
-                    onClick={() => onNavigate("users")}
-                    type="button"
-                  >
-                    {company.users}
-                  </button>
-                </td>
-                <td className="px-3">
-                  <ActionMenu
-                    label={`Действия: ${company.name}`}
-                    onOpenChange={(open) => setMenu(open ? company.id : null)}
-                    open={menu === company.id}
-                    panelClassName="w-48"
-                  >
-                    <button
-                      className="menu-action"
-                      onClick={() => {
-                        setMenu(null);
-                        onNavigate("company", company.id);
-                      }}
-                      role="menuitem"
-                      type="button"
-                    >
-                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                      Открыть
-                    </button>
-                    <button
-                      className="menu-action"
-                      onClick={() => {
-                        setFormCompany(company);
-                        setFormOpen(true);
-                        setMenu(null);
-                      }}
-                      role="menuitem"
-                      type="button"
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden="true" />
-                      Редактировать
-                    </button>
-                  </ActionMenu>
-                </td>
-              </tr>
+                  <Badge tone={company.status === "Активна" ? "green" : "amber"}>
+                    {company.status}
+                  </Badge>
+                  <Badge tone="slate">до {formatDate(company.statusUntil)}</Badge>
+                  <Badge tone="slate">{company.users} пользователей</Badge>
+                </div>
+              </button>
             ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="grid gap-3 md:hidden">
-        {visible.map((company) => (
-          <button
-            aria-label={`Открыть компанию: ${company.name}`}
-            className="min-w-0 rounded-2xl border border-[var(--ms-border)] bg-white p-4 text-left shadow-[var(--ms-card-shadow)] transition hover:border-[var(--ms-primary)]"
-            key={company.id}
-            onClick={() => onNavigate("company", company.id)}
-            type="button"
-          >
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
-                <Building2 className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-bold leading-snug">{company.name}</span>
-                <span className="mt-1 block break-all text-xs text-[var(--ms-muted)]">
-                  {company.domains.join(", ")} · ИНН {company.inn}
-                </span>
-              </span>
-              <ChevronRight className="h-5 w-5 shrink-0 text-[var(--ms-primary)]" aria-hidden="true" />
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Badge>{company.type}</Badge>
-              <Badge tone={company.status === "Активна" ? "green" : "amber"}>{company.status}</Badge>
-              <Badge tone="slate">до {formatDate(company.statusUntil)}</Badge>
-              <Badge tone="slate">{company.users} пользователей</Badge>
-            </div>
-          </button>
-        ))}
-      </div>
-      </> : (
+          </div>
+        </>
+      ) : (
         <EmptyState
-          action={<Button onClick={() => { setQuery(""); setStatus("all"); setTypeFilter("all"); }}>Сбросить фильтры</Button>}
+          action={
+            <Button
+              onClick={() => {
+                setQuery("");
+                setStatus("all");
+                setTypeFilter("all");
+              }}
+            >
+              Сбросить фильтры
+            </Button>
+          }
           text="Измените строку поиска, тип или статус компании."
           title="Компании не найдены"
         />
       )}
-      <ResponsiveOverlay desktop="modal" label={formCompany ? "Редактирование компании" : "Новая компания"} onClose={() => setFormOpen(false)} open={formOpen}>
+      <ResponsiveOverlay
+        desktop="modal"
+        label={formCompany ? "Редактирование компании" : "Новая компания"}
+        onClose={() => setFormOpen(false)}
+        open={formOpen}
+      >
         <CompanyForm
           company={formCompany}
           onCancel={() => setFormOpen(false)}
@@ -277,6 +320,9 @@ export const CompanyPage = ({ onNavigate, onNotice, resource, role }: Organizati
   const companyUsers = getPrototypeUsers().filter((user) => user.company === company.name);
   return (
     <>
+      <div className="mb-4">
+        <BackButton onNavigate={onNavigate} fallback="companies" />
+      </div>
       <Breadcrumbs
         items={[
           { label: "Компании", onClick: () => onNavigate("companies") },
@@ -285,7 +331,10 @@ export const CompanyPage = ({ onNavigate, onNotice, resource, role }: Organizati
       />
       <PageHeading
         actions={
-          <Button icon={<Pencil className="h-4 w-4" aria-hidden="true" />} onClick={() => setEditOpen(true)}>
+          <Button
+            icon={<Pencil className="h-4 w-4" aria-hidden="true" />}
+            onClick={() => setEditOpen(true)}
+          >
             Редактировать
           </Button>
         }
@@ -327,10 +376,7 @@ export const CompanyPage = ({ onNavigate, onNotice, resource, role }: Organizati
             <h2 className="font-heading text-xl font-bold">Данные компании</h2>
             <dl className="mt-5 grid gap-5 sm:grid-cols-2">
               {[
-                [
-                  "Тип компании",
-                  company.type,
-                ],
+                ["Тип компании", company.type],
                 ["Статус и срок", `${company.status} до ${formatDate(company.statusUntil)}`],
                 ["Договор", `${company.contract} от ${formatDate(company.contractDate)}`],
                 ["Проект", company.project],
@@ -340,7 +386,9 @@ export const CompanyPage = ({ onNavigate, onNotice, resource, role }: Organizati
                 ["Рабочие домены", company.domains.join(", ")],
               ].map(([term, value]) => (
                 <div key={term}>
-                  <dt className="text-xs font-bold uppercase tracking-[.08em] text-slate-400">{term}</dt>
+                  <dt className="text-xs font-bold uppercase tracking-[.08em] text-slate-400">
+                    {term}
+                  </dt>
                   <dd className="mt-1.5 text-sm font-semibold leading-6">{value}</dd>
                 </div>
               ))}
@@ -360,7 +408,9 @@ export const CompanyPage = ({ onNavigate, onNotice, resource, role }: Organizati
               <Button
                 className="mt-4 w-full"
                 icon={<ExternalLink className="h-4 w-4" aria-hidden="true" />}
-                onClick={() => onNotice("В рабочей версии откроется карточка компании в Битрикс24.")}
+                onClick={() =>
+                  onNotice("В рабочей версии откроется карточка компании в Битрикс24.")
+                }
                 tone="secondary"
               >
                 Открыть карточку
@@ -390,7 +440,10 @@ export const CompanyPage = ({ onNavigate, onNotice, resource, role }: Organizati
           </div>
           <div className="space-y-2">
             {companyUsers.map((user) => (
-              <div className="flex min-w-0 items-center gap-3 rounded-xl bg-slate-50 p-3" key={user.id}>
+              <div
+                className="flex min-w-0 items-center gap-3 rounded-xl bg-slate-50 p-3"
+                key={user.id}
+              >
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--ms-primary-soft)] font-bold text-[var(--ms-primary)]">
                   {user.name.slice(0, 1)}
                 </span>
@@ -436,278 +489,6 @@ export const CompanyPage = ({ onNavigate, onNotice, resource, role }: Organizati
           }}
           role={role}
         />
-      </ResponsiveOverlay>
-    </>
-  );
-};
-
-export const CompanyTypesPage = ({ onNavigate, onNotice }: OrganizationProps) => {
-  const [types, setTypes] = useState(() =>
-    readPrototypeValue(prototypeStorageKeys.companyTypes, initialCompanyTypes),
-  );
-  const [dialog, setDialog] = useState<"confirm-default" | "edit" | "delete" | null>(null);
-  const [selected, setSelected] = useState<(typeof types)[number] | null>(null);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [isDefault, setIsDefault] = useState(false);
-  const [formError, setFormError] = useState("");
-  useEffect(() => {
-    writePrototypeValue(prototypeStorageKeys.companyTypes, types);
-  }, [types]);
-  const recordAudit = (action: string, object: string) =>
-    appendPrototypeValue<AuditEvent>(prototypeStorageKeys.audit, {
-      action,
-      category: "company",
-      date: "Только что",
-      object,
-      page: "company-types",
-      result: "Успешно",
-      user: "Администратор портала",
-    });
-  const persistType = () => {
-    if (!name.trim()) return;
-    if (selected) {
-      if (selected.name !== name.trim())
-        renameCompanyTypeRelationships(selected.name, name.trim());
-      setTypes((current) =>
-        current.map((type) => {
-          if (type.name === selected.name)
-            return { ...type, name: name.trim(), description: description.trim(), isDefault };
-          return isDefault ? { ...type, isDefault: false } : type;
-        }),
-      );
-    } else {
-      setTypes((current) => [
-        ...current.map((type) => (isDefault ? { ...type, isDefault: false } : type)),
-        { name: name.trim(), description: description.trim(), companies: 0, articles: 0, isDefault },
-      ]);
-    }
-    setDialog(null);
-    recordAudit(selected ? "Изменил тип компании" : "Создал тип компании", name.trim());
-    onNotice(
-      isDefault
-        ? "Тип компании сохранён и назначен базовым. Существующие компании не изменены."
-        : "Тип компании сохранён.",
-    );
-  };
-  const save = (event: FormEvent) => {
-    event.preventDefault();
-    const normalizedName = name.trim().toLocaleLowerCase("ru");
-    const duplicate = types.some(
-      (type) =>
-        type.name !== selected?.name &&
-        type.name.toLocaleLowerCase("ru") === normalizedName,
-    );
-    if (duplicate) {
-      setFormError(
-        "Тип компании с таким названием уже существует. Код: ACC_COMPANY_TYPE_DUPLICATE.",
-      );
-      return;
-    }
-    setFormError("");
-    if (isDefault && !selected?.isDefault) {
-      setDialog("confirm-default");
-      return;
-    }
-    persistType();
-  };
-  const removeType = () => {
-    if (!selected) return;
-    const references = countCompanyTypeReferences(selected.name);
-    if (selected.isDefault || references.companies > 0 || references.articles > 0) return;
-    setTypes((current) => current.filter((type) => type.name !== selected.name));
-    recordAudit("Удалил тип компании", selected.name);
-    setDialog(null);
-    onNotice("Неиспользуемый тип компании удалён.");
-  };
-  const selectedReferences = selected
-    ? countCompanyTypeReferences(selected.name)
-    : { articles: 0, companies: 0 };
-  return (
-    <>
-      <PageHeading
-        actions={
-          <Button
-            icon={<Plus className="h-4 w-4" aria-hidden="true" />}
-            onClick={() => {
-              setSelected(null);
-              setName("");
-              setDescription("");
-              setIsDefault(false);
-              setFormError("");
-              setDialog("edit");
-            }}
-          >
-            Новый тип
-          </Button>
-        }
-        eyebrow="Компании"
-        subtitle="Тип определяет доступ компании к статьям и функциям портала."
-        title="Типы компаний"
-      />
-      <div className="grid gap-4 lg:grid-cols-3">
-        {types.map((type) => {
-          const references = countCompanyTypeReferences(type.name);
-          return (
-          <article
-            className="rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)]"
-            key={type.name}
-          >
-            <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
-                <Building2 className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <h2 className="font-heading text-lg font-bold">{type.name}</h2>
-                {type.isDefault ? <Badge tone="green">Базовый тип</Badge> : null}
-                <p className="mt-1 text-xs text-[var(--ms-muted)]">
-                  {references.companies} компаний · {references.articles} статей
-                </p>
-              </div>
-            </div>
-            <p className="mt-4 min-h-12 text-sm leading-6 text-[var(--ms-muted)]">{type.description}</p>
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              <Button
-                icon={<Pencil className="h-4 w-4" aria-hidden="true" />}
-                onClick={() => {
-                  setSelected(type);
-                  setName(type.name);
-                  setDescription(type.description);
-                  setIsDefault(type.isDefault);
-                  setFormError("");
-                  setDialog("edit");
-                }}
-                tone="secondary"
-              >
-                Изменить
-              </Button>
-              <Button
-                icon={<Trash2 className="h-4 w-4" aria-hidden="true" />}
-                onClick={() => {
-                  setSelected(type);
-                  setDialog("delete");
-                }}
-                tone="ghost"
-              >
-                Удалить
-              </Button>
-            </div>
-          </article>
-          );
-        })}
-      </div>
-      <ResponsiveOverlay
-        desktop="modal"
-        label={
-          dialog === "delete"
-            ? "Удалить тип компании"
-            : dialog === "confirm-default"
-              ? "Назначить базовый тип"
-              : selected
-                ? "Изменить тип"
-                : "Новый тип"
-        }
-        onClose={() => {
-          setDialog(null);
-          setFormError("");
-        }}
-        open={dialog !== null}
-      >
-        {dialog === "confirm-default" ? (
-          <div>
-            <p className="text-sm leading-6 text-[var(--ms-muted)]">
-              Тип «{name.trim()}» станет базовым для всех новых компаний. Текущие компании и их права не изменятся.
-            </p>
-            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button onClick={() => setDialog("edit")} tone="ghost">Вернуться</Button>
-              <Button onClick={persistType}>Назначить базовым</Button>
-            </div>
-          </div>
-        ) : dialog === "delete" ? (
-          <div>
-            {selected ? (
-              <p className="text-sm leading-6 text-[var(--ms-muted)]">
-                {selected.isDefault
-                  ? `Тип «${selected.name}» назначен базовым. Сначала выберите другой базовый тип.`
-                  : selectedReferences.companies > 0 || selectedReferences.articles > 0
-                    ? `Тип «${selected.name}» связан с ${instrumentalCount(selectedReferences.companies, "компанией", "компаниями")} и ${instrumentalCount(selectedReferences.articles, "статьёй", "статьями")}. Удаление запрещено: сначала переназначьте связанные объекты.`
-                    : `Тип «${selected.name}» не используется. После удаления он исчезнет из форм выбора.`}
-              </p>
-            ) : null}
-            {selected &&
-            (selectedReferences.companies > 0 || selectedReferences.articles > 0) ? (
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                <Button onClick={() => onNavigate("companies")} tone="secondary">
-                  Открыть компании · {selectedReferences.companies}
-                </Button>
-                <Button onClick={() => onNavigate("knowledge")} tone="secondary">
-                  Открыть статьи · {selectedReferences.articles}
-                </Button>
-              </div>
-            ) : null}
-            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button onClick={() => setDialog(null)} tone="ghost">Отмена</Button>
-              <Button
-                disabled={Boolean(
-                  selected &&
-                    (selected.isDefault ||
-                      selectedReferences.companies > 0 ||
-                      selectedReferences.articles > 0),
-                )}
-                onClick={removeType}
-                tone="danger"
-              >
-                Удалить тип
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={save}>
-            {selected ? (
-              <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50 p-3 text-sm leading-6 text-sky-900">
-                Тип связан с {instrumentalCount(selectedReferences.companies, "компанией", "компаниями")} и {instrumentalCount(selectedReferences.articles, "статьёй", "статьями")}. Изменение названия
-                увидят сотрудники MaxSoft; все связи и права сохранятся.
-              </div>
-            ) : null}
-            <Field
-              autoFocus
-              error={formError}
-              label="Название типа"
-              onChange={(event) => setName(event.target.value)}
-              value={name}
-            />
-            <Field
-              className="mt-4"
-              label="Описание"
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="Для каких компаний используется тип"
-              value={description}
-            />
-            <label className="option-row mt-4">
-              <input
-                aria-label="Сделать базовым типом"
-                checked={isDefault}
-                disabled={selected?.isDefault}
-                onChange={(event) => setIsDefault(event.target.checked)}
-                type="checkbox"
-              />
-              <span>
-                Сделать базовым типом
-                <small className="mt-1 block font-normal text-[var(--ms-muted)]">
-                  Он будет назначаться новым компаниям; существующие компании не изменятся.
-                </small>
-              </span>
-            </label>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button onClick={() => setDialog(null)} tone="ghost">
-                Отмена
-              </Button>
-              <Button disabled={!name.trim()} type="submit">
-                Сохранить
-              </Button>
-            </div>
-          </form>
-        )}
       </ResponsiveOverlay>
     </>
   );

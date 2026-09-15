@@ -1,3 +1,5 @@
+import type { Navigate } from "../../app/types";
+import { goBack } from "../../components/BackButton";
 import { ChevronDown, ChevronRight, Pencil, Plus, Tag, Tags, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ActionMenu } from "../../components/ActionMenu";
@@ -9,7 +11,12 @@ import {
   removeTagAcrossArticles,
   renameTagAcrossArticles,
 } from "../../data/prototype-entities";
-import { appendPrototypeValue, prototypeStorageKeys, readPrototypeValue, writePrototypeValue } from "../../data/prototype-store";
+import {
+  appendPrototypeValue,
+  prototypeStorageKeys,
+  readPrototypeValue,
+  writePrototypeValue,
+} from "../../data/prototype-store";
 
 interface TagGroup {
   id: string;
@@ -18,7 +25,7 @@ interface TagGroup {
 }
 
 const initialUsage: Record<string, number> = {
-  "НАВИСА": 42,
+  НАВИСА: 42,
   "Model Studio CS": 18,
   CADLib: 9,
   Лицензирование: 14,
@@ -39,11 +46,22 @@ const initialTagGroups: TagGroup[] = initialGroups.map((group) => ({
 }));
 
 const usageLabel = (count: number) => {
-  const word = count % 10 === 1 && count % 100 !== 11 ? "статья" : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14) ? "статьи" : "статей";
+  const word =
+    count % 10 === 1 && count % 100 !== 11
+      ? "статья"
+      : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14)
+        ? "статьи"
+        : "статей";
   return `${count} ${word}`;
 };
 
-export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) => {
+export const TagsPage = ({
+  onNotice,
+  onNavigate,
+}: {
+  onNotice: (message: string) => void;
+  onNavigate: Navigate;
+}) => {
   const [groups, setGroups] = useState<TagGroup[]>(() =>
     readPrototypeValue(prototypeStorageKeys.tags, initialTagGroups),
   );
@@ -99,7 +117,10 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
       return;
     }
     if (dialog === "group") {
-      setGroups((current) => [...current, { id: `group-${Date.now()}`, name: cleanName, tags: [] }]);
+      setGroups((current) => [
+        ...current,
+        { id: `group-${Date.now()}`, name: cleanName, tags: [] },
+      ]);
       recordAudit("Создал группу тегов", cleanName);
       onNotice("Группа тегов создана.");
     }
@@ -107,7 +128,13 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
       setGroups((current) =>
         current.map((group) =>
           group.id === groupId
-            ? { ...group, tags: [...group.tags, { description: description.trim(), name: cleanName, uses: 0 }] }
+            ? {
+                ...group,
+                tags: [
+                  ...group.tags,
+                  { description: description.trim(), name: cleanName, uses: 0 },
+                ],
+              }
             : group,
         ),
       );
@@ -127,7 +154,10 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
           if (group.id === groupId && group.id !== selected.groupId)
             return {
               ...group,
-              tags: [...group.tags, { ...selectedItem, description: description.trim(), name: cleanName }],
+              tags: [
+                ...group.tags,
+                { ...selectedItem, description: description.trim(), name: cleanName },
+              ],
             };
           if (group.id === selected.groupId)
             return {
@@ -147,7 +177,9 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
     }
     if (dialog === "rename-group" && selected) {
       setGroups((current) =>
-        current.map((group) => (group.id === selected.groupId ? { ...group, name: cleanName } : group)),
+        current.map((group) =>
+          group.id === selected.groupId ? { ...group, name: cleanName } : group,
+        ),
       );
       recordAudit("Переименовал группу тегов", cleanName);
       onNotice("Группа тегов переименована.");
@@ -190,6 +222,7 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
   return (
     <>
       <PageHeading
+        onBack={() => goBack(onNavigate, "administration")}
         actions={
           <>
             <Button
@@ -227,7 +260,7 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
         subtitle="Объединяйте теги в группы и используйте их для классификации, навигации и поиска. Теги не управляют доступом."
         title="Теги и группы"
       />
-      <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+      <div className="grid min-w-0 gap-4">
         {groups.map((group) => {
           const open = expanded.has(group.id);
           return (
@@ -249,20 +282,22 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
                   }
                   type="button"
                 >
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
-                  <Tags className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-heading text-lg font-bold">{group.name}</span>
-                  <span className="mt-0.5 block text-xs text-[var(--ms-muted)]">
-                    {group.tags.length} тегов
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
+                    <Tags className="h-5 w-5" aria-hidden="true" />
                   </span>
-                </span>
-                {open ? (
-                  <ChevronDown className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
-                ) : (
-                  <ChevronRight className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
-                )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-heading text-lg font-bold">
+                      {group.name}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-[var(--ms-muted)]">
+                      {group.tags.length} тегов
+                    </span>
+                  </span>
+                  {open ? (
+                    <ChevronDown className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
+                  ) : (
+                    <ChevronRight className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
+                  )}
                 </button>
                 <ActionMenu
                   label={`Действия группы: ${group.name}`}
@@ -314,9 +349,14 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
                             className="flex min-w-0 items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5"
                             key={tag.name}
                           >
-                            <Tag className="h-4 w-4 shrink-0 text-[var(--ms-primary)]" aria-hidden="true" />
+                            <Tag
+                              className="h-4 w-4 shrink-0 text-[var(--ms-primary)]"
+                              aria-hidden="true"
+                            />
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-semibold">{tag.name}</span>
+                              <span className="block truncate text-sm font-semibold">
+                                {tag.name}
+                              </span>
                               {tag.description ? (
                                 <span className="mt-0.5 block truncate text-xs text-[var(--ms-muted)]">
                                   {tag.description}
@@ -328,7 +368,9 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
                             </span>
                             <ActionMenu
                               label={`Действия: ${tag.name}`}
-                              onOpenChange={(open) => setMenu(open ? `${group.id}:${tag.name}` : null)}
+                              onOpenChange={(open) =>
+                                setMenu(open ? `${group.id}:${tag.name}` : null)
+                              }
                               open={menu === `${group.id}:${tag.name}`}
                               panelClassName="w-48"
                             >
@@ -388,11 +430,11 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
               ? "Переименовать группу"
               : dialog === "delete-group"
                 ? "Удалить группу"
-            : dialog === "rename"
-              ? "Переименовать тег"
-              : dialog === "delete"
-                ? "Удалить тег"
-                : "Новый тег"
+                : dialog === "rename"
+                  ? "Переименовать тег"
+                  : dialog === "delete"
+                    ? "Удалить тег"
+                    : "Новый тег"
         }
         onClose={() => {
           setDialog(null);
@@ -404,13 +446,17 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
           <div>
             <p className="text-sm leading-6 text-[var(--ms-muted)]">
               Тег «{selected?.tag}» используется в{" "}
-              {usageLabel(
-                selected?.tag ? countTagReferences(selected.tag) : 0,
-              )}.
-              После удаления он исчезнет из фильтров, сами статьи сохранятся.
+              {usageLabel(selected?.tag ? countTagReferences(selected.tag) : 0)}. После удаления он
+              исчезнет из фильтров, сами статьи сохранятся.
             </p>
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button onClick={() => { setDialog(null); setFormError(""); }} tone="ghost">
+              <Button
+                onClick={() => {
+                  setDialog(null);
+                  setFormError("");
+                }}
+                tone="ghost"
+              >
                 Отмена
               </Button>
               <Button onClick={remove} tone="danger">
@@ -426,9 +472,13 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
                 : "Пустую группу можно удалить. Это действие будет записано в журнал."}
             </p>
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button onClick={() => setDialog(null)} tone="ghost">Отмена</Button>
+              <Button onClick={() => setDialog(null)} tone="ghost">
+                Отмена
+              </Button>
               <Button
-                disabled={Boolean(groups.find((group) => group.id === selected?.groupId)?.tags.length)}
+                disabled={Boolean(
+                  groups.find((group) => group.id === selected?.groupId)?.tags.length,
+                )}
                 onClick={removeGroup}
                 tone="danger"
               >
@@ -445,7 +495,11 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
           >
             <Field
               autoFocus
-              label={dialog === "group" || dialog === "rename-group" ? "Название группы" : "Название тега"}
+              label={
+                dialog === "group" || dialog === "rename-group"
+                  ? "Название группы"
+                  : "Название тега"
+              }
               onChange={(event) => {
                 setName(event.target.value);
                 setFormError("");
@@ -468,7 +522,10 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
               </SelectField>
             ) : null}
             {formError ? (
-              <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700" role="alert">
+              <p
+                className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700"
+                role="alert"
+              >
                 {formError}
               </p>
             ) : null}
@@ -482,7 +539,13 @@ export const TagsPage = ({ onNotice }: { onNotice: (message: string) => void }) 
               />
             ) : null}
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button onClick={() => { setDialog(null); setFormError(""); }} tone="ghost">
+              <Button
+                onClick={() => {
+                  setDialog(null);
+                  setFormError("");
+                }}
+                tone="ghost"
+              >
                 Отмена
               </Button>
               <Button disabled={!name.trim()} type="submit">

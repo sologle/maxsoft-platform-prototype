@@ -1,3 +1,5 @@
+import { DomainFields, DOMAIN_PATTERN } from "./DomainFields";
+import { InfoHint } from "../../components/InfoHint";
 import { useState, type FormEvent } from "react";
 import type { UserRole } from "../../app/types";
 import { Button, Field, SelectField } from "../../components/ui";
@@ -24,13 +26,12 @@ interface CompanyFormProps {
   role: UserRole;
 }
 
-const COMPANY_DOMAIN_PATTERN =
-  /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
-
 export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProps) => {
   const editing = Boolean(company);
   const [inn, setInn] = useState(company?.inn ?? "");
-  const [domains, setDomains] = useState(company?.domains.join(", ") ?? "");
+  const [domains, setDomains] = useState<string[]>(
+    company?.domains.length ? [...company.domains] : [""],
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const availableCompanyTypes = readPrototypeValue(
     prototypeStorageKeys.companyTypes,
@@ -56,7 +57,6 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
     return setting.visible && setting[operation] && (role !== "manager" || setting.manager);
   };
   const isRequired = (id: string) => fieldSetting(id).required;
-  const isUnique = (id: string) => fieldSetting(id).unique;
   const getFormValue = (form: FormData, id: string, existingValue = "") => {
     if (!showField(id)) return existingValue;
     const value = form.get(id);
@@ -71,12 +71,26 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
     const nextErrors: Record<string, string> = {};
     const records = getPrototypeCompanies();
     const normalizedDomains = domains
-      .split(",")
       .map((domain) => domain.trim().toLocaleLowerCase("ru"))
       .filter(Boolean);
-    if (normalizedDomains.some((domain) => !COMPANY_DOMAIN_PATTERN.test(domain)))
-      nextErrors.domains =
-        "Введите домен без протокола и пути, например company.ru. Код: ACC_DOMAIN_INVALID.";
+    domains.forEach((raw, index) => {
+      const domain = raw.trim().toLowerCase();
+      if (!domain) return;
+      if (!DOMAIN_PATTERN.test(domain))
+        nextErrors[`domain-${index}`] =
+          "Введите домен без протокола и пути. Код: ACC_DOMAIN_INVALID.";
+      else if (domains.slice(0, index).some((value) => value.trim().toLowerCase() === domain))
+        nextErrors[`domain-${index}`] = "Этот домен уже добавлен. Код: ACC_DOMAIN_DUPLICATE.";
+      else if (
+        fieldSetting("domains").unique &&
+        records.some(
+          (record) =>
+            record.id !== company?.id &&
+            record.domains.some((value) => value.toLowerCase() === domain),
+        )
+      )
+        nextErrors[`domain-${index}`] = "Домен занят другой компанией. Код: ACC_DOMAIN_CONFLICT.";
+    });
     const record: CompanyRecord = {
       id: company?.id ?? `company-${Date.now()}`,
       name: getFormValue(form, "name", company?.name),
@@ -88,7 +102,7 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
       phone: getFormValue(form, "phone", company?.phone),
       type:
         role === "manager"
-          ? company?.type ?? defaultCompanyType.name
+          ? (company?.type ?? defaultCompanyType.name)
           : getFormValue(form, "type", company?.type),
       status: getFormValue(form, "status", company?.status) as CompanyRecord["status"],
       statusUntil: getFormValue(form, "statusUntil", company?.statusUntil),
@@ -160,16 +174,44 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
           />
         ) : null}
         {showField("kpp") ? (
-          <Field defaultValue={company?.kpp ?? ""} error={errors.kpp} inputMode="numeric" label="КПП" name="kpp" required={isRequired("kpp")} />
+          <Field
+            defaultValue={company?.kpp ?? ""}
+            error={errors.kpp}
+            inputMode="numeric"
+            label="КПП"
+            name="kpp"
+            required={isRequired("kpp")}
+          />
         ) : null}
         {showField("legalAddress") ? (
-          <Field className="sm:col-span-2" defaultValue={company?.legalAddress ?? ""} error={errors.legalAddress} label="Юридический адрес" name="legalAddress" required={isRequired("legalAddress")} />
+          <Field
+            className="sm:col-span-2"
+            defaultValue={company?.legalAddress ?? ""}
+            error={errors.legalAddress}
+            label="Юридический адрес"
+            name="legalAddress"
+            required={isRequired("legalAddress")}
+          />
         ) : null}
         {showField("primaryEmail") ? (
-          <Field defaultValue={company?.primaryEmail ?? ""} error={errors.primaryEmail} label="Основной email" name="primaryEmail" required={isRequired("primaryEmail")} type="email" />
+          <Field
+            defaultValue={company?.primaryEmail ?? ""}
+            error={errors.primaryEmail}
+            label="Основной email"
+            name="primaryEmail"
+            required={isRequired("primaryEmail")}
+            type="email"
+          />
         ) : null}
         {showField("phone") ? (
-          <Field defaultValue={company?.phone ?? ""} error={errors.phone} label="Телефон" name="phone" required={isRequired("phone")} type="tel" />
+          <Field
+            defaultValue={company?.phone ?? ""}
+            error={errors.phone}
+            label="Телефон"
+            name="phone"
+            required={isRequired("phone")}
+            type="tel"
+          />
         ) : null}
         {role === "manager" ? (
           <div className="rounded-xl border border-[var(--ms-border)] bg-slate-50 p-3 text-sm leading-6 text-[var(--ms-muted)] sm:col-span-2">
@@ -179,40 +221,104 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             Менеджер не может менять это поле. Новой компании назначается базовый тип.
           </div>
         ) : showField("type") ? (
-          <SelectField defaultValue={company?.type ?? defaultCompanyType.name} error={errors.type} label="Тип компании" name="type" required={isRequired("type")}>
-            {availableCompanyTypes.map((type) => <option key={type.name}>{type.name}</option>)}
+          <SelectField
+            defaultValue={company?.type ?? defaultCompanyType.name}
+            error={errors.type}
+            label="Тип компании"
+            name="type"
+            required={isRequired("type")}
+          >
+            {availableCompanyTypes.map((type) => (
+              <option key={type.name}>{type.name}</option>
+            ))}
           </SelectField>
         ) : null}
         {showField("status") ? (
-          <SelectField defaultValue={company?.status ?? "Активна"} error={errors.status} label="Статус" name="status" required={isRequired("status")}>
+          <SelectField
+            defaultValue={company?.status ?? "Активна"}
+            error={errors.status}
+            label="Статус"
+            name="status"
+            required={isRequired("status")}
+          >
             <option>Активна</option>
             <option>Приостановлена</option>
           </SelectField>
         ) : null}
-        {showField("statusUntil") ? <Field defaultValue={company?.statusUntil ?? ""} error={errors.statusUntil} label="Срок действия статуса" name="statusUntil" required={isRequired("statusUntil")} type="date" /> : null}
-        {showField("contract") ? <Field defaultValue={company?.contract ?? ""} error={errors.contract} label="Договор / основание" name="contract" required={isRequired("contract")} /> : null}
-        {showField("contractDate") ? <Field defaultValue={company?.contractDate ?? ""} error={errors.contractDate} label="Дата договора" name="contractDate" required={isRequired("contractDate")} type="date" /> : null}
-        {showField("project") ? <Field defaultValue={company?.project ?? ""} error={errors.project} label="Проект" name="project" placeholder="Необязательное поле" required={isRequired("project")} /> : null}
-        {showField("bitrix") ? <Field className="sm:col-span-2" defaultValue={company?.bitrixUrl ?? ""} error={errors.bitrix} label="Ссылка на Битрикс24" name="bitrix" placeholder="https://..." required={isRequired("bitrix")} type="url" /> : null}
-        {showField("domains") ? (
+        {showField("statusUntil") ? (
           <Field
-            aria-label="Рабочий домен"
+            defaultValue={company?.statusUntil ?? ""}
+            error={errors.statusUntil}
+            label="Срок действия статуса"
+            name="statusUntil"
+            required={isRequired("statusUntil")}
+            type="date"
+          />
+        ) : null}
+        {showField("contract") ? (
+          <Field
+            defaultValue={company?.contract ?? ""}
+            error={errors.contract}
+            label="Договор / основание"
+            name="contract"
+            required={isRequired("contract")}
+          />
+        ) : null}
+        {showField("contractDate") ? (
+          <Field
+            defaultValue={company?.contractDate ?? ""}
+            error={errors.contractDate}
+            label="Дата договора"
+            name="contractDate"
+            required={isRequired("contractDate")}
+            type="date"
+          />
+        ) : null}
+        {showField("project") ? (
+          <Field
+            defaultValue={company?.project ?? ""}
+            error={errors.project}
+            label="Проект"
+            name="project"
+            placeholder="Необязательное поле"
+            required={isRequired("project")}
+          />
+        ) : null}
+        {showField("bitrix") ? (
+          <Field
             className="sm:col-span-2"
-            error={errors.domains}
-            label="Рабочие домены"
-            name="domains"
-            onChange={(event) => setDomains(event.target.value)}
-            placeholder="company.ru, knowledge.company.ru"
+            defaultValue={company?.bitrixUrl ?? ""}
+            error={errors.bitrix}
+            label="Ссылка на Битрикс24"
+            name="bitrix"
+            placeholder="https://..."
+            required={isRequired("bitrix")}
+            type="url"
+          />
+        ) : null}
+        {showField("domains") ? (
+          <DomainFields
+            values={domains}
+            errors={errors}
             required={isRequired("domains")}
-            value={domains}
+            onChange={setDomains}
           />
         ) : null}
       </div>
       <p className="mt-3 text-xs leading-5 text-[var(--ms-muted)]">
-        Укажите несколько доменов через запятую. Каждый домен должен быть уникален для портала.
+        Каждый домен должен быть уникален для портала. Пустые дополнительные строки не сохраняются.
       </p>
+      <div className="mt-3 flex items-center text-sm text-[var(--ms-muted)]">
+        Срок статуса
+        <InfoHint
+          label="Срок статуса"
+          text="Дата хранится в карточке. Правило автоматического изменения доступа после этой даты обсуждается с MaxSoft."
+        />
+      </div>
       <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button onClick={onCancel} tone="ghost">Отмена</Button>
+        <Button onClick={onCancel} tone="ghost">
+          Отмена
+        </Button>
         <Button type="submit">Сохранить компанию</Button>
       </div>
     </form>
