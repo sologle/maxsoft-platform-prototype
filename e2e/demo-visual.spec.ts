@@ -172,7 +172,7 @@ test("PL-09: домены строками, ошибки и заголовки �
       node.querySelector("thead")!.getBoundingClientRect().top - node.getBoundingClientRect().top,
   );
   expect(headOffset).toBeCloseTo(1, 0);
-  await page.getByRole("button", { name: "Пояснение: Обязательное" }).focus();
+  await page.getByRole("button", { name: "Пояснение: Требовать заполнения" }).focus();
   await expect(page.getByRole("tooltip")).toBeVisible();
   await page.screenshot({ animations: "disabled", path: "/tmp/demo-table-sticky-tooltip.png" });
 });

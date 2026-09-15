@@ -1,5 +1,11 @@
 import { MoreHorizontal } from "lucide-react";
-import { useEffect, useId, useRef, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 
 interface ActionMenuProps {
   children: ReactNode;
@@ -22,12 +28,34 @@ export const ActionMenu = ({
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const menuItems = () =>
-    Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []).filter(
-      (item) => !item.hasAttribute("disabled"),
-    );
+    Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+    ).filter((item) => !item.hasAttribute("disabled"));
 
   useEffect(() => {
     if (!open) return;
+    const menu = menuRef.current;
+    const trigger = triggerRef.current;
+    if (!menu || !trigger)
+      throw new Error(
+        "UI_ACTION_MENU_MISSING: Не удалось открыть меню. Обновите страницу.",
+      );
+    const position = () => {
+      const gap = 8;
+      const rect = trigger.getBoundingClientRect();
+      const below = window.innerHeight - rect.bottom - gap * 2;
+      const above = rect.top - gap * 2;
+      const upwards = below < menu.scrollHeight && above > below;
+      menu.style.maxWidth = `${window.innerWidth - gap * 2}px`;
+      menu.style.maxHeight = `${Math.max(0, upwards ? above : below)}px`;
+      const bounds = menu.getBoundingClientRect();
+      menu.style.left = `${Math.max(gap, Math.min(rect.right - bounds.width, window.innerWidth - bounds.width - gap))}px`;
+      menu.style.top = `${upwards ? rect.top - bounds.height - gap : rect.bottom + gap}px`;
+    };
+    menu.showPopover();
+    position();
+    window.addEventListener("resize", position);
+    window.addEventListener("scroll", position, true);
     const closeOutside = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) onOpenChange(false);
     };
@@ -39,9 +67,14 @@ export const ActionMenu = ({
     };
     document.addEventListener("pointerdown", closeOutside);
     document.addEventListener("keydown", closeOnEscape);
-    const focusFrame = window.requestAnimationFrame(() => menuItems()[0]?.focus());
+    const focusFrame = window.requestAnimationFrame(() =>
+      menuItems()[0]?.focus(),
+    );
     return () => {
       window.cancelAnimationFrame(focusFrame);
+      if (menu.matches(":popover-open")) menu.hidePopover();
+      window.removeEventListener("resize", position);
+      window.removeEventListener("scroll", position, true);
       document.removeEventListener("pointerdown", closeOutside);
       document.removeEventListener("keydown", closeOnEscape);
     };
@@ -78,7 +111,8 @@ export const ActionMenu = ({
       </button>
       {open ? (
         <div
-          className={`absolute right-0 top-[calc(100%+6px)] z-30 animate-[popover-in_140ms_ease-out] rounded-xl border border-[var(--ms-border)] bg-white p-1.5 shadow-[0_14px_40px_rgba(24,43,66,.16)] ${panelClassName}`}
+          popover="manual"
+          className={`fixed inset-auto m-0 overflow-y-auto animate-[popover-in_140ms_ease-out] rounded-xl border border-[var(--ms-border)] bg-[var(--ms-surface)] text-[var(--ms-text)] p-1.5 shadow-[0_14px_40px_rgba(24,43,66,.16)] ${panelClassName}`}
           id={menuId}
           onKeyDown={moveFocus}
           ref={menuRef}

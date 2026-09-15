@@ -1,5 +1,15 @@
-import { AlertCircle, ArrowLeft, Check, ChevronRight, SearchX } from "lucide-react";
-import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  SearchX,
+} from "lucide-react";
+import {
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+} from "react";
 
 type ButtonTone = "primary" | "secondary" | "ghost" | "danger";
 
@@ -14,7 +24,8 @@ const buttonTone: Record<ButtonTone, string> = {
     "bg-[var(--ms-primary)] text-white shadow-[0_5px_14px_rgba(20,120,189,.2)] hover:bg-[var(--ms-primary-hover)] hover:-translate-y-px",
   secondary:
     "border border-[var(--ms-border-strong)] bg-white text-[var(--ms-text)] hover:border-[var(--ms-primary)] hover:bg-[var(--ms-primary-soft)]",
-  ghost: "text-[var(--ms-muted)] hover:bg-slate-100 hover:text-[var(--ms-text)]",
+  ghost:
+    "text-[var(--ms-muted)] hover:bg-slate-100 hover:text-[var(--ms-text)]",
   danger: "bg-red-600 text-white hover:bg-red-700",
 };
 
@@ -38,21 +49,38 @@ export const Button = ({
 interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   label: string;
+  inputAction?: ReactNode;
 }
 
-export const Field = ({ className = "", error, label, id, ...props }: FieldProps) => {
+export const Field = ({
+  className = "",
+  error,
+  label,
+  id,
+  inputAction,
+  ...props
+}: FieldProps) => {
   const fieldId = id ?? `field-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
-    <label className={`block ${className}`} htmlFor={fieldId}>
-      <span className="mb-1.5 block text-sm font-semibold text-[var(--ms-text)]">{label}</span>
-      <input
-        aria-label={label}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${fieldId}-error` : undefined}
-        className="h-12 w-full min-w-0 rounded-xl border border-[var(--ms-border-strong)] bg-white px-3.5 text-[15px] outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)]"
-        id={fieldId}
-        {...props}
-      />
+    <label className={`block min-w-0 ${className}`} htmlFor={fieldId}>
+      <span className="mb-1.5 block text-sm font-semibold text-[var(--ms-text)]">
+        {label}
+      </span>
+      <span className="relative block min-w-0">
+        <input
+          aria-label={label}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${fieldId}-error` : undefined}
+          className={`h-12 w-full min-w-0 max-w-full rounded-xl border border-[var(--ms-border-strong)] bg-white px-3.5 text-[15px] outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)] ${inputAction ? "pr-14" : ""}`}
+          id={fieldId}
+          {...props}
+        />
+        {inputAction ? (
+          <span className="absolute right-1 top-1/2 -translate-y-1/2">
+            {inputAction}
+          </span>
+        ) : null}
+      </span>
       {error ? (
         <span
           id={`${fieldId}-error`}
@@ -133,7 +161,9 @@ export const PageHeading = ({
         {subtitle}
       </p>
     </div>
-    {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
+    {actions ? (
+      <div className="flex max-w-full flex-wrap gap-2">{actions}</div>
+    ) : null}
   </div>
 );
 
@@ -151,7 +181,9 @@ export const EmptyState = ({
       <SearchX className="h-6 w-6" aria-hidden="true" />
     </span>
     <h2 className="font-heading text-lg font-bold">{title}</h2>
-    <p className="mt-2 max-w-md text-sm leading-6 text-[var(--ms-muted)]">{text}</p>
+    <p className="mt-2 max-w-md text-sm leading-6 text-[var(--ms-muted)]">
+      {text}
+    </p>
     {action ? <div className="mt-5">{action}</div> : null}
   </div>
 );
@@ -179,7 +211,12 @@ export const Switch = ({
     <span
       className={`absolute top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow transition duration-200 ${checked ? "left-6" : "left-1"}`}
     >
-      {checked ? <Check className="h-3 w-3 text-[var(--ms-primary)]" aria-hidden="true" /> : null}
+      {checked ? (
+        <Check
+          className="h-3 w-3 text-[var(--ms-primary)]"
+          aria-hidden="true"
+        />
+      ) : null}
     </span>
   </button>
 );
@@ -194,9 +231,15 @@ export const Breadcrumbs = ({
     className="mb-5 flex min-w-0 items-center gap-1.5 overflow-hidden text-sm text-[var(--ms-muted)]"
   >
     {items.map((item, index) => (
-      <span className="flex min-w-0 items-center gap-1.5" key={`${item.label}-${index}`}>
+      <span
+        className="flex min-w-0 items-center gap-1.5"
+        key={`${item.label}-${index}`}
+      >
         {index > 0 ? (
-          <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+          <ChevronRight
+            className="h-4 w-4 shrink-0 text-slate-400"
+            aria-hidden="true"
+          />
         ) : null}
         {item.onClick ? (
           <button

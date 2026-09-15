@@ -1,28 +1,38 @@
+import {
+  GroupedTagPicker,
+  getTagGroups,
+} from "../../components/GroupedTagPicker";
+import { articles } from "../../data/platform-data";
+import { getArticleTags } from "../../data/prototype-entities";
+import { MaterialFilters } from "./MaterialFilters";
+import {
+  queryMaterials,
+  visibleArticleIds,
+  type MaterialKind,
+} from "../../data/material-query";
 import { usePageState } from "../../hooks/usePageState";
-import { flattenTree, getKnowledgeTree, sectionArticleIds } from "../../data/knowledge-tree";
-import { Filter, FolderTree, LayoutGrid, List, Plus, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { flattenTree, getKnowledgeTree } from "../../data/knowledge-tree";
+import { FolderTree, LayoutGrid, List, Plus, Search, X } from "lucide-react";
+import { useState } from "react";
 import type { Navigate, UserRole } from "../../app/types";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
-import { Button, EmptyState, PageHeading, SelectField } from "../../components/ui";
-import {
-  articles,
-  canRoleAccessArticle,
-  canRoleAccessFile,
-  files,
-  isArticlePublished,
-} from "../../data/platform-data";
-import { getArticleTags } from "../../data/prototype-entities";
+import { Button, EmptyState, PageHeading } from "../../components/ui";
 import { KnowledgeTree } from "./KnowledgeTree";
 import { KnowledgeResults, type KnowledgeView } from "./KnowledgeResults";
 
 interface KnowledgeLibraryProps {
   companyType?: string;
+  resource?: string;
   onNavigate: Navigate;
   role: UserRole;
 }
 
-export const KnowledgeLibrary = ({ companyType, onNavigate, role }: KnowledgeLibraryProps) => {
+export const KnowledgeLibrary = ({
+  companyType,
+  resource,
+  onNavigate,
+  role,
+}: KnowledgeLibraryProps) => {
   const tree = getKnowledgeTree();
   const sectionLabels = Object.fromEntries(
     [{ id: "all", name: "Все материалы" }, ...flattenTree(tree)].map((node) => [
@@ -30,38 +40,32 @@ export const KnowledgeLibrary = ({ companyType, onNavigate, role }: KnowledgeLib
       node.name,
     ]),
   );
-  const [section, setSection] = usePageState("section", "all");
+  const [section, setSection] = usePageState("section", resource ?? "all");
   const [query, setQuery] = usePageState("query", "");
   const [sort, setSort] = usePageState("sort", "updated");
   const [treeOpen, setTreeOpen] = useState(false);
   const [view, setView] = usePageState<KnowledgeView>("view", "table");
+  const [kind, setKind] = usePageState<MaterialKind>("kind", "all");
   const canEdit = role === "portal-admin" || role === "support-engineer";
-  const visibleArticles = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    const filtered = articles.filter((article) => {
-      if (!canEdit && !isArticlePublished(article)) return false;
-      if (!canRoleAccessArticle(article, role, companyType)) return false;
+  const [tags, setTags] = usePageState<string[]>("tags", []);
+  const results = queryMaterials({
+    role,
+    companyType,
+    query,
+    section,
+    sort,
+    kind,
+    tags,
+    content: false,
+  });
+  const articleIds = visibleArticleIds({ role, companyType });
 
-      const matchesSection =
-        section === "all" || sectionArticleIds(tree, section).includes(article.id);
-      const matchesQuery =
-        !normalized ||
-        `${article.title} ${article.description} ${getArticleTags(article).join(" ")}`
-          .toLowerCase()
-          .includes(normalized);
-      return matchesSection && matchesQuery;
-    });
-    return sort === "title"
-      ? [...filtered].sort((left, right) => left.title.localeCompare(right.title, "ru"))
-      : filtered;
-  }, [canEdit, companyType, query, role, section, sort]);
-  const attachedFile = files.find((file) => file.name === "инструкция_активации.pdf");
-  if (!attachedFile) throw new Error("KB_FILE_MISSING: файл инструкции не найден");
-  const showAttachedFile =
-    canRoleAccessFile(attachedFile, role, companyType) &&
-    ["all", "navisa", "installation"].includes(section) &&
-    (!query.trim() || "инструкция активации pdf лицензия".includes(query.trim().toLowerCase()));
-
+  const visibleTags = new Set(
+    articles.filter((a) => articleIds.includes(a.id)).flatMap(getArticleTags),
+  );
+  const tagGroups = getTagGroups()
+    .map((g) => ({ ...g, tags: g.tags.filter((t) => visibleTags.has(t.name)) }))
+    .filter((g) => g.tags.length);
   const selectSection = (next: string) => {
     setSection(next);
     setTreeOpen(false);
@@ -116,14 +120,21 @@ export const KnowledgeLibrary = ({ companyType, onNavigate, role }: KnowledgeLib
       <div className="grid min-w-0 gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="hidden self-start rounded-2xl border border-[var(--ms-border)] bg-white p-4 shadow-[var(--ms-card-shadow)] xl:sticky xl:top-28 xl:block">
           <div className="mb-3 flex items-center gap-2 px-2">
-            <FolderTree className="h-5 w-5 text-[var(--ms-primary)]" aria-hidden="true" />
+            <FolderTree
+              className="h-5 w-5 text-[var(--ms-primary)]"
+              aria-hidden="true"
+            />
             <h2 className="font-heading font-bold">Разделы</h2>
           </div>
-          <KnowledgeTree onSelect={setSection} selected={section} />
+          <KnowledgeTree
+            onSelect={setSection}
+            selected={section}
+            articleIds={articleIds}
+          />
         </aside>
 
         <section className="min-w-0">
-          <div className="mb-4 flex min-w-0 flex-col gap-3 rounded-2xl border border-[var(--ms-border)] bg-white p-3 shadow-[var(--ms-card-shadow)] sm:flex-row sm:items-center">
+          <div className="mb-4 flex min-w-0 flex-col gap-3 rounded-2xl border border-[var(--ms-border)] bg-white p-3 shadow-[var(--ms-card-shadow)] sm:flex-row sm:flex-wrap sm:items-end">
             <button
               className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--ms-border-strong)] bg-white px-4 text-sm font-semibold transition hover:border-[var(--ms-primary)] hover:bg-[var(--ms-primary-soft)] xl:hidden"
               onClick={() => setTreeOpen(true)}
@@ -155,19 +166,32 @@ export const KnowledgeLibrary = ({ companyType, onNavigate, role }: KnowledgeLib
                 </button>
               ) : null}
             </label>
-            <SelectField
-              className="min-w-0 sm:w-52"
-              label="Сортировка"
-              labelHidden
-              leadingIcon={<Filter className="h-4 w-4" aria-hidden="true" />}
-              onChange={(event) => setSort(event.target.value)}
-              value={sort}
-            >
-              <option value="updated">Сначала обновлённые</option>
-              <option value="title">По названию</option>
-            </SelectField>
+            <MaterialFilters
+              kind={kind}
+              setKind={setKind}
+              sort={sort}
+              setSort={setSort}
+            />
           </div>
 
+          <details className="mb-4 rounded-xl border border-[var(--ms-border)] bg-white p-3">
+            <summary className="cursor-pointer text-sm font-semibold">
+              Фильтр по тегам · {tags.length}
+            </summary>
+            <div className="mt-3">
+              <GroupedTagPicker
+                groups={tagGroups}
+                selected={tags}
+                onToggle={(tag) =>
+                  setTags((current) =>
+                    current.includes(tag)
+                      ? current.filter((t) => t !== tag)
+                      : [...current, tag],
+                  )
+                }
+              />
+            </div>
+          </details>
           <Button
             className="mb-4"
             tone="ghost"
@@ -177,11 +201,13 @@ export const KnowledgeLibrary = ({ companyType, onNavigate, role }: KnowledgeLib
           >
             Поиск по тексту статей и файлов
           </Button>
-          {visibleArticles.length || showAttachedFile ? (
+          <p className="mb-3 text-sm text-[var(--ms-muted)]">
+            Найдено материалов: {results.length}
+          </p>
+          {results.length ? (
             <KnowledgeResults
-              articles={visibleArticles}
+              results={results}
               onNavigate={onNavigate}
-              showAttachedFile={showAttachedFile}
               view={view}
             />
           ) : (
@@ -191,6 +217,8 @@ export const KnowledgeLibrary = ({ companyType, onNavigate, role }: KnowledgeLib
                   onClick={() => {
                     setQuery("");
                     setSection("all");
+                    setKind("all");
+                    setTags([]);
                   }}
                 >
                   Сбросить фильтры
@@ -209,7 +237,11 @@ export const KnowledgeLibrary = ({ companyType, onNavigate, role }: KnowledgeLib
         onClose={() => setTreeOpen(false)}
         open={treeOpen}
       >
-        <KnowledgeTree onSelect={selectSection} selected={section} />
+        <KnowledgeTree
+          onSelect={selectSection}
+          selected={section}
+          articleIds={articleIds}
+        />
       </ResponsiveOverlay>
     </>
   );

@@ -1,7 +1,8 @@
 import { companyFields } from "./platform-data";
+import { normalizeCompanyFields } from "./company-field-policy";
 import { prototypeStorageKeys, readPrototypeValue } from "./prototype-store";
-export const excludedRegistrationFields = ["shortName", "domains", "primaryEmail", "phone", "type"];
+export { excludedRegistrationFields } from "./company-field-policy";
 export const getCompanyFields = () =>
-  readPrototypeValue(prototypeStorageKeys.companyFields, companyFields).map((field) =>
-    excludedRegistrationFields.includes(field.id) ? { ...field, registration: false } : field,
+  normalizeCompanyFields(
+    readPrototypeValue(prototypeStorageKeys.companyFields, companyFields),
   );

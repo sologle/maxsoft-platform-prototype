@@ -133,7 +133,7 @@ export const createScatterWordmark = (width: number, height: number, readSetting
         context.lineTo(x, y);
         context.stroke();
       }
-      context.strokeStyle = `rgba(${color},${(dark ? 0.21 : 0.17) + morph * 0.48 + energy * 0.18})`;
+      context.strokeStyle = `rgba(${dark && point.word ? "255,255,255" : color},${(dark ? 0.21 : 0.17) + morph * 0.48 + energy * 0.18})`;
       context.beginPath();
       context.moveTo(x - Math.cos(angle) * halfLength, y - Math.sin(angle) * halfLength);
       context.lineTo(x + Math.cos(angle) * halfLength, y + Math.sin(angle) * halfLength);

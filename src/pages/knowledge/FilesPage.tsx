@@ -1,10 +1,13 @@
+import { RelatedArticles } from "./RelatedArticles";
+import { accessibleFileArticles } from "../../data/material-query";
+import { licensingFileName } from "../../data/licensing/catalog";
+import { licensingPdfUrl } from "../../data/licensing/file-assets";
 import { goBack } from "../../components/BackButton";
 import { downloadDemoFile } from "../../data/download";
 import { fileContent } from "../../data/file-content";
 import { DocumentPreview } from "./DocumentPreview";
 import { demoResources } from "../../app/demo-resources";
 import {
-  ArrowLeft,
   Download,
   ExternalLink,
   Eye,
@@ -31,7 +34,11 @@ import {
   PageHeading,
   SelectField,
 } from "../../components/ui";
-import { articles, canRoleAccessArticle, files } from "../../data/platform-data";
+import {
+  articles,
+  canRoleAccessArticle,
+  files,
+} from "../../data/platform-data";
 import { getArticleSections } from "../../data/prototype-entities";
 
 interface FilesPageProps {
@@ -46,13 +53,16 @@ interface FilesPageProps {
 const usesLabel = (uses: number) =>
   `${uses} ${uses === 1 ? "статья" : uses < 5 ? "статьи" : "статей"}`;
 
-const primaryArticleForFile = (file: (typeof files)[number]) => {
-  const article = articles.find((candidate) => candidate.id === file.relatedArticleIds[0]);
-  if (!article) throw new Error(`KB_FILE_ARTICLE_MISSING: ${file.name}`);
-  return article;
-};
-
-export const FilesPage = ({ onNavigate, onNotice }: FilesPageProps) => {
+export const FilesPage = ({
+  onNavigate,
+  onNotice,
+  role,
+  companyType,
+}: FilesPageProps) => {
+  const related = (file: (typeof files)[number]) =>
+    accessibleFileArticles(file, { role, companyType });
+  const sectionsFor = (file: (typeof files)[number]) =>
+    [...new Set(related(file).flatMap(getArticleSections))].join(" · ");
   const [query, setQuery] = useState("");
   const [type, setType] = useState("all");
   const [view, setView] = useState<"table" | "cards">("cards");
@@ -70,7 +80,11 @@ export const FilesPage = ({ onNavigate, onNotice }: FilesPageProps) => {
 
   const download = (file: (typeof files)[number]) => {
     downloadDemoFile(file);
-    onNotice("Скачана текстовая демозаглушка, не исходный документ.");
+    onNotice(
+      file.name === licensingFileName
+        ? "PDF передан для скачивания."
+        : "Скачана текстовая демозаглушка, не исходный документ.",
+    );
     setMenu(null);
   };
   const openFile = (file: (typeof files)[number]) => {
@@ -197,9 +211,11 @@ export const FilesPage = ({ onNavigate, onNotice }: FilesPageProps) => {
                   <td className="px-5 py-4">
                     <Badge tone="slate">{file.type}</Badge>
                   </td>
-                  <td className="px-5 py-4 text-[var(--ms-muted)]">{file.size}</td>
                   <td className="px-5 py-4 text-[var(--ms-muted)]">
-                    {getArticleSections(primaryArticleForFile(file)).join(" · ")}
+                    {file.size}
+                  </td>
+                  <td className="px-5 py-4 text-[var(--ms-muted)]">
+                    {sectionsFor(file)}
                   </td>
                   <td className="px-5 py-4">
                     <button
@@ -207,10 +223,12 @@ export const FilesPage = ({ onNavigate, onNotice }: FilesPageProps) => {
                       onClick={() => setSelected(file)}
                       type="button"
                     >
-                      {usesLabel(file.uses)}
+                      {usesLabel(related(file).length)}
                     </button>
                   </td>
-                  <td className="px-5 py-4 text-[var(--ms-muted)]">{file.updated}</td>
+                  <td className="px-5 py-4 text-[var(--ms-muted)]">
+                    {file.updated}
+                  </td>
                   <td className="px-3">
                     <ActionMenu
                       label={`Действия: ${file.name}`}
@@ -280,7 +298,7 @@ export const FilesPage = ({ onNavigate, onNotice }: FilesPageProps) => {
                   {file.type} · {file.size} · {file.updated}
                 </span>
                 <span className="mt-3 block text-xs font-semibold text-[var(--ms-primary)]">
-                  База знаний / {getArticleSections(primaryArticleForFile(file)).join(" · ")}
+                  База знаний / {sectionsFor(file)}
                 </span>
               </button>
               <div className="mt-auto grid grid-cols-2 gap-2 pt-5">
@@ -293,7 +311,9 @@ export const FilesPage = ({ onNavigate, onNotice }: FilesPageProps) => {
                 </Button>
                 <Button onClick={() => setSelected(file)}>
                   <span className="md:hidden">Где используется</span>
-                  <span className="hidden md:inline">{usesLabel(file.uses)}</span>
+                  <span className="hidden md:inline">
+                    {usesLabel(related(file).length)}
+                  </span>
                 </Button>
               </div>
             </article>
@@ -309,14 +329,21 @@ export const FilesPage = ({ onNavigate, onNotice }: FilesPageProps) => {
       >
         <div className="space-y-3">
           {articles
-            .filter((article) => selected?.relatedArticleIds.includes(article.id))
+            .filter(
+              (article) =>
+                selected?.relatedArticleIds.includes(article.id) &&
+                canRoleAccessArticle(article, role, companyType),
+            )
             .map((article) => (
               <button
                 className="group flex w-full min-w-0 items-center gap-3 rounded-2xl border border-[var(--ms-border)] p-4 text-left transition hover:border-[var(--ms-primary)] hover:bg-[var(--ms-primary-soft)]"
                 key={article.id}
                 onClick={() => {
                   setSelected(null);
-                  onNavigate(article.kind === "video" ? "video" : "article", article.id);
+                  onNavigate(
+                    article.kind === "video" ? "video" : "article",
+                    article.id,
+                  );
                 }}
                 type="button"
               >
@@ -324,7 +351,9 @@ export const FilesPage = ({ onNavigate, onNotice }: FilesPageProps) => {
                   <FileText className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold">{article.title}</span>
+                  <span className="block text-sm font-bold">
+                    {article.title}
+                  </span>
                   <span className="mt-1 block text-xs text-[var(--ms-muted)]">
                     {getArticleSections(article).join(" · ")}
                   </span>
@@ -358,7 +387,9 @@ export const FilePreviewPage = ({
 }: FilesPageProps) => {
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0);
-  const file = files.find((candidate) => candidate.name === (resource ?? demoResources.file))!;
+  const file = files.find(
+    (candidate) => candidate.name === (resource ?? demoResources.file),
+  )!;
   const backPage = role === "portal-admin" ? "files" : "knowledge";
   if (!canPreviewFile(file)) {
     return (
@@ -377,7 +408,9 @@ export const FilePreviewPage = ({
               icon={<Download className="h-4 w-4" aria-hidden="true" />}
               onClick={() => {
                 downloadDemoFile(file);
-                onNotice("Скачана текстовая демозаглушка, не исходный документ.");
+                onNotice(
+                  "Скачана текстовая демозаглушка, не исходный документ.",
+                );
               }}
             >
               Скачать файл
@@ -387,19 +420,65 @@ export const FilePreviewPage = ({
       </>
     );
   }
-  const relatedArticles = articles.filter(
-    (article) =>
-      file.relatedArticleIds.includes(article.id) &&
-      canRoleAccessArticle(article, role, companyType),
-  );
-  const primaryArticle = relatedArticles[0]!;
-  const primarySection = getArticleSections(primaryArticle)[0];
-  if (!primarySection)
-    throw new Error(`KB_ARTICLE_SECTION_MISSING: у статьи ${primaryArticle.id} не задан раздел`);
+  const relatedArticles = accessibleFileArticles(file, { role, companyType });
+  if (!relatedArticles.length)
+    return (
+      <EmptyState
+        title="Нет доступа к файлу"
+        text="Нет доступных связанных материалов. Вернитесь в базу знаний."
+        action={
+          <Button onClick={() => onNavigate("knowledge")}>База знаний</Button>
+        }
+      />
+    );
+  const primarySection = [
+    ...new Set(relatedArticles.flatMap(getArticleSections)),
+  ].join(" · ");
+  if (file.name === licensingFileName)
+    return (
+      <>
+        <PageHeading
+          title={file.name}
+          eyebrow={`Исходный PDF · ${file.size}`}
+          subtitle="Иван Немков · Источник обновлён 09.07.2026 · 8 страниц"
+          onBack={() => goBack(onNavigate, backPage)}
+          actions={
+            <Button onClick={() => downloadDemoFile(file)}>Скачать PDF</Button>
+          }
+        />
+        <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="min-w-0">
+            <object
+              type="application/pdf"
+              data={licensingPdfUrl}
+              aria-label="Исходный PDF статьи о лицензировании"
+              className="h-[75dvh] w-full rounded-xl border border-[var(--ms-border)]"
+            >
+              <p className="p-5">
+                Для просмотра документа на этом устройстве{" "}
+                <a
+                  href={licensingPdfUrl}
+                  download={file.name}
+                  className="text-[var(--ms-primary)] underline"
+                >
+                  скачайте PDF
+                </a>
+                .
+              </p>
+            </object>
+          </section>
+          <RelatedArticles articles={relatedArticles} onNavigate={onNavigate} />
+        </div>
+      </>
+    );
   const documentTitle = file.name.replace(/\.[^.]+$/, "").replaceAll("_", " ");
   const download = () => {
     downloadDemoFile(file);
-    onNotice("Скачана текстовая демозаглушка, не исходный документ.");
+    onNotice(
+      file.name === licensingFileName
+        ? "PDF передан для скачивания."
+        : "Скачана текстовая демозаглушка, не исходный документ.",
+    );
   };
   return (
     <>
@@ -414,7 +493,10 @@ export const FilePreviewPage = ({
       />
       <PageHeading
         actions={
-          <Button icon={<Download className="h-4 w-4" aria-hidden="true" />} onClick={download}>
+          <Button
+            icon={<Download className="h-4 w-4" aria-hidden="true" />}
+            onClick={download}
+          >
             Скачать демозаглушку
           </Button>
         }
@@ -427,8 +509,11 @@ export const FilePreviewPage = ({
       <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="min-w-0 overflow-hidden rounded-2xl border border-[var(--ms-border)] bg-[#dce3ea] shadow-[var(--ms-card-shadow)]">
           <div className="flex flex-wrap items-center gap-2 border-b border-[var(--ms-border)] bg-white p-2.5">
+            <FileTypeIcon type={file.type} />
             <Badge tone="red">Предпросмотр {file.type}</Badge>
-            <span className="ml-auto text-sm font-bold text-[var(--ms-muted)]">{zoom}%</span>
+            <span className="ml-auto text-sm font-bold text-[var(--ms-muted)]">
+              {zoom}%
+            </span>
             <button
               aria-label="Уменьшить масштаб"
               className="icon-button"
@@ -496,9 +581,7 @@ export const FilePreviewPage = ({
                 <dt className="text-xs font-bold uppercase tracking-[.08em] text-slate-400">
                   Раздел
                 </dt>
-                <dd className="mt-1 font-semibold">
-                  {getArticleSections(primaryArticle).join(" · ")}
-                </dd>
+                <dd className="mt-1 font-semibold">{primarySection}</dd>
               </div>
               <div>
                 <dt className="text-xs font-bold uppercase tracking-[.08em] text-slate-400">
@@ -514,16 +597,7 @@ export const FilePreviewPage = ({
               </div>
             </dl>
           </section>
-          <Button
-            className="w-full"
-            icon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}
-            onClick={() =>
-              onNavigate(primaryArticle.kind === "video" ? "video" : "article", primaryArticle.id)
-            }
-            tone="secondary"
-          >
-            К связанной статье
-          </Button>
+          <RelatedArticles articles={relatedArticles} onNavigate={onNavigate} />
         </aside>
       </div>
     </>

@@ -12,7 +12,7 @@ test("база знаний переключается между таблице
 test("фирменный выпадающий список открывает стилизованное меню", async ({ page }) => {
   await page.goto("./?page=knowledge&role=portal-admin");
   await page
-    .getByRole("button", { name: "Открыть варианты. Выбрано: Сначала обновлённые" })
+    .getByRole("button", { name: "Открыть варианты. Выбрано: По дате обновления · новые первыми" })
     .click();
   const listbox = page.getByRole("listbox", { name: "Сортировка" });
   await expect(listbox).toBeVisible();
@@ -66,9 +66,10 @@ test("статья меняет размер текста и включает п
     .not.toBe(before);
   await page.getByRole("button", { name: "На весь экран" }).click();
   await expect(article).toHaveAttribute("data-reading-mode", "fullscreen");
+  await page.getByRole("button", { name: "Развернуть содержание статьи" }).click();
   await expect(article.getByRole("navigation", { name: "Содержание статьи" })).toBeVisible();
   await expect(article.getByRole("link", { name: "Перед началом работы" })).toBeVisible();
-  await article.getByRole("button", { name: "Свернуть содержание статьи" }).click();
+  await article.getByRole("button", { name: "Закрыть содержание" }).click();
   await expect(article.getByRole("link", { name: "Перед началом работы" })).toBeHidden();
   await page.getByRole("button", { name: "Выйти из полноэкранного режима" }).click();
   await expect(article).toHaveAttribute("data-reading-mode", "standard");

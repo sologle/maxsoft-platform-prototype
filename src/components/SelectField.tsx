@@ -1,7 +1,14 @@
 import { AlertCircle, Check, ChevronDown } from "lucide-react";
 import {
-  Children, isValidElement, useId, useLayoutEffect, useRef, useState,
-  type KeyboardEvent, type ReactNode, type SelectHTMLAttributes,
+  Children,
+  isValidElement,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+  type SelectHTMLAttributes,
 } from "react";
 
 interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
@@ -40,20 +47,30 @@ export const SelectField = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const options = Children.toArray(children).flatMap<SelectOption>((child) => {
-    if (!isValidElement<{ children?: ReactNode; disabled?: boolean; value?: string | number }>(child))
+    if (
+      !isValidElement<{
+        children?: ReactNode;
+        disabled?: boolean;
+        value?: string | number;
+      }>(child)
+    )
       return [];
     const optionValue = child.props.value ?? child.props.children;
-    return [{
-      disabled: Boolean(child.props.disabled),
-      label: String(child.props.children ?? optionValue),
-      value: String(optionValue),
-    }];
+    return [
+      {
+        disabled: Boolean(child.props.disabled),
+        label: String(child.props.children ?? optionValue),
+        value: String(optionValue),
+      },
+    ];
   });
   const [uncontrolledValue, setUncontrolledValue] = useState(() =>
     String(defaultValue ?? options[0]?.value ?? ""),
   );
   const selectedValue = String(value ?? uncontrolledValue);
-  const selectedLabel = options.find((option) => option.value === selectedValue)?.label ?? selectedValue;
+  const selectedLabel =
+    options.find((option) => option.value === selectedValue)?.label ??
+    selectedValue;
 
   // The native control remains the source for form submission and programmatic changes.
   useLayoutEffect(() => {
@@ -64,14 +81,18 @@ export const SelectField = ({
     if (!open) return;
     const menu = menuRef.current;
     const trigger = triggerRef.current;
-    if (!menu || !trigger) throw new Error("UI_SELECT_ELEMENT_MISSING: список не найден");
+    if (!menu || !trigger)
+      throw new Error("UI_SELECT_ELEMENT_MISSING: список не найден");
     const position = () => {
       const rect = trigger.getBoundingClientRect();
       const gap = 8;
       const below = window.innerHeight - rect.bottom - gap * 2;
       const above = rect.top - gap * 2;
       const upwards = below < Math.min(menu.scrollHeight, 288) && above > below;
-      const width = Math.min(Math.max(rect.width, 192), window.innerWidth - gap * 2);
+      const width = Math.min(
+        Math.max(rect.width, 192),
+        window.innerWidth - gap * 2,
+      );
       menu.style.width = `${width}px`;
       menu.style.maxHeight = `${Math.max(0, Math.min(288, upwards ? above : below))}px`;
       menu.style.left = `${Math.max(gap, Math.min(rect.left, window.innerWidth - width - gap))}px`;
@@ -79,8 +100,12 @@ export const SelectField = ({
     };
     menu.showPopover();
     position();
-    const selected = menu.querySelector<HTMLButtonElement>('[aria-selected="true"]:not(:disabled)');
-    (selected ?? menu.querySelector<HTMLButtonElement>('button:not(:disabled)'))?.focus({ preventScroll: true });
+    const selected = menu.querySelector<HTMLButtonElement>(
+      '[aria-selected="true"]:not(:disabled)',
+    );
+    (
+      selected ?? menu.querySelector<HTMLButtonElement>("button:not(:disabled)")
+    )?.focus({ preventScroll: true });
     selected?.scrollIntoView({ block: "nearest" });
     const closeOutside = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
@@ -110,18 +135,34 @@ export const SelectField = ({
       setOpen(true);
       return;
     }
-    const enabled = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? []);
-    const current = enabled.indexOf(document.activeElement as HTMLButtonElement);
-    const next = event.key === "Home" ? 0 : event.key === "End" ? enabled.length - 1
-      : (current + (event.key === "ArrowDown" ? 1 : -1) + enabled.length) % enabled.length;
+    const enabled = Array.from(
+      menuRef.current?.querySelectorAll<HTMLButtonElement>(
+        "button:not(:disabled)",
+      ) ?? [],
+    );
+    const current = enabled.indexOf(
+      document.activeElement as HTMLButtonElement,
+    );
+    const next =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? enabled.length - 1
+          : (current + (event.key === "ArrowDown" ? 1 : -1) + enabled.length) %
+            enabled.length;
     enabled[next]?.focus();
   };
 
   const chooseOption = (nextValue: string) => {
     const select = selectRef.current;
-    if (!select) throw new Error("UI_SELECT_ELEMENT_MISSING: связанный select не найден");
-    const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
-    if (!setter) throw new Error("UI_SELECT_VALUE_SETTER_MISSING: select нельзя изменить");
+    if (!select)
+      throw new Error("UI_SELECT_ELEMENT_MISSING: связанный select не найден");
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLSelectElement.prototype,
+      "value",
+    )?.set;
+    if (!setter)
+      throw new Error("UI_SELECT_VALUE_SETTER_MISSING: select нельзя изменить");
     setter.call(select, nextValue);
     select.dispatchEvent(new Event("change", { bubbles: true }));
     setOpen(false);
@@ -134,7 +175,7 @@ export const SelectField = ({
       : "border-[var(--ms-border-strong)] bg-[var(--ms-surface)] text-[var(--ms-text)] hover:border-[var(--ms-primary)]";
   return (
     <div
-      className={`relative block ${className}`}
+      className={`relative block min-w-0 ${className}`}
       ref={rootRef}
       onKeyDown={handleKeyDown}
       onBlur={(event) => {
@@ -184,8 +225,12 @@ export const SelectField = ({
         onClick={() => setOpen((current) => !current)}
         type="button"
       >
-        {leadingIcon ? <span className="shrink-0 opacity-65">{leadingIcon}</span> : null}
-        <span className="min-w-0 flex-1 truncate" id={`${fieldId}-value`}>{selectedLabel}</span>
+        {leadingIcon ? (
+          <span className="shrink-0 opacity-65">{leadingIcon}</span>
+        ) : null}
+        <span className="min-w-0 flex-1 truncate" id={`${fieldId}-value`}>
+          {selectedLabel}
+        </span>
         <ChevronDown
           aria-hidden="true"
           className={`h-4 w-4 shrink-0 opacity-65 transition ${open ? "rotate-180" : ""}`}
@@ -212,13 +257,18 @@ export const SelectField = ({
               type="button"
             >
               <span className="min-w-0 flex-1 truncate">{option.label}</span>
-              {option.value === selectedValue ? <Check className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
+              {option.value === selectedValue ? (
+                <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+              ) : null}
             </button>
           ))}
         </div>
       ) : null}
       {error ? (
-        <span className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-650" role="alert">
+        <span
+          className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-650"
+          role="alert"
+        >
           <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
           {error}
         </span>
@@ -226,4 +276,3 @@ export const SelectField = ({
     </div>
   );
 };
-

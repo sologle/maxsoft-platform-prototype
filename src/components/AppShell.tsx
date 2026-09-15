@@ -1,20 +1,11 @@
-import {
-  BookOpen,
-  Building2,
-  ChevronDown,
-  Home,
-  LogOut,
-  Menu,
-  Search,
-  Settings,
-  UserRound,
-  UsersRound,
-  X,
-} from "lucide-react";
+import { clientRoleLabel } from "../app/client-role-label";
+import { ChevronDown, LogOut, Menu, Search, BookOpen, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { BrandLogo } from "./BrandLogo";
+import { navigationForRole, profileNavigation } from "../app/navigation";
 import { roleProfile } from "../app/routes";
-import type { AppLocation, AppPage, Navigate } from "../app/types";
+import type { AppLocation, Navigate } from "../app/types";
 import { usePresence } from "../hooks/usePresence";
 import { ModalSurface } from "./ModalSurface";
 import { ThemeToggle } from "./Theme";
@@ -26,33 +17,6 @@ interface AppShellProps {
   onNavigate: Navigate;
 }
 
-interface NavigationItem {
-  icon: typeof Home;
-  label: string;
-  page: AppPage;
-}
-
-const navigationForRole = (location: AppLocation): NavigationItem[] => {
-  const common: NavigationItem[] = [
-    { icon: Home, label: "Главная", page: "home" },
-    { icon: BookOpen, label: "База знаний", page: "knowledge" },
-    { icon: Search, label: "Поиск", page: "search" },
-  ];
-  if (["portal-admin", "support-engineer", "manager"].includes(location.role)) {
-    common.push(
-      { icon: Building2, label: "Компании", page: "companies" },
-      { icon: UsersRound, label: "Пользователи", page: "users" },
-    );
-  }
-  if (location.role === "client-admin") {
-    common.push({ icon: UsersRound, label: "Сотрудники", page: "client-users" });
-  }
-  if (location.role === "portal-admin") {
-    common.push({ icon: Settings, label: "Администрирование", page: "administration" });
-  }
-  return common;
-};
-
 const NavLinks = ({
   location,
   onNavigate,
@@ -63,35 +27,44 @@ const NavLinks = ({
   stacked?: boolean;
 }) => (
   <nav className={stacked ? "flex flex-col gap-1" : "flex items-center gap-1"}>
-    {navigationForRole(location).map(({ icon: Icon, label, page }) => {
-      const active =
-        location.page === page ||
-        (page === "knowledge" &&
-          ["article", "video", "editor", "file-preview"].includes(location.page));
-      return (
-        <a
-          aria-current={active ? "page" : undefined}
-          className={`group flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition duration-200 ${
-            active
-              ? "bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]"
-              : "text-[var(--ms-muted)] hover:bg-slate-100 hover:text-[var(--ms-text)]"
-          } ${stacked ? "w-full" : "whitespace-nowrap"}`}
-          href={`?page=${page}&role=${location.role}`}
-          key={page}
-          onClick={(event) => {
-            event.preventDefault();
-            onNavigate(page);
-          }}
-        >
-          <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-          {label}
-        </a>
-      );
-    })}
+    {navigationForRole(location.role)
+      .filter(({ page }) => !stacked || page !== "search")
+      .map(({ icon: Icon, label, page }) => {
+        const active =
+          location.page === page ||
+          (page === "knowledge" &&
+            ["article", "video", "editor", "file-preview"].includes(
+              location.page,
+            ));
+        return (
+          <a
+            aria-current={active ? "page" : undefined}
+            className={`group flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition duration-200 ${
+              active
+                ? "bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]"
+                : "text-[var(--ms-muted)] hover:bg-slate-100 hover:text-[var(--ms-text)]"
+            } ${stacked ? "w-full" : "whitespace-nowrap"}`}
+            href={`?page=${page}&role=${location.role}`}
+            key={page}
+            onClick={(event) => {
+              event.preventDefault();
+              onNavigate(page);
+            }}
+          >
+            <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+            {label}
+          </a>
+        );
+      })}
   </nav>
 );
 
-export const AppShell = ({ children, location, onExit, onNavigate }: AppShellProps) => {
+export const AppShell = ({
+  children,
+  location,
+  onExit,
+  onNavigate,
+}: AppShellProps) => {
   const headerRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const observer = new ResizeObserver(() =>
@@ -108,6 +81,7 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
   const menuMounted = usePresence(menuOpen);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
   const profile = roleProfile(location.role);
+  const profileShortLabel = clientRoleLabel(profile.shortLabel);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -127,7 +101,8 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
     if (!profileOpen) return;
     const closeOutside = (event: MouseEvent) => {
       const container = profileButtonRef.current?.parentElement;
-      if (event.target instanceof Node && !container?.contains(event.target)) setProfileOpen(false);
+      if (event.target instanceof Node && !container?.contains(event.target))
+        setProfileOpen(false);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -144,7 +119,7 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
   }, [profileOpen]);
 
   return (
-    <div className="min-h-dvh min-w-0 overflow-x-clip bg-[var(--ms-background)] text-[var(--ms-text)]">
+    <div className="min-h-dvh min-w-0 bg-[var(--ms-background)] text-[var(--ms-text)]">
       <header
         ref={headerRef}
         className="sticky top-0 z-50 border-b border-[var(--ms-border)] bg-white/94 shadow-[0_2px_12px_rgba(27,51,75,.06)] backdrop-blur-xl"
@@ -164,21 +139,19 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
             onClick={() => onNavigate("home")}
             type="button"
           >
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--ms-primary)] text-sm font-black text-white shadow-[0_5px_14px_rgba(20,120,189,.25)]">
-              M
-            </span>
-            <span className="font-heading text-lg font-extrabold tracking-[-.02em] max-sm:hidden">
-              MaxSoft
-            </span>
+            <BrandLogo />
           </button>
 
-          <div className="mx-3 hidden min-w-0 flex-1 xl:block" data-testid="desktop-navigation">
+          <div
+            className="mx-3 hidden min-w-0 flex-1 xl:block"
+            data-testid="desktop-navigation"
+          >
             <NavLinks location={location} onNavigate={onNavigate} />
           </div>
 
           <button
             aria-label="Открыть поиск"
-            className="icon-button ml-auto lg:ml-0"
+            className="icon-button global-search-trigger ml-auto"
             onClick={() => onNavigate("search")}
             type="button"
           >
@@ -189,7 +162,7 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
 
           <div className="relative">
             <button
-              aria-label={`${profile.shortLabel}. Демо-профиль`}
+              aria-label={`${profileShortLabel}. Демо-профиль`}
               aria-expanded={profileOpen}
               aria-haspopup="menu"
               className="flex min-w-0 items-center gap-2 rounded-xl p-1.5 text-left transition hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-[var(--ms-primary)]"
@@ -198,13 +171,15 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
               type="button"
             >
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#d9edf9] font-heading text-sm font-bold text-[var(--ms-primary)]">
-                {profile.shortLabel.slice(0, 1)}
+                {profileShortLabel.slice(0, 1)}
               </span>
               <span className="hidden min-w-0 2xl:block">
                 <span className="block max-w-48 truncate text-sm font-semibold">
-                  {profile.shortLabel}
+                  {profileShortLabel}
                 </span>
-                <span className="block text-xs text-[var(--ms-muted)]">Демо-профиль</span>
+                <span className="block text-xs text-[var(--ms-muted)]">
+                  Демо-профиль
+                </span>
               </span>
               <ChevronDown
                 className={`hidden h-4 w-4 transition 2xl:block ${profileOpen ? "rotate-180" : ""}`}
@@ -217,18 +192,28 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
                 role="menu"
               >
                 <div className="border-b border-[var(--ms-border)] px-3 py-3">
-                  <p className="text-sm font-bold">{profile.label}</p>
-                  <p className="mt-1 text-xs text-[var(--ms-muted)]">demo@maxsoft.ru</p>
+                  <p className="text-sm font-bold">
+                    {clientRoleLabel(profile.label)}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--ms-muted)]">
+                    demo@maxsoft.ru
+                  </p>
                 </div>
-                <button
-                  className="menu-action"
-                  onClick={() => setProfileOpen(false)}
-                  role="menuitem"
-                  type="button"
-                >
-                  <UserRound className="h-4 w-4" aria-hidden="true" />
-                  Профиль
-                </button>
+                {profileNavigation.map((item) => (
+                  <button
+                    key={item.page}
+                    className="menu-action"
+                    onClick={() => {
+                      setProfileOpen(false);
+                      onNavigate(item.page);
+                    }}
+                    role="menuitem"
+                    type="button"
+                  >
+                    <BookOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {item.label}
+                  </button>
+                ))}
                 <button
                   className="menu-action text-red-600"
                   onClick={onExit}
@@ -246,7 +231,7 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
 
       <main className="min-w-0 w-full px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-24 lg:px-8 lg:py-10 lg:pb-24 2xl:px-10">
         <div
-          className="page-enter min-w-0"
+          className="page-enter min-w-0 [overflow-wrap:anywhere]"
           key={`${location.page}:${location.resource ?? ""}:${location.companyType ?? ""}`}
         >
           {children}
@@ -275,11 +260,8 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
                 role="dialog"
               >
                 <div className="flex h-16 items-center gap-3 border-b border-[var(--ms-border)] px-4">
-                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--ms-primary)] text-sm font-black text-white">
-                    M
-                  </span>
-                  <h2 className="font-heading text-lg font-extrabold" id="mobile-navigation-title">
-                    MaxSoft
+                  <h2 id="mobile-navigation-title">
+                    <BrandLogo />
                   </h2>
                   <button
                     aria-label="Закрыть меню"
@@ -294,16 +276,24 @@ export const AppShell = ({ children, location, onExit, onNavigate }: AppShellPro
                   <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-[.14em] text-slate-400">
                     Разделы
                   </p>
-                  <NavLinks location={location} onNavigate={onNavigate} stacked />
+                  <NavLinks
+                    location={location}
+                    onNavigate={onNavigate}
+                    stacked
+                  />
                 </div>
                 <div className="border-t border-[var(--ms-border)] p-4">
                   <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
                     <span className="grid h-10 w-10 place-items-center rounded-full bg-[#d9edf9] font-heading font-bold text-[var(--ms-primary)]">
-                      {profile.shortLabel.slice(0, 1)}
+                      {profileShortLabel.slice(0, 1)}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-bold">{profile.shortLabel}</p>
-                      <p className="truncate text-xs text-[var(--ms-muted)]">demo@maxsoft.ru</p>
+                      <p className="truncate text-sm font-bold">
+                        {profileShortLabel}
+                      </p>
+                      <p className="truncate text-xs text-[var(--ms-muted)]">
+                        demo@maxsoft.ru
+                      </p>
                     </div>
                   </div>
                 </div>

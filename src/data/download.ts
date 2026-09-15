@@ -1,3 +1,5 @@
+import { licensingFileName } from "./licensing/catalog";
+import { licensingPdfUrl } from "./licensing/file-assets";
 export const mockDownload = {
   filename: "maxsoft-demo-document.txt",
   content:
@@ -5,6 +7,13 @@ export const mockDownload = {
 };
 
 export const downloadDemoFile = (file: { name: string; type: string }) => {
+  if (file.name === licensingFileName) {
+    const link = document.createElement("a");
+    link.href = licensingPdfUrl;
+    link.download = file.name;
+    link.click();
+    return;
+  }
   const url = URL.createObjectURL(
     new Blob(
       [

@@ -1,10 +1,31 @@
+import { ArticleBlocks } from "./ArticleBlocks";
+import { getArticleContent } from "../../data/article-content";
+import { usePersonalArticle } from "../../hooks/usePersonalArticle";
+import { licensingArticleId } from "../../data/licensing/catalog";
+import { legacyArticleSections as articleSections } from "../../data/article-content";
 import { demoResources } from "../../app/demo-resources";
-import { Bookmark, Maximize2, Pause, Pencil, Play, Volume2 } from "lucide-react";
+import {
+  Bookmark,
+  Maximize2,
+  Pause,
+  Pencil,
+  Play,
+  Volume2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Navigate, UserRole } from "../../app/types";
 import { Badge, Breadcrumbs, Button } from "../../components/ui";
-import { articles, isArticlePublished, type ArticleSummary } from "../../data/platform-data";
-import { getArticleSections, getArticleTags } from "../../data/prototype-entities";
+import {
+  articles,
+  files,
+  canRoleAccessArticle,
+  isArticlePublished,
+  type ArticleSummary,
+} from "../../data/platform-data";
+import {
+  getArticleSections,
+  getArticleTags,
+} from "../../data/prototype-entities";
 import { ReadingLayout } from "./ReadingLayout";
 import { ArticleAttachments } from "./ArticleAttachments";
 interface ArticlePageProps {
@@ -13,21 +34,37 @@ interface ArticlePageProps {
   onNotice: (message: string) => void;
   resource?: string;
   role: UserRole;
+  companyId?: string;
+  companyType?: string;
 }
 const ArticleHeader = ({
   article,
   onNavigate,
   role,
+  companyId,
+  companyType,
+  onNotice,
 }: {
   article: ArticleSummary;
   onNavigate: Navigate;
   role: UserRole;
+  companyId?: string;
+  companyType?: string;
+  onNotice: (message: string) => void;
 }) => {
-  const [saved, setSaved] = useState(false);
+  const { saved, toggle } = usePersonalArticle(
+    article,
+    role,
+    companyId,
+    companyType,
+    onNotice,
+  );
   const canEdit = role === "portal-admin" || role === "support-engineer";
   const primarySection = getArticleSections(article)[0];
   if (!primarySection)
-    throw new Error(`KB_ARTICLE_SECTION_MISSING: у статьи ${article.id} не задан раздел`);
+    throw new Error(
+      `KB_ARTICLE_SECTION_MISSING: у статьи ${article.id} не задан раздел`,
+    );
   return (
     <>
       <Breadcrumbs
@@ -50,16 +87,23 @@ const ArticleHeader = ({
             {article.title}
           </h1>
           <p className="mt-4 text-sm text-[var(--ms-muted)]">
-            Анна Смирнова · Обновлено сегодня в 10:42 · 8 минут чтения
+            {article.id.startsWith("licensing-")
+              ? "Иван Немков · Источник: 09.07.2026 · "
+              : "Демонстрационный материал · "}
+            Обновлено в демо: {article.updated}
           </p>
         </div>
         <div className="article-actions flex shrink-0 flex-wrap gap-2">
           <Button
             aria-pressed={saved}
             icon={
-              <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} aria-hidden="true" />
+              <Bookmark
+                className={`h-4 w-4 ${saved ? "fill-current" : ""}`}
+                aria-hidden="true"
+              />
             }
-            onClick={() => setSaved((current) => !current)}
+            onClick={toggle}
+            disabled={!isArticlePublished(article)}
             tone="secondary"
           >
             {saved ? "Сохранено" : "Сохранить"}
@@ -78,122 +122,78 @@ const ArticleHeader = ({
   );
 };
 
-const articleSections: Record<string, Array<{ id: string; text: string; title: string }>> = {
-  "network-license": [
-    {
-      id: "preparation",
-      title: "Перед началом работы",
-      text: "Убедитесь, что сервер лицензий доступен из корпоративной сети, а системное время на сервере и рабочих станциях синхронизировано.",
-    },
-    {
-      id: "installation",
-      title: "Установка сервера лицензий",
-      text: "Скачайте актуальный дистрибутив, запустите установщик от имени администратора и укажите каталог хранения лицензий.",
-    },
-    {
-      id: "connection",
-      title: "Подключение рабочего места",
-      text: "Откройте настройки продукта, выберите сетевой тип лицензирования и укажите адрес сервера server.company.local:1947.",
-    },
-    {
-      id: "diagnostics",
-      title: "Диагностика",
-      text: "Если лицензия не найдена, проверьте доступность порта, журнал службы и совместимость версий.",
-    },
-  ],
-  "project-template": [
-    {
-      id: "preparation",
-      title: "Подготовка структуры",
-      text: "Создайте единый корневой каталог проекта и согласуйте правила именования файлов с командой.",
-    },
-    {
-      id: "installation",
-      title: "Шаблоны проекта",
-      text: "Добавьте утверждённые шаблоны, библиотеки и общие параметры до начала моделирования.",
-    },
-    {
-      id: "connection",
-      title: "Совместная работа",
-      text: "Назначьте владельцев разделов и настройте регулярную синхронизацию изменений.",
-    },
-    {
-      id: "diagnostics",
-      title: "Контроль качества",
-      text: "Перед публикацией проверьте структуру, ссылки и обязательные свойства моделей.",
-    },
-  ],
-  "server-migration": [
-    {
-      id: "preparation",
-      title: "Подготовка миграции",
-      text: "Зафиксируйте текущие лицензии, сделайте резервную копию и уведомите пользователей о техническом окне.",
-    },
-    {
-      id: "installation",
-      title: "Перенос службы",
-      text: "Установите сервер лицензий на новом узле и восстановите проверенную конфигурацию.",
-    },
-    {
-      id: "connection",
-      title: "Переключение клиентов",
-      text: "Обновите адрес сервера на рабочих местах и проверьте выдачу лицензий тестовой группе.",
-    },
-    {
-      id: "diagnostics",
-      title: "Завершение",
-      text: "После контрольного периода отключите старую службу и сохраните журнал миграции.",
-    },
-  ],
-  "update-2026": [
-    {
-      id: "preparation",
-      title: "Перед обновлением",
-      text: "Сделайте резервную копию проектов и проверьте системные требования версии 2026.",
-    },
-    {
-      id: "installation",
-      title: "Обновление компонентов",
-      text: "Устанавливайте компоненты в согласованном порядке и фиксируйте результат каждого шага.",
-    },
-    {
-      id: "connection",
-      title: "Проверка модулей",
-      text: "Откройте контрольный проект и проверьте совместимость подключённых модулей.",
-    },
-    {
-      id: "diagnostics",
-      title: "Возврат к работе",
-      text: "После успешной проверки обновите рабочие места и сообщите пользователям о завершении.",
-    },
-  ],
-};
-
-export const ArticlePage = ({ onNavigate, resource, role }: ArticlePageProps) => {
-  const article = articles.find((item) => item.id === (resource ?? demoResources.article))!;
-  const sections = articleSections[article.id];
+export const ArticlePage = ({
+  onNavigate,
+  resource,
+  role,
+  companyId,
+  companyType,
+  onNotice,
+}: ArticlePageProps) => {
+  const article = articles.find(
+    (item) => item.id === (resource ?? demoResources.article),
+  )!;
+  const content = getArticleContent(article.id);
+  const sections = content.length ? content : articleSections[article.id];
   return (
     <ReadingLayout
       onNavigate={onNavigate}
-      sections={[...sections, { id: "attachments-title", title: "Вложения" }]}
+      articleId={article.id}
+      role={role}
+      companyType={companyType}
+      sections={[
+        ...sections,
+        ...(files.some((f) => f.relatedArticleIds.includes(article.id))
+          ? [{ id: "attachments-title", title: "Вложения" }]
+          : []),
+      ]}
     >
-      <ArticleHeader article={article} onNavigate={onNavigate} role={role} />
+      <ArticleHeader
+        article={article}
+        onNavigate={onNavigate}
+        role={role}
+        companyId={companyId}
+        companyType={companyType}
+        onNotice={onNotice}
+      />
       <div className="article-content mt-8">
         <p className="article-lead">{article.description}</p>
-        {sections.map((section, index) => (
-          <section key={section.id}>
-            <h2 id={section.id}>{section.title}</h2>
-            <p>{section.text}</p>
-            {article.id === "network-license" && index === 0 ? (
-              <div className="my-6 rounded-xl border border-sky-100 bg-sky-50 p-4">
-                <p className="text-sm text-sky-900">
-                  Для установки потребуются права администратора и файл лицензии, полученный от
-                  менеджера MaxSoft.
-                </p>
-              </div>
-            ) : null}
-          </section>
-        ))}
+        {content.length &&
+        article.id !== licensingArticleId &&
+        canRoleAccessArticle(
+          articles.find((a) => a.id === licensingArticleId)!,
+          role,
+          companyType,
+        ) ? (
+          <p>
+            <Button
+              tone="secondary"
+              onClick={() => onNavigate("article", licensingArticleId)}
+            >
+              Читать полный источник
+            </Button>
+          </p>
+        ) : null}
+        {content.length ? (
+          <ArticleBlocks sections={content} />
+        ) : (
+          articleSections[article.id].map((section, index) => (
+            <section key={section.id}>
+              <h2 id={section.id} tabIndex={-1}>
+                {section.title}
+              </h2>
+              <p>{section.text}</p>
+              {article.id === "network-license" && index === 0 ? (
+                <div className="my-6 rounded-xl border border-sky-100 bg-sky-50 p-4">
+                  <p className="text-sm text-sky-900">
+                    Для установки потребуются права администратора и файл
+                    лицензии, полученный от менеджера MaxSoft.
+                  </p>
+                </div>
+              ) : null}
+            </section>
+          ))
+        )}
         <ArticleAttachments articleId={article.id} onNavigate={onNavigate} />
       </div>
     </ReadingLayout>
@@ -207,10 +207,19 @@ const timecodes = [
 ];
 const videoDuration = 1080;
 
-export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProps) => {
+export const VideoArticlePage = ({
+  onNavigate,
+  resource,
+  role,
+  companyId,
+  companyType,
+  onNotice,
+}: ArticlePageProps) => {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(135);
-  const article = articles.find((candidate) => candidate.id === (resource ?? demoResources.video))!;
+  const article = articles.find(
+    (candidate) => candidate.id === (resource ?? demoResources.video),
+  )!;
 
   useEffect(() => {
     if (!playing) return;
@@ -228,12 +237,22 @@ export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProp
   return (
     <ReadingLayout
       onNavigate={onNavigate}
+      articleId={article.id}
+      role={role}
+      companyType={companyType}
       sections={[
         { id: "video-details", title: "Что показано в видео" },
         { id: "attachments-title", title: "Вложения" },
       ]}
     >
-      <ArticleHeader article={article} onNavigate={onNavigate} role={role} />
+      <ArticleHeader
+        article={article}
+        onNavigate={onNavigate}
+        role={role}
+        companyId={companyId}
+        companyType={companyType}
+        onNotice={onNotice}
+      />
       <div className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_330px]">
         <section className="min-w-0">
           <div className="relative aspect-video min-w-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#153550] via-[#0e2438] to-[#081827] shadow-[0_18px_48px_rgba(9,25,40,.28)]">
@@ -247,7 +266,10 @@ export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProp
                 {playing ? (
                   <Pause className="h-7 w-7 fill-current" aria-hidden="true" />
                 ) : (
-                  <Play className="ml-1 h-7 w-7 fill-current" aria-hidden="true" />
+                  <Play
+                    className="ml-1 h-7 w-7 fill-current"
+                    aria-hidden="true"
+                  />
                 )}
               </button>
             </div>
@@ -258,7 +280,10 @@ export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProp
                 onClick={(event) => {
                   const bounds = event.currentTarget.getBoundingClientRect();
                   setProgress(
-                    Math.round(((event.clientX - bounds.left) / bounds.width) * videoDuration),
+                    Math.round(
+                      ((event.clientX - bounds.left) / bounds.width) *
+                        videoDuration,
+                    ),
                   );
                 }}
                 type="button"
@@ -275,7 +300,10 @@ export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProp
                   type="button"
                 >
                   {playing ? (
-                    <Pause className="h-4 w-4 fill-current" aria-hidden="true" />
+                    <Pause
+                      className="h-4 w-4 fill-current"
+                      aria-hidden="true"
+                    />
                   ) : (
                     <Play className="h-4 w-4 fill-current" aria-hidden="true" />
                   )}
@@ -293,8 +321,8 @@ export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProp
               Демонстрация плеера и таймкодов; видеозапись не подключена.
             </p>
             <p>
-              Подготовка интеграционного модуля, выбор проекта, сопоставление справочников и
-              контроль первой синхронизации.
+              Подготовка интеграционного модуля, выбор проекта, сопоставление
+              справочников и контроль первой синхронизации.
             </p>
           </div>
         </section>
@@ -304,7 +332,9 @@ export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProp
             {timecodes.map((timecode) => {
               const active =
                 progress >= timecode.seconds &&
-                progress < (timecodes[timecodes.indexOf(timecode) + 1]?.seconds ?? videoDuration);
+                progress <
+                  (timecodes[timecodes.indexOf(timecode) + 1]?.seconds ??
+                    videoDuration);
               return (
                 <button
                   aria-pressed={active}
@@ -319,8 +349,12 @@ export const VideoArticlePage = ({ onNavigate, resource, role }: ArticlePageProp
                   <span className="rounded-lg bg-[var(--ms-primary-soft)] px-2 py-1 font-mono text-xs font-bold text-[var(--ms-primary)]">
                     {timecode.label}
                   </span>
-                  <span className="min-w-0 flex-1 text-sm font-semibold">{timecode.title}</span>
-                  {active ? <Play className="h-4 w-4 fill-current" aria-hidden="true" /> : null}
+                  <span className="min-w-0 flex-1 text-sm font-semibold">
+                    {timecode.title}
+                  </span>
+                  {active ? (
+                    <Play className="h-4 w-4 fill-current" aria-hidden="true" />
+                  ) : null}
                 </button>
               );
             })}

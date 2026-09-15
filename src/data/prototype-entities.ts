@@ -66,15 +66,6 @@ export const getPrototypeUsers = () =>
 export const writePrototypeUsers = (records: UserRecord[]) =>
   writePrototypeValue(prototypeStorageKeys.users, records);
 
-export const renameCompanyRelationships = (previousName: string, nextName: string) => {
-  if (previousName === nextName) return;
-  writePrototypeUsers(
-    getPrototypeUsers().map((user) =>
-      user.company === previousName ? { ...user, company: nextName } : user,
-    ),
-  );
-};
-
 export const changeCompanyUserCount = (companyName: string, delta: number) => {
   const records = getPrototypeCompanies();
   if (!records.some((company) => company.name === companyName)) return;

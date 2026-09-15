@@ -1,0 +1,17 @@
+.file-type-icon { display: inline-flex; flex: 0 0 auto; width: 40px; height: 40px; color: #435469; --file-fill: #eef2f6; }
+.file-type-icon-large { width: 64px; height: 64px; }
+.file-type-icon svg { width: 100%; height: 100%; }
+.file-type-tile { fill: var(--file-fill); stroke: currentColor; stroke-opacity: .2; }
+.file-type-icon[data-file-type="PDF"] { color: #ab2424; --file-fill: #ffeded; }
+.file-type-icon[data-file-type="DOCX"] { color: #1759b2; --file-fill: #e9f1ff; }
+.file-type-icon[data-file-type="XLSX"] { color: #126141; --file-fill: #e1f5ea; }
+.file-type-icon[data-file-type="CSV"] { color: #52651b; --file-fill: #f0f5d9; }
+.file-type-icon[data-file-type="ZIP"] { color: #7440ad; --file-fill: #f4eaff; }
+.file-type-icon[data-file-type="DWG"] { color: #075c71; --file-fill: #49d8e8; }
+html[data-theme="dark"] .file-type-icon { color: #d5e0ee; --file-fill: #26394c; }
+html[data-theme="dark"] .file-type-icon[data-file-type="PDF"] { color: #ffb1ad; --file-fill: #4d252c; }
+html[data-theme="dark"] .file-type-icon[data-file-type="DOCX"] { color: #afd0ff; --file-fill: #203c61; }
+html[data-theme="dark"] .file-type-icon[data-file-type="XLSX"] { color: #98edc4; --file-fill: #173f34; }
+html[data-theme="dark"] .file-type-icon[data-file-type="CSV"] { color: #d2e599; --file-fill: #35421e; }
+html[data-theme="dark"] .file-type-icon[data-file-type="ZIP"] { color: #dfb8ff; --file-fill: #3c2950; }
+html[data-theme="dark"] .file-type-icon[data-file-type="DWG"] { color: #9bf3ff; --file-fill: #075c71; }

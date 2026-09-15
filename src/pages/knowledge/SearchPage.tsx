@@ -1,421 +1,226 @@
-import { usePageState } from "../../hooks/usePageState";
-import { KnowledgeTree } from "./KnowledgeTree";
-import { getKnowledgeTree, sectionArticleIds } from "../../data/knowledge-tree";
-import { GroupedTagPicker, getTagGroups } from "../../components/GroupedTagPicker";
-import { fileContent } from "../../data/file-content";
-import { files } from "../../data/platform-data";
-import {
-  BookOpen,
-  ChevronRight,
-  FileText,
-  Filter,
-  Search,
-  SlidersHorizontal,
-  Video,
-  X,
-} from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { Filter, Search, X } from "lucide-react";
 import type { Navigate, UserRole } from "../../app/types";
+import { usePageState } from "../../hooks/usePageState";
+import {
+  GroupedTagPicker,
+  getTagGroups,
+} from "../../components/GroupedTagPicker";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
 import { Badge, Button, EmptyState, PageHeading } from "../../components/ui";
+import { articles } from "../../data/platform-data";
+import { getArticleTags } from "../../data/prototype-entities";
 import {
-  articles,
-  canRoleAccessArticle,
-  isArticlePublished,
-  type ArticleSummary,
-} from "../../data/platform-data";
-import { getArticleSections, getArticleTags } from "../../data/prototype-entities";
-
-interface SearchPageProps {
+  queryMaterials,
+  visibleArticleIds,
+  type MaterialKind,
+} from "../../data/material-query";
+import { KnowledgeTree } from "./KnowledgeTree";
+import { KnowledgeResults } from "./KnowledgeResults";
+import { MaterialFilters } from "./MaterialFilters";
+export const SearchPage = ({
+  companyType,
+  onNavigate,
+  role,
+}: {
   companyType?: string;
   onNavigate: Navigate;
   role: UserRole;
-}
-
-const searchableContent: Record<
-  string,
-  { articleText: string; file?: { name: string; text: string; type: string } }
-> = {
-  "network-license": {
-    articleText: "Установка сервера лицензий, подключение рабочего места и диагностика соединения.",
-  },
-  "cad-integration": {
-    articleText: "Подключение модуля, настройка обмена и проверка первой синхронизации.",
-  },
-  "project-template": {
-    articleText: "Структура каталогов, шаблоны именования и совместная работа над проектом.",
-  },
-  "server-migration": {
-    articleText: "Перенос службы лицензирования на новый сервер без остановки рабочих мест.",
-  },
-  "update-2026": {
-    articleText: "Резервная копия, обновление компонентов и проверка совместимости модулей.",
-  },
-};
-
-type SearchMatch = {
-  label: string;
-  fileName?: string;
-  snippet?: string;
-  source: "article" | "description" | "file" | "tag" | "title";
-};
-
-const wordMatches = (text: string, words: string[]) => {
-  const normalized = text.toLowerCase();
-  return words.every(
-    (word) =>
-      normalized.includes(word) || (word.length > 5 && normalized.includes(word.slice(0, -1))),
-  );
-};
-
-const findMatch = (
-  article: ArticleSummary,
-  articleTags: string[],
-  words: string[],
-  availableTags: string[],
-): SearchMatch | null => {
-  const content = searchableContent[article.id];
-  const candidates: Array<{
-    label: string;
-    source: SearchMatch["source"];
-    text?: string;
-    fileName?: string;
-  }> = [
-    { label: "Совпадение в заголовке статьи", source: "title", text: article.title },
-    { label: "Совпадение в описании статьи", source: "description", text: article.description },
-    {
-      label: "Совпадение в теге",
-      source: "tag",
-      text: articleTags.filter((tag) => availableTags.includes(tag)).join(" "),
-    },
-    { label: "Совпадение в тексте статьи", source: "article", text: content?.articleText },
-    ...files
-      .filter((file) => file.relatedArticleIds.includes(article.id) && fileContent[file.name])
-      .map((file) => ({
-        label: `Совпадение в тексте ${file.type}`,
-        source: "file" as const,
-        fileName: file.name,
-        text: fileContent[file.name].map((part) => part.text).join(" "),
-      })),
-  ];
-  const match = candidates.find(
-    (candidate) => candidate.text && wordMatches(candidate.text, words),
-  );
-  if (!match) return null;
-  return {
-    label: match.label,
-    fileName: match.fileName,
-    snippet: match.text,
-    source: match.source,
-  };
-};
-
-const Highlight = ({ query, text }: { query: string; text: string }) => {
-  const terms = query
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .flatMap((term) => (term.length > 5 ? [term, term.slice(0, -1)] : [term]))
-    .filter(Boolean)
-    .sort((left, right) => right.length - left.length);
-  if (!terms.length) return text;
-  const escaped = [...new Set(terms)].map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  const matcher = new RegExp(`(${escaped.join("|")})`, "gi");
-  return text.split(matcher).map((part, index) =>
-    terms.includes(part.toLowerCase()) ? (
-      <mark className="search-highlight" key={`${part}-${index}`}>
-        {part}
-      </mark>
-    ) : (
-      part
-    ),
-  );
-};
-
-export const SearchPage = ({ companyType, onNavigate, role }: SearchPageProps) => {
-  const groups = getTagGroups();
-  const visibleTagNames = new Set(
-    articles
-      .filter((article) => canRoleAccessArticle(article, role, companyType))
-      .flatMap(getArticleTags),
-  );
-  const visibleGroups = groups
-    .map((group) => ({ ...group, tags: group.tags.filter((tag) => visibleTagNames.has(tag.name)) }))
-    .filter((group) => group.tags.length);
-  const availableTags = groups.flatMap((group) => group.tags.map((tag) => tag.name));
-  const initialQuery = new URL(window.location.href).searchParams.get("resource") ?? "лицензия";
+}) => {
+  const initialQuery =
+    new URL(window.location.href).searchParams.get("resource") ?? "лицензия";
   const [query, setQuery] = usePageState("query", initialQuery);
-  const [draftQuery, setDraftQuery] = usePageState("draftQuery", initialQuery);
+  const [draft, setDraft] = usePageState("draftQuery", initialQuery);
   const [tags, setTags] = usePageState<string[]>("tags", []);
   const [section, setSection] = usePageState("section", "all");
+  const [kind, setKind] = usePageState<MaterialKind>("kind", "all");
+  const [sort, setSort] = usePageState("sort", "updated");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [focused, setFocused] = useState(false);
-  const canSeeDrafts = role === "portal-admin" || role === "support-engineer" || role === "manager";
-
-  const results = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized && !tags.length && section === "all") return [];
-    return articles.flatMap((article) => {
-      if (!canSeeDrafts && !isArticlePublished(article)) return [];
-      if (!canRoleAccessArticle(article, role, companyType)) return [];
-      const words = normalized.split(/\s+/).filter(Boolean);
-      const articleTags = getArticleTags(article);
-      const match = normalized
-        ? findMatch(article, articleTags, words, availableTags)
-        : {
-            label: "По выбранным фильтрам",
-            source: "tag" as const,
-            snippet: articleTags.join(" · "),
-            fileName: undefined,
-          };
-      const matchesTags = tags.length === 0 || tags.every((tag) => articleTags.includes(tag));
-      const matchesSection =
-        section === "all" || sectionArticleIds(getKnowledgeTree(), section).includes(article.id);
-      return match && matchesTags && matchesSection ? [{ article, match }] : [];
-    });
-  }, [availableTags, canSeeDrafts, companyType, query, role, section, tags]);
-
-  const toggleTag = (tag: string) =>
+  const ids = visibleArticleIds({ role, companyType });
+  const names = new Set(
+    articles.filter((a) => ids.includes(a.id)).flatMap(getArticleTags),
+  );
+  const groups = getTagGroups()
+    .map((g) => ({ ...g, tags: g.tags.filter((t) => names.has(t.name)) }))
+    .filter((g) => g.tags.length);
+  const results = queryMaterials({
+    role,
+    companyType,
+    query,
+    tags,
+    section,
+    kind,
+    sort,
+  });
+  const toggle = (tag: string) =>
     setTags((current) =>
-      current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag],
+      current.includes(tag)
+        ? current.filter((t) => t !== tag)
+        : [...current, tag],
     );
-  const submit = () => {
-    setQuery(draftQuery);
-    setFocused(false);
+  const reset = () => {
+    setQuery("");
+    setDraft("");
+    setTags([]);
+    setSection("all");
+    setKind("all");
   };
-
-  const Filters = ({ showApply = false }: { showApply?: boolean }) => (
-    <div className="space-y-6">
+  const filters = () => (
+    <div className="space-y-5">
       <section>
         <h3 className="mb-3 text-sm font-bold">Раздел</h3>
-        <KnowledgeTree selected={section} onSelect={setSection} />
+        <KnowledgeTree
+          selected={section}
+          onSelect={setSection}
+          articleIds={ids}
+        />
       </section>
       <section>
         <h3 className="mb-3 text-sm font-bold">Теги</h3>
-        <GroupedTagPicker groups={visibleGroups} selected={tags} onToggle={toggleTag} />
+        <GroupedTagPicker groups={groups} selected={tags} onToggle={toggle} />
       </section>
       <Button
         tone="ghost"
         onClick={() => {
           setTags([]);
           setSection("all");
+          setKind("all");
         }}
       >
         Сбросить фильтры
       </Button>
-      {showApply ? (
-        <Button
-          className="w-full"
-          onClick={() => {
-            submit();
-            setFiltersOpen(false);
-          }}
-        >
-          Показать результаты
-        </Button>
-      ) : null}
     </div>
   );
-
   return (
     <>
       <PageHeading
         eyebrow="Поиск"
-        subtitle="Совпадения в статьях, тегах и содержимом PDF/DOCX. Демонстрационный набор, без индексации загружаемых файлов."
         title="Результаты поиска"
+        subtitle="Поиск по статьям, тегам и доступному тексту PDF/DOCX в демокаталоге. Загрузка новых файлов не создаёт поисковый индекс."
       />
       <form
         className="relative mb-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          submit();
+        onSubmit={(e) => {
+          e.preventDefault();
+          setQuery(draft);
+          setFocused(false);
         }}
       >
-        <Search
-          className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-slate-400"
-          aria-hidden="true"
-        />
+        <Search className="pointer-events-none absolute left-3 top-4 h-5 w-5 text-slate-400" />
         <input
           aria-label="Поиск по базе знаний"
-          className="h-12 w-full min-w-0 rounded-xl border border-[var(--ms-border-strong)] bg-white pl-11 pr-28 text-sm outline-none transition focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)] sm:pr-36"
-          onBlur={() => window.setTimeout(() => setFocused(false), 120)}
-          onChange={(event) => setDraftQuery(event.target.value)}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
           onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 120)}
           placeholder="Название, термин или фраза"
-          value={draftQuery}
+          className="h-12 w-full min-w-0 rounded-xl border border-[var(--ms-border)] bg-white pl-10 pr-32 text-sm"
         />
-        {draftQuery ? (
+        {draft ? (
           <button
+            type="button"
             aria-label="Очистить поиск"
-            className="absolute right-[84px] top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 sm:right-[116px]"
+            className="icon-button absolute right-20 top-1"
             onClick={() => {
-              setDraftQuery("");
+              setDraft("");
               setQuery("");
             }}
-            type="button"
           >
-            <X className="h-4 w-4" aria-hidden="true" />
+            <X className="h-4 w-4" />
           </button>
         ) : null}
         <button
-          className="absolute bottom-1.5 right-1.5 top-1.5 rounded-xl bg-[var(--ms-primary)] px-4 text-sm font-bold text-white transition hover:bg-[var(--ms-primary-hover)] sm:px-7"
           type="submit"
+          className="absolute bottom-1 right-1 top-1 rounded-lg bg-[var(--ms-primary)] px-4 text-sm font-bold text-white"
         >
           Найти
         </button>
-        {focused && draftQuery ? (
-          <div className="absolute inset-x-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-xl border border-[var(--ms-border)] bg-white p-2 shadow-[0_18px_50px_rgba(24,43,66,.18)]">
-            {[...visibleTagNames]
-              .filter((item) => item.toLowerCase().includes(draftQuery.toLowerCase()))
-              .map((item) => (
+        {focused && draft ? (
+          <div className="absolute inset-x-0 top-full z-30 rounded-xl bg-white shadow-lg">
+            {[...names]
+              .filter((n) => n.toLowerCase().includes(draft.toLowerCase()))
+              .map((n) => (
                 <button
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition hover:bg-[var(--ms-primary-soft)]"
-                  key={item}
+                  key={n}
+                  type="button"
+                  className="block w-full p-3 text-left"
                   onClick={() => {
-                    setDraftQuery(item);
+                    if (!tags.includes(n)) setTags([...tags, n]);
+                    setDraft("");
                     setQuery("");
-                    setDraftQuery("");
-                    if (!tags.includes(item)) setTags([...tags, item]);
                     setFocused(false);
                   }}
-                  type="button"
                 >
-                  <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                  {item}
+                  {n}
                 </button>
               ))}
           </div>
         ) : null}
       </form>
-
       <div className="grid min-w-0 gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="hidden self-start rounded-xl border border-[var(--ms-border)] bg-white p-4 lg:sticky lg:top-28 lg:block">
-          <div className="mb-5 flex items-center gap-2">
-            <SlidersHorizontal className="h-5 w-5 text-[var(--ms-primary)]" aria-hidden="true" />
-            <h2 className="font-heading font-bold">Фильтры</h2>
-          </div>
-          {Filters({})}
+        <aside className="hidden self-start rounded-xl border border-[var(--ms-border)] bg-white p-4 lg:block">
+          <h2 className="mb-4 font-bold">Фильтры</h2>
+          {filters()}
         </aside>
         <section className="min-w-0">
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <p className="text-sm text-[var(--ms-muted)]">
-              По запросу <strong className="text-[var(--ms-text)]">«{query}»</strong> найдено:{" "}
-              {results.length}
-            </p>
+          <div className="mb-4 flex flex-wrap items-end gap-3">
+            <MaterialFilters
+              kind={kind}
+              setKind={setKind}
+              sort={sort}
+              setSort={setSort}
+            />
             <Button
-              className="ml-auto lg:hidden"
-              icon={<Filter className="h-4 w-4" aria-hidden="true" />}
-              onClick={() => setFiltersOpen(true)}
+              className="lg:hidden"
               tone="secondary"
+              icon={<Filter className="h-4 w-4" />}
+              onClick={() => setFiltersOpen(true)}
             >
               Фильтры{tags.length ? ` · ${tags.length}` : ""}
             </Button>
           </div>
-          {tags.length ? (
-            <div className="mb-4 flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <button key={tag} onClick={() => toggleTag(tag)} type="button">
-                  <Badge>{tag} ×</Badge>
-                </button>
-              ))}
-            </div>
-          ) : null}
+          <p className="mb-3 text-sm text-[var(--ms-muted)]">
+            По запросу «{query}» найдено: {results.length}
+          </p>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => toggle(tag)}
+                aria-label={`Убрать тег ${tag}`}
+              >
+                <Badge>{tag} ×</Badge>
+              </button>
+            ))}
+          </div>
           {results.length ? (
-            <div className="space-y-3">
-              {results.map(({ article, match }) => (
-                <article
-                  aria-label={`Открыть материал: ${article.title}`}
-                  className="group min-w-0 cursor-pointer rounded-xl border border-[var(--ms-border)] border-l-[3px] border-l-[var(--ms-primary)] bg-white p-4 transition hover:border-[var(--ms-primary)] hover:bg-[var(--ms-primary-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)]"
-                  key={article.id}
-                  onClick={() =>
-                    onNavigate(article.kind === "video" ? "video" : "article", article.id)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter" && event.key !== " ") return;
-                    event.preventDefault();
-                    onNavigate(article.kind === "video" ? "video" : "article", article.id);
-                  }}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--ms-primary-soft)] text-[var(--ms-primary)]">
-                      {article.kind === "video" ? (
-                        <Video className="h-5 w-5" aria-hidden="true" />
-                      ) : (
-                        <BookOpen className="h-5 w-5" aria-hidden="true" />
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--ms-muted)]">
-                        <span>{getArticleSections(article).join(" · ")}</span>
-                        <span className="rounded-full bg-[var(--ms-primary-soft)] px-2 py-1 text-[var(--ms-primary)]">
-                          {match.label}
-                        </span>
-                      </div>
-                      <h2 className="mt-1.5 font-heading text-base font-bold sm:text-lg">
-                        <Highlight query={query} text={article.title} />
-                      </h2>
-                      <p className="mt-1.5 text-sm leading-5 text-[var(--ms-muted)]">
-                        <Highlight query={query} text={article.description} />
-                      </p>
-                    </div>
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--ms-primary)] transition group-hover:translate-x-1 group-hover:bg-white">
-                      <ChevronRight className="h-5 w-5" aria-hidden="true" />
-                    </span>
-                  </div>
-                  {match.source === "file" ? (
-                    <div className="mt-4 flex min-w-0 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-[var(--ms-muted)]">
-                      <FileText className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      <span className="break-words">
-                        {match.fileName} · «
-                        <Highlight query={query} text={match.snippet ?? ""} />»
-                      </span>
-                    </div>
-                  ) : null}
-                  {match.source === "article" || match.source === "tag" ? (
-                    <div className="mt-4 flex min-w-0 items-center gap-2 rounded-xl bg-[var(--ms-primary-soft)] px-3 py-2 text-xs text-[var(--ms-muted)]">
-                      <BookOpen
-                        className="h-4 w-4 shrink-0 text-[var(--ms-primary)]"
-                        aria-hidden="true"
-                      />
-                      <span>
-                        {match.source === "tag" ? "Тег: " : "Фрагмент статьи: «"}
-                        <Highlight query={query} text={match.snippet ?? ""} />
-                        {match.source === "article" ? "»" : ""}
-                      </span>
-                    </div>
-                  ) : null}
-                </article>
-              ))}
-            </div>
+            <KnowledgeResults
+              results={results}
+              onNavigate={onNavigate}
+              view="table"
+              search
+              query={query}
+            />
           ) : (
             <EmptyState
-              action={
-                <Button
-                  onClick={() => {
-                    setDraftQuery("лицензия");
-                    setQuery("лицензия");
-                    setTags([]);
-                    setSection("all");
-                  }}
-                >
-                  Сбросить поиск
-                </Button>
-              }
-              text="Попробуйте убрать часть фильтров или изменить формулировку запроса."
               title="Ничего не найдено"
+              text="Попробуйте убрать часть фильтров или изменить формулировку запроса."
+              action={<Button onClick={reset}>Сбросить поиск</Button>}
             />
           )}
         </section>
       </div>
-
       <ResponsiveOverlay
         label="Фильтры поиска"
-        onClose={() => setFiltersOpen(false)}
         open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
       >
-        {Filters({ showApply: true })}
+        {filters()}
+        <Button className="mt-5 w-full" onClick={() => setFiltersOpen(false)}>
+          Показать результаты
+        </Button>
       </ResponsiveOverlay>
     </>
   );

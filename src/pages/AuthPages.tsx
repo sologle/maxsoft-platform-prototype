@@ -1,5 +1,12 @@
+import { PasswordField } from "../components/PasswordField";
 import { getCompanyFields } from "../data/registration-fields";
-import { Building2, CheckCircle2, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from "lucide-react";
+import {
+  Building2,
+  CheckCircle2,
+  KeyRound,
+  Mail,
+  ShieldCheck,
+} from "lucide-react";
 import { lazy, Suspense, useState, type FormEvent } from "react";
 import type { Authenticate, Navigate } from "../app/types";
 import { ResponsiveOverlay } from "../components/ResponsiveOverlay";
@@ -18,7 +25,10 @@ import {
   writePrototypeCompanies,
   writePrototypeUsers,
 } from "../data/prototype-entities";
-import { prototypeStorageKeys, readPrototypeValue } from "../data/prototype-store";
+import {
+  prototypeStorageKeys,
+  readPrototypeValue,
+} from "../data/prototype-store";
 
 interface AuthPageProps {
   onAuthenticate: Authenticate;
@@ -29,7 +39,9 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => (
   <AuthStage layout="form">{children}</AuthStage>
 );
 
-const ArchivedLanding = lazy(() => import("../components/auth-backgrounds/archive/Landing"));
+const ArchivedLanding = lazy(
+  () => import("../components/auth-backgrounds/archive/Landing"),
+);
 
 export const LandingPage = ({ onNavigate }: AuthPageProps) => (
   <AuthStage layout="landing">
@@ -48,7 +60,6 @@ export const LandingPage = ({ onNavigate }: AuthPageProps) => (
 export const LoginPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
   const [email, setEmail] = useState("o.gurov@integrator-pro.ru");
   const [password, setPassword] = useState("maxsoft-demo");
-  const [showPassword, setShowPassword] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -64,7 +75,9 @@ export const LoginPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
               <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--ms-primary-soft)] font-heading text-lg font-black text-[var(--ms-primary)]">
                 M
               </span>
-              <h1 className="mt-6 font-heading text-3xl font-bold">С возвращением</h1>
+              <h1 className="mt-6 font-heading text-3xl font-bold">
+                С возвращением
+              </h1>
               <p className="mt-3 leading-7 text-[var(--ms-muted)]">
                 Войдите, чтобы продолжить работу с материалами вашей компании.
               </p>
@@ -80,33 +93,23 @@ export const LoginPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
             </p>
             <Field
               className="mt-6 md:mt-0"
-              error={submitted && !email.trim() ? "Введите корпоративную почту" : undefined}
+              error={
+                submitted && !email.trim()
+                  ? "Введите корпоративную почту"
+                  : undefined
+              }
               label="Электронная почта"
               onChange={(event) => setEmail(event.target.value)}
               type="email"
               value={email}
             />
-            <div className="relative mt-4">
-              <Field
-                error={submitted && !password ? "Введите пароль" : undefined}
-                label="Пароль"
-                onChange={(event) => setPassword(event.target.value)}
-                type={showPassword ? "text" : "password"}
-                value={password}
-              />
-              <button
-                aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
-                className="absolute right-2 top-[34px] grid h-10 w-10 place-items-center rounded-lg text-slate-400 hover:bg-slate-100"
-                onClick={() => setShowPassword((current) => !current)}
-                type="button"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" aria-hidden="true" />
-                ) : (
-                  <Eye className="h-4 w-4" aria-hidden="true" />
-                )}
-              </button>
-            </div>
+            <PasswordField
+              className="mt-4"
+              error={submitted && !password ? "Введите пароль" : undefined}
+              label="Пароль"
+              onChange={(event) => setPassword(event.target.value)}
+              value={password}
+            />
             <button
               className="mt-3 text-sm font-semibold text-[var(--ms-primary)] hover:underline"
               onClick={() => onNavigate("recover")}
@@ -143,8 +146,12 @@ export const LoginPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
 
 export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
   const [email, setEmail] = useState("admin@severprom.ru");
-  const [result, setResult] = useState<"existing" | "new" | "review" | null>(null);
-  const [registeredCompanyId, setRegisteredCompanyId] = useState<string | null>(null);
+  const [result, setResult] = useState<"existing" | "new" | "review" | null>(
+    null,
+  );
+  const [registeredCompanyId, setRegisteredCompanyId] = useState<string | null>(
+    null,
+  );
   const registrationFields = getCompanyFields().filter(
     (field) => field.visible && field.registration && field.id !== "type",
   );
@@ -169,7 +176,9 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
     const form = new FormData(event.currentTarget);
     const emailDomain = email.trim().toLocaleLowerCase("ru").split("@")[1];
     if (!emailDomain)
-      throw new Error("ACC_REGISTRATION_EMAIL_DOMAIN_MISSING: домен почты отсутствует");
+      throw new Error(
+        "ACC_REGISTRATION_EMAIL_DOMAIN_MISSING: домен почты отсутствует",
+      );
     const formValue = (id: string) => {
       const value = form.get(`company-${id}`);
       return typeof value === "string" ? value.trim() : "";
@@ -177,17 +186,26 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
     const companies = getPrototypeCompanies();
     const inn = formValue("inn");
     const registrationDomains = [emailDomain];
-    const domainCompany = companies.find((company) => company.domains.includes(emailDomain));
-    const innCompany = inn ? companies.find((company) => company.inn === inn) : undefined;
+    const domainCompany = companies.find((company) =>
+      company.domains.includes(emailDomain),
+    );
+    const innCompany = inn
+      ? companies.find((company) => company.inn === inn)
+      : undefined;
     const workingDomainCompany = companies.find((company) =>
       company.domains.some((domain) =>
         registrationDomains.includes(domain.toLocaleLowerCase("ru")),
       ),
     );
-    const companyTypes = readPrototypeValue(prototypeStorageKeys.companyTypes, initialCompanyTypes);
+    const companyTypes = readPrototypeValue(
+      prototypeStorageKeys.companyTypes,
+      initialCompanyTypes,
+    );
     const defaultCompanyType = companyTypes.find((type) => type.isDefault);
     if (!defaultCompanyType)
-      throw new Error("ACC_DEFAULT_COMPANY_TYPE_MISSING: базовый тип компании не настроен");
+      throw new Error(
+        "ACC_DEFAULT_COMPANY_TYPE_MISSING: базовый тип компании не настроен",
+      );
     const companyId = `company-${Date.now()}`;
     const company: CompanyRecord = {
       id: companyId,
@@ -217,7 +235,9 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
       uniqueRegistrationFields,
       domainCompany?.id,
     );
-    const domainInnConflict = Boolean(domainCompany && inn && domainCompany.inn !== inn);
+    const domainInnConflict = Boolean(
+      domainCompany && inn && domainCompany.inn !== inn,
+    );
     if (
       domainInnConflict ||
       (domainCompany && innCompany && domainCompany.id !== innCompany.id) ||
@@ -231,10 +251,16 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
     const firstName = form.get("firstName");
     const lastName = form.get("lastName");
     if (typeof firstName !== "string" || typeof lastName !== "string")
-      throw new Error("ACC_REGISTRATION_USER_NAME_MISSING: имя пользователя отсутствует");
+      throw new Error(
+        "ACC_REGISTRATION_USER_NAME_MISSING: имя пользователя отсутствует",
+      );
     const user: UserRecord = {
       id: `user-${Date.now()}`,
-      name: [firstName.trim(), String(form.get("middleName") ?? "").trim(), lastName.trim()]
+      name: [
+        firstName.trim(),
+        String(form.get("middleName") ?? "").trim(),
+        lastName.trim(),
+      ]
         .filter(Boolean)
         .join(" "),
       firstName: firstName.trim(),
@@ -259,7 +285,9 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
     writePrototypeCompanies(
       domainCompany
         ? companies.map((item) =>
-            item.id === domainCompany.id ? { ...item, users: item.users + 1 } : item,
+            item.id === domainCompany.id
+              ? { ...item, users: item.users + 1 }
+              : item,
           )
         : [...companies, company],
     );
@@ -279,17 +307,33 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
               Регистрация в портале
             </h1>
             <p className="mt-3 text-sm leading-6 text-[var(--ms-muted)] sm:text-base">
-              Демонстрация регистрации. Компания определяется по корпоративной почте и ИНН; отправка
-              писем и настоящая авторизация не подключены.
+              Демонстрация регистрации. Компания определяется по корпоративной
+              почте и ИНН; отправка писем и настоящая авторизация не подключены.
             </p>
           </div>
-          <form className="mt-8 grid gap-4 sm:grid-cols-2" onSubmit={submit}>
+          <p className="mt-6 text-sm text-[var(--ms-muted)]">
+            Все поля обязательны, кроме отчества.
+          </p>
+          <form
+            className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2"
+            onSubmit={submit}
+          >
             <Field label="Имя" defaultValue="Анна" name="firstName" required />
-            <Field label="Фамилия" defaultValue="Смирнова" name="lastName" required />
+            <Field
+              label="Фамилия"
+              defaultValue="Смирнова"
+              name="lastName"
+              required
+            />
             <Field label="Отчество" name="middleName" />
-            <Field label="Должность" name="position" />
-            <Field label="Отдел" name="department" />
-            <Field label="Личный контактный телефон" name="personalPhone" type="tel" />
+            <Field label="Должность" name="position" required />
+            <Field label="Отдел" name="department" required />
+            <Field
+              label="Контактный телефон"
+              name="personalPhone"
+              type="tel"
+              required
+            />
             <Field
               className="sm:col-span-2"
               label="Корпоративная почта"
@@ -312,25 +356,42 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
                       : undefined
                   }
                   defaultValue={demoValue}
-                  inputMode={field.id === "inn" || field.id === "kpp" ? "numeric" : undefined}
+                  inputMode={
+                    field.id === "inn" || field.id === "kpp"
+                      ? "numeric"
+                      : undefined
+                  }
                   key={field.id}
-                  label={field.label}
+                  label={
+                    field.id === "name"
+                      ? "Полное наименование компании"
+                      : field.label
+                  }
                   name={`company-${field.id}`}
-                  required={field.required}
+                  required
                   type={
                     field.id === "primaryEmail"
                       ? "email"
                       : field.id === "phone"
                         ? "tel"
-                        : field.id.includes("Date") || field.id === "statusUntil"
+                        : field.id.includes("Date") ||
+                            field.id === "statusUntil"
                           ? "date"
                           : "text"
                   }
                 />
               );
             })}
-            <Field label="Пароль" defaultValue="maxsoft-demo" required type="password" />
-            <Field label="Повторите пароль" defaultValue="maxsoft-demo" required type="password" />
+            <PasswordField
+              label="Пароль"
+              defaultValue="maxsoft-demo"
+              required
+            />
+            <PasswordField
+              label="Повторите пароль"
+              defaultValue="maxsoft-demo"
+              required
+            />
             <label className="option-row sm:col-span-2">
               <input defaultChecked required type="checkbox" />
               <span>Я согласен с правилами обработки данных</span>
@@ -346,7 +407,11 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
       </section>
       <ResponsiveOverlay
         desktop="modal"
-        label={result === "review" ? "Нужна проверка данных" : "Демонстрация регистрации завершена"}
+        label={
+          result === "review"
+            ? "Нужна проверка данных"
+            : "Демонстрация регистрации завершена"
+        }
         onClose={() => setResult(null)}
         open={Boolean(result)}
       >
@@ -375,7 +440,11 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
                 : "Проверьте домен, ИНН и email. В прототипе заявка не отправляется. Код: ACC_REGISTRATION_REVIEW."}
           </p>
           {result === "review" ? (
-            <Button className="mt-6 w-full" onClick={() => onNavigate("login")} tone="secondary">
+            <Button
+              className="mt-6 w-full"
+              onClick={() => onNavigate("login")}
+              tone="secondary"
+            >
               Вернуться ко входу
             </Button>
           ) : (
@@ -383,7 +452,9 @@ export const RegisterPage = ({ onAuthenticate, onNavigate }: AuthPageProps) => {
               className="mt-6 w-full"
               onClick={() => {
                 if (!registeredCompanyId)
-                  throw new Error("ACC_REGISTERED_COMPANY_MISSING: компания регистрации не задана");
+                  throw new Error(
+                    "ACC_REGISTERED_COMPANY_MISSING: компания регистрации не задана",
+                  );
                 onAuthenticate("client-admin", registeredCompanyId);
               }}
             >

@@ -69,6 +69,7 @@ export const pageDefinitions: PageDefinition[] = [
   { id: "login", label: "Вход", roles: ["guest"] },
   { id: "register", label: "Регистрация", roles: ["guest"] },
   { id: "recover", label: "Восстановление доступа", roles: ["guest"] },
+  { id: "help", label: "Как пользоваться порталом", roles: authenticatedRoles },
   { id: "home", label: "Рабочее пространство", roles: authenticatedRoles },
   { id: "knowledge", label: "База знаний", roles: authenticatedRoles },
   { id: "article", label: "Статья", roles: authenticatedRoles },

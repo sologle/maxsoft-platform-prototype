@@ -1,3 +1,4 @@
+import { HelpPage } from "./help/HelpPage";
 import { CompanyTypesPage } from "./organizations/CompanyTypesPage";
 import { CloudOff, LockKeyhole, RotateCcw } from "lucide-react";
 import type { AppLocation, AppPage, Authenticate, Navigate } from "../app/types";
@@ -12,7 +13,8 @@ import { SearchPage } from "./knowledge/SearchPage";
 import { StructurePage } from "./knowledge/StructurePage";
 import { TagsPage } from "./knowledge/TagsPage";
 import { CompaniesPage, CompanyPage } from "./organizations/CompaniesPages";
-import { ClientUsersPage, UsersPage } from "./organizations/UsersPages";
+import { UsersPage } from "./organizations/UsersPages";
+import { ClientUsersPage } from "./organizations/ClientUsersPage";
 import {
   AdministrationPage,
   AuditPage,
@@ -45,7 +47,13 @@ export const PageRouter = ({
   onNavigate,
   onNotice,
 }: PageRouterProps) => {
-  const common = { onNavigate, onNotice, role: location.role };
+  const common = {
+    onNavigate,
+    onNotice,
+    role: location.role,
+    companyId: location.companyId,
+    companyType: location.companyType,
+  };
   if (location.resource === "load-error" && administrativeCollections.has(location.page)) {
     return (
       <section
@@ -79,13 +87,21 @@ export const PageRouter = ({
       return <RegisterPage onAuthenticate={onAuthenticate} onNavigate={onNavigate} />;
     case "recover":
       return <RecoverPage onAuthenticate={onAuthenticate} onNavigate={onNavigate} />;
+    case "help":
+      return <HelpPage role={location.role} onNavigate={onNavigate} />;
     case "home":
       return (
-        <HomePage companyType={location.companyType} onNavigate={onNavigate} role={location.role} />
+        <HomePage
+          companyId={location.companyId}
+          companyType={location.companyType}
+          onNavigate={onNavigate}
+          role={location.role}
+        />
       );
     case "knowledge":
       return (
         <KnowledgeLibrary
+          resource={location.resource}
           companyType={location.companyType}
           onNavigate={onNavigate}
           role={location.role}

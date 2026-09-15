@@ -1,0 +1,5 @@
+.brand-logo { display: block; width: clamp(104px, 10vw, 144px); flex-shrink: 0; }
+.brand-logo img { width: 100%; height: auto; }
+.brand-logo .brand-logo-dark { display: none; }
+html[data-theme="dark"] .brand-logo .brand-logo-light { display: none; }
+html[data-theme="dark"] .brand-logo .brand-logo-dark { display: block; }

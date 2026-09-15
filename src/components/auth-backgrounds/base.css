@@ -3,7 +3,6 @@
   --pointer-y: 50%;
   position: relative;
   min-height: 100dvh;
-  overflow: hidden;
   background: var(--ms-surface);
   color: var(--ms-text);
   isolation: isolate;
@@ -20,7 +19,11 @@
 /* Transparent fills keep the backdrop visible without filtering every animation frame. */
 .portal-auth-glass {
   border: 1px solid rgba(170, 197, 218, 0.5);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.28));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.58),
+    rgba(255, 255, 255, 0.28)
+  );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
     inset 1px 0 0 rgba(255, 255, 255, 0.65),
@@ -34,7 +37,11 @@
 
 html[data-theme="dark"] .portal-auth-glass {
   border-color: rgba(141, 193, 229, 0.2);
-  background: linear-gradient(135deg, rgba(28, 49, 67, 0.64), rgba(13, 25, 38, 0.38));
+  background: linear-gradient(
+    135deg,
+    rgba(28, 49, 67, 0.64),
+    rgba(13, 25, 38, 0.38)
+  );
   box-shadow:
     inset 0 1px 0 rgba(200, 231, 251, 0.12),
     inset 1px 0 0 rgba(200, 231, 251, 0.07),
@@ -45,4 +52,3 @@ html[data-theme="dark"] .portal-auth-glass-intro {
   border-color: rgba(141, 193, 229, 0.12);
   background: linear-gradient(145deg, rgba(58, 166, 221, 0.05), transparent);
 }
-

@@ -1,152 +1,224 @@
-import { ChevronLeft, ChevronRight, Maximize2, Minimize2, Minus, Plus } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { FolderTree, Maximize2, Minimize2, Minus, Plus } from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Button } from "../../components/ui";
 import { BackButton } from "../../components/BackButton";
-import type { Navigate } from "../../app/types";
+import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
+import type { Navigate, UserRole } from "../../app/types";
+import {
+  articles,
+  canRoleAccessArticle,
+  files,
+} from "../../data/platform-data";
+import { KnowledgeTree } from "./KnowledgeTree";
+import { ReadingToc, type ReadingSection } from "./ReadingToc";
+import { getKnowledgeTree, sectionArticleIds } from "../../data/knowledge-tree";
 import "./reading.css";
 export const ReadingLayout = ({
   children,
   sections,
   onNavigate,
+  articleId,
+  role,
+  companyType,
 }: {
   children: ReactNode;
-  sections: Array<{ id: string; title: string }>;
+  sections: ReadingSection[];
   onNavigate: Navigate;
+  articleId: string;
+  role: UserRole;
+  companyType?: string;
 }) => {
   const [scale, setScale] = useState(1);
   const [reading, setReading] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [treeOpen, setTreeOpen] = useState(false);
+  const [treeSection, setTreeSection] = useState("all");
+  const [active, setActive] = useState(sections[0]?.id ?? "");
   const root = useRef<HTMLDivElement>(null);
+  const toolbar = useRef<HTMLDivElement>(null);
+  const modeButton = useRef<HTMLButtonElement>(null);
   const savedScroll = useRef(0);
+  const visible = articles.filter((a) =>
+    canRoleAccessArticle(a, role, companyType),
+  );
+  const attachmentCount = files.filter((f) =>
+    f.relatedArticleIds.includes(articleId),
+  ).length;
+  const headingOffset = () => {
+    const header = reading
+      ? 0
+      : (document.querySelector("header")?.getBoundingClientRect().height ??
+        72);
+    return header + (toolbar.current?.getBoundingClientRect().height ?? 0) + 20;
+  };
   useEffect(() => {
     if (!reading) return;
-    const old = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    if (root.current) root.current.scrollTop = savedScroll.current;
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setReading(false);
-    };
-    window.addEventListener("keydown", escape);
+    const background: HTMLElement[] = [];
+    let ancestor: HTMLElement | null = root.current;
+    while (ancestor && ancestor !== document.body) {
+      for (const sibling of Array.from(
+        ancestor.parentElement?.children ?? [],
+      )) {
+        if (
+          sibling !== ancestor &&
+          sibling instanceof HTMLElement &&
+          !sibling.inert
+        ) {
+          sibling.inert = true;
+          background.push(sibling);
+        }
+      }
+      ancestor = ancestor.parentElement;
+    }
+    root.current!.scrollTop = savedScroll.current;
     return () => {
-      document.body.style.overflow = old;
-      window.removeEventListener("keydown", escape);
-      window.scrollTo({ top: savedScroll.current, behavior: "instant" });
+      background.forEach((node) => {
+        node.inert = false;
+      });
+      if (root.current?.isConnected)
+        window.scrollTo({ top: savedScroll.current, behavior: "instant" });
     };
   }, [reading]);
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const offset = headingOffset();
+        const targets = sections
+          .map((s) => root.current?.querySelector<HTMLElement>(`#${s.id}`))
+          .filter((s): s is HTMLElement => Boolean(s));
+        const passed = targets.filter(
+          (t) => t.getBoundingClientRect().top <= offset + 24,
+        );
+        const current = passed.at(-1) ?? targets[0];
+        if (current) setActive(current.id);
+      });
+    };
+    const container = reading ? root.current! : window;
+    container.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    const observer = new ResizeObserver(update);
+    observer.observe(root.current!.querySelector("article")!);
+    update();
+    return () => {
+      container.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [reading, sections, scale]);
   const jump = (id: string) => {
-    const target = root.current?.querySelector<HTMLElement>(`#${id}`);
+    const target = root.current?.querySelector<HTMLElement>(
+      `#${CSS.escape(id)}`,
+    );
     if (!target) return;
-    const mobile = window.matchMedia("(max-width: 1023px)").matches;
-    const panel = root.current!.querySelector<HTMLElement>(".reading-tools")!;
-    if (mobile) setOpen(false);
-    requestAnimationFrame(() => {
-      const header = document.querySelector("header")?.getBoundingClientRect().height ?? 0;
-      const offset =
-        (reading ? 0 : header) + (mobile ? panel.getBoundingClientRect().height : 0) + 16;
-      if (reading)
-        root.current!.scrollTo({
-          top: root.current!.scrollTop + target.getBoundingClientRect().top - offset,
-          behavior: "instant",
-        });
-      else
-        window.scrollTo({
-          top: window.scrollY + target.getBoundingClientRect().top - offset,
-          behavior: "instant",
-        });
-    });
+    const top = target.getBoundingClientRect().top - headingOffset();
+    if (reading)
+      root.current!.scrollTo({
+        top: root.current!.scrollTop + top,
+        behavior: "instant",
+      });
+    else window.scrollTo({ top: window.scrollY + top, behavior: "instant" });
+    setActive(id);
+    target.focus({ preventScroll: true });
   };
   return (
     <div
       ref={root}
-      className={`reading-layout ${reading ? "reading-fullscreen" : ""} ${open ? "reading-expanded" : ""}`}
+      className={`reading-layout ${reading ? "reading-fullscreen" : ""}`}
       data-reading-mode={reading ? "fullscreen" : "standard"}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && reading && !treeOpen) {
+          event.preventDefault();
+          setReading(false);
+          modeButton.current?.focus();
+        }
+      }}
+      onClick={(event) => {
+        const link = (event.target as HTMLElement).closest<HTMLAnchorElement>(
+          'a[href^="#"]',
+        );
+        if (link && root.current?.contains(link)) {
+          event.preventDefault();
+          jump(link.hash.slice(1));
+        }
+      }}
     >
-      <aside className="reading-tools" aria-label="Панель чтения">
-        <div className="flex flex-wrap items-center gap-2">
+      <div ref={toolbar} className="reading-tools" aria-label="Панель чтения">
+        <Button
+          tone="secondary"
+          icon={<FolderTree className="h-4 w-4" />}
+          onClick={() => setTreeOpen(true)}
+        >
+          Дерево БЗ
+        </Button>
+        <div className="reading-size" role="group" aria-label="Размер текста">
           <button
-            aria-label={open ? "Свернуть содержание статьи" : "Развернуть содержание статьи"}
-            aria-expanded={open}
-            className="icon-button bg-white"
-            onClick={() => setOpen(!open)}
+            type="button"
+            className="icon-button"
+            aria-label="Уменьшить размер текста"
+            disabled={scale <= 0.7}
+            onClick={() =>
+              setScale((v) => Math.max(0.7, +(v - 0.1).toFixed(1)))
+            }
           >
-            {open ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            <Minus className="h-4 w-4" />
           </button>
-          <span className="text-sm font-bold lg:hidden">Чтение · {Math.round(scale * 100)}%</span>
-          {reading ? (
-            <Button
-              aria-label="Выйти из полноэкранного режима"
-              className="reading-exit"
-              tone="secondary"
-              onClick={() => setReading(false)}
-            >
-              <Minimize2 className="h-4 w-4" />
-              <span className={open ? "" : "lg:sr-only"}>Выйти</span>
-            </Button>
-          ) : null}
+          <button
+            type="button"
+            aria-label="Сбросить размер текста до 100%"
+            onClick={() => setScale(1)}
+          >
+            {Math.round(scale * 100)}%
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Увеличить размер текста"
+            disabled={scale >= 1.4}
+            onClick={() =>
+              setScale((v) => Math.min(1.4, +(v + 0.1).toFixed(1)))
+            }
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
-        {open ? (
-          <div className="reading-options">
-            <p className="my-3 text-xs font-bold uppercase text-[var(--ms-muted)]">Размер текста</p>
-            <div className="flex items-center justify-between gap-1">
-              <button
-                className="icon-button"
-                aria-label="Уменьшить размер текста"
-                disabled={scale <= 0.7}
-                onClick={() => setScale((value) => Math.max(0.7, +(value - 0.1).toFixed(1)))}
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <button
-                className="text-sm font-bold"
-                aria-label="Сбросить размер текста до 100%"
-                onClick={() => setScale(1)}
-              >
-                {Math.round(scale * 100)}%
-              </button>
-              <button
-                className="icon-button"
-                aria-label="Увеличить размер текста"
-                disabled={scale >= 1.4}
-                onClick={() => setScale((value) => Math.min(1.4, +(value + 0.1).toFixed(1)))}
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-            {!reading ? (
-              <Button
-                aria-label="На весь экран"
-                className="my-3 w-full"
-                tone="secondary"
-                onClick={() => {
-                  savedScroll.current = window.scrollY;
-                  setReading(true);
-                }}
-              >
-                <Maximize2 className="h-4 w-4" />
-                Режим чтения
-              </Button>
-            ) : null}
-            <nav aria-label="Содержание статьи">
-              <p className="my-3 text-xs font-bold uppercase text-[var(--ms-muted)]">
-                В этой статье
-              </p>
-              {sections.map((section) => (
-                <a
-                  className="block rounded-lg py-2 text-sm hover:text-[var(--ms-primary)]"
-                  key={section.id}
-                  href={`#${section.id}`}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    jump(section.id);
-                  }}
-                >
-                  {section.title}
-                </a>
-              ))}
-            </nav>
-          </div>
+        <button
+          ref={modeButton}
+          type="button"
+          className="reading-mode-button"
+          aria-label={
+            reading ? "Выйти из полноэкранного режима" : "На весь экран"
+          }
+          onClick={() => {
+            if (!reading) savedScroll.current = window.scrollY;
+            setReading((v) => !v);
+          }}
+        >
+          {reading ? (
+            <Minimize2 className="h-4 w-4" />
+          ) : (
+            <Maximize2 className="h-4 w-4" />
+          )}
+          {reading ? "Выйти" : "Режим чтения"}
+        </button>
+        {attachmentCount ? (
+          <button
+            type="button"
+            className="reading-attachments-link"
+            onClick={() => jump("attachments-title")}
+          >
+            Вложения · {attachmentCount}
+          </button>
         ) : null}
-      </aside>
+      </div>
+      <ReadingToc sections={sections} active={active} jump={jump} />
       <div className="reading-material min-w-0">
         <div className="mb-4">
           <BackButton onNavigate={onNavigate} />
@@ -158,6 +230,44 @@ export const ReadingLayout = ({
           {children}
         </article>
       </div>
+      <ResponsiveOverlay
+        label="Дерево базы знаний"
+        open={treeOpen}
+        onClose={() => setTreeOpen(false)}
+      >
+        <KnowledgeTree
+          persistExpansion
+          currentArticleId={articleId}
+          selected={treeSection}
+          onSelect={setTreeSection}
+          articleIds={visible.map((a) => a.id)}
+        />
+        <div className="mt-5 space-y-2" aria-label="Материалы раздела">
+          {visible
+            .filter(
+              (a) =>
+                treeSection === "all" ||
+                sectionArticleIds(getKnowledgeTree(), treeSection).includes(
+                  a.id,
+                ),
+            )
+            .map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                aria-current={a.id === articleId ? "page" : undefined}
+                className="block w-full rounded-xl border border-[var(--ms-border)] p-3 text-left text-sm hover:bg-[var(--ms-primary-soft)] aria-[current=page]:bg-[var(--ms-primary-soft)]"
+                onClick={() => {
+                  setTreeOpen(false);
+                  if (a.id !== articleId)
+                    onNavigate(a.kind === "video" ? "video" : "article", a.id);
+                }}
+              >
+                {a.title}
+              </button>
+            ))}
+        </div>
+      </ResponsiveOverlay>
     </div>
   );
 };

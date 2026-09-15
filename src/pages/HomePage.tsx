@@ -1,175 +1,152 @@
-import {
-  ArrowRight,
-  BookOpen,
-  Building2,
-  FilePlus2,
-  FolderTree,
-  Search,
-  Settings,
-  Tags,
-  UsersRound,
-} from "lucide-react";
-import type { AppPage, Navigate, UserRole } from "../app/types";
+import { SupportReminder } from "./SupportReminder";
+import { clientRoleLabel } from "../app/client-role-label";
+import type { Navigate, UserRole } from "../app/types";
 import { roleProfile } from "../app/routes";
-import { Badge, PageHeading } from "../components/ui";
-import { articles, canRoleAccessArticle, isArticlePublished } from "../data/platform-data";
+import { PageHeading } from "../components/ui";
+import {
+  articles,
+  canRoleAccessArticle,
+  isArticlePublished,
+  type ArticleSummary,
+} from "../data/platform-data";
 import { getArticleSections } from "../data/prototype-entities";
-
+import { getKnowledgeTree, sectionArticleIds } from "../data/knowledge-tree";
+import { personalKey, readPersonalArticles } from "../data/personal-articles";
+import { licensingArticleId } from "../data/licensing/catalog";
 interface HomePageProps {
+  companyId?: string;
   companyType?: string;
   onNavigate: Navigate;
   role: UserRole;
 }
-
-const cardsForRole = (role: UserRole) => {
-  const cards = [
-    {
-      description: "Инструкции, документы и видео",
-      icon: BookOpen,
-      label: "База знаний",
-      page: "knowledge" as AppPage,
-    },
-    { description: "Поиск по статьям и файлам", icon: Search, label: "Поиск", page: "search" as AppPage },
-  ];
-  if (role === "portal-admin" || role === "support-engineer")
-    cards.unshift({
-      description: "Подготовить новый материал",
-      icon: FilePlus2,
-      label: "Создать статью",
-      page: "editor" as AppPage,
-    });
-  if (["portal-admin", "support-engineer", "manager"].includes(role))
-    cards.push(
-      {
-        description: "Карточки и доступ клиентов",
-        icon: Building2,
-        label: "Компании",
-        page: "companies" as AppPage,
-      },
-      {
-        description: "Аккаунты и приглашения",
-        icon: UsersRound,
-        label: "Пользователи",
-        page: "users" as AppPage,
-      },
-    );
-  if (role === "client-admin")
-    cards.push({
-      description: "Команда вашей компании",
-      icon: UsersRound,
-      label: "Сотрудники",
-      page: "client-users" as AppPage,
-    });
-  if (role === "portal-admin")
-    cards.push({
-      description: "Структура, теги и интеграции",
-      icon: Settings,
-      label: "Администрирование",
-      page: "administration" as AppPage,
-    });
-  return cards;
-};
-
-export const HomePage = ({ companyType, onNavigate, role }: HomePageProps) => {
+export const HomePage = ({
+  companyId,
+  companyType,
+  onNavigate,
+  role,
+}: HomePageProps) => {
   const profile = roleProfile(role);
-  const visibleArticles = articles.filter(
-    (article) => isArticlePublished(article) && canRoleAccessArticle(article, role, companyType),
+  const visible = articles.filter(
+    (a) => isArticlePublished(a) && canRoleAccessArticle(a, role, companyType),
+  );
+  const lists = readPersonalArticles(personalKey(role, companyId), {
+    role,
+    companyType,
+  });
+  const tree = getKnowledgeTree();
+  const products = tree
+    .flatMap((n) => (n.id === "products" ? (n.children ?? []) : [n]))
+    .map((n) => ({
+      ...n,
+      count: visible.filter((a) => sectionArticleIds(tree, n.id).includes(a.id))
+        .length,
+    }))
+    .filter((n) => n.count);
+  const block = (
+    title: string,
+    items: ArticleSummary[],
+    empty: string,
+    note?: string,
+  ) => (
+    <section
+      aria-label={title}
+      className="min-w-0 rounded-2xl border border-[var(--ms-border)] bg-white p-5"
+    >
+      <h2 className="font-heading text-xl font-bold">
+        {title}{" "}
+        <span className="text-sm text-[var(--ms-muted)]">· {items.length}</span>
+      </h2>
+      {note ? (
+        <p className="mt-2 text-xs text-[var(--ms-muted)]">{note}</p>
+      ) : null}
+      {!items.length ? (
+        <p className="mt-4 text-sm text-[var(--ms-muted)]">{empty}</p>
+      ) : (
+        <ul className="mt-3 max-h-96 divide-y divide-[var(--ms-border)] overflow-auto">
+          {items.map((a) => (
+            <li key={a.id}>
+              <button
+                type="button"
+                className="w-full py-3 text-left hover:text-[var(--ms-primary)]"
+                onClick={() =>
+                  onNavigate(a.kind === "video" ? "video" : "article", a.id)
+                }
+              >
+                <span className="block font-semibold">{a.title}</span>
+                <span className="mt-1 block text-xs text-[var(--ms-muted)]">
+                  {getArticleSections(a).join(" · ")} · {a.updated}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
   return (
     <>
       <PageHeading
         eyebrow="Личный кабинет"
-        subtitle={`Вы вошли как ${profile.label.toLowerCase()}. Здесь собраны доступные разделы и последние материалы.`}
         title="Рабочее пространство"
+        subtitle={`Вы вошли как ${clientRoleLabel(profile.label).toLowerCase()}. Доступно опубликованных материалов: ${visible.length}.`}
       />
-      <section className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Доступные разделы">
-        {cardsForRole(role).map(({ description, icon: Icon, label, page }) => (
+      <SupportReminder role={role} onNavigate={onNavigate} />
+      <section aria-label="Разделы по продуктам" className="mb-5">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-heading text-xl font-bold">
+            Разделы по продуктам
+          </h2>
           <button
-            className="group flex min-h-40 min-w-0 flex-col items-start rounded-2xl border border-[var(--ms-border)] bg-white p-5 text-left shadow-[var(--ms-card-shadow)] transition duration-200 hover:-translate-y-0.5 hover:border-[var(--ms-primary)] hover:shadow-[var(--ms-card-shadow-hover)] sm:p-6"
-            key={`${page}-${label}`}
-            onClick={() => onNavigate(page)}
             type="button"
+            className="text-sm font-semibold text-[var(--ms-primary)]"
+            onClick={() => onNavigate("knowledge")}
           >
-            <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--ms-primary-soft)] text-[var(--ms-primary)] transition group-hover:bg-[var(--ms-primary)] group-hover:text-white">
-              <Icon className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <span className="mt-5 flex w-full min-w-0 items-center gap-3">
-              <span className="min-w-0 flex-1 font-heading text-lg font-bold">{label}</span>
-              <ArrowRight
-                className="h-5 w-5 shrink-0 text-[var(--ms-primary)] transition group-hover:translate-x-1"
-                aria-hidden="true"
-              />
-            </span>
-            <span className="mt-1.5 text-sm leading-6 text-[var(--ms-muted)]">{description}</span>
+            Все статьи
           </button>
-        ))}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {products.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="min-w-0 rounded-xl border border-[var(--ms-border)] bg-white p-4 text-left font-bold hover:border-[var(--ms-primary)]"
+              onClick={() => onNavigate("knowledge", p.id)}
+            >
+              {p.name}
+              <span className="mt-2 block text-sm font-normal text-[var(--ms-muted)]">
+                Материалов: {p.count}
+              </span>
+            </button>
+          ))}
+        </div>
       </section>
-
-      <div className="mt-8 grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)]">
-        <section className="min-w-0 rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[.12em] text-[var(--ms-primary)]">
-                Обновления
-              </p>
-              <h2 className="mt-1 font-heading text-xl font-bold">Свежие материалы</h2>
-            </div>
-            <button
-              className="text-sm font-semibold text-[var(--ms-primary)] hover:underline"
-              onClick={() => onNavigate("knowledge")}
-              type="button"
-            >
-              Все статьи
-            </button>
-          </div>
-          <div className="divide-y divide-[var(--ms-border)]">
-            {visibleArticles.slice(0, 3).map((article) => (
-              <button
-                className="group flex w-full min-w-0 items-start gap-3 py-4 text-left first:pt-2 last:pb-0"
-                key={article.id}
-                onClick={() =>
-                  onNavigate(article.kind === "video" ? "video" : "article", article.id)
-                }
-                type="button"
-              >
-                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[var(--ms-primary)]" />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold leading-snug transition group-hover:text-[var(--ms-primary)]">
-                    {article.title}
-                  </span>
-                  <span className="mt-1 block text-xs text-[var(--ms-muted)]">
-                    {getArticleSections(article).join(" · ")} · {article.updated}
-                  </span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-        <section className="rounded-2xl bg-gradient-to-br from-[#123b5a] to-[#1478bd] p-5 text-white shadow-[0_18px_48px_rgba(20,120,189,.2)] sm:p-6">
-          <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/15">
-            <FolderTree className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <h2 className="mt-5 font-heading text-xl font-bold">База знаний растёт</h2>
-          <p className="mt-2 text-sm leading-6 text-white/72">
-            {visibleArticles.length} опубликованных материалов доступны вашей роли. Последнее
-            обновление — сегодня.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Badge tone="blue">НАВИСА · 36</Badge>
-            <Badge tone="slate">Документы · 18</Badge>
-          </div>
-          {role === "portal-admin" ? (
-            <button
-              className="mt-6 flex items-center gap-2 text-sm font-bold transition hover:gap-3"
-              onClick={() => onNavigate("structure")}
-              type="button"
-            >
-              <Tags className="h-4 w-4" aria-hidden="true" />
-              Управлять структурой
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </button>
-          ) : null}
-        </section>
+      <div className="grid min-w-0 gap-5 xl:grid-cols-2">
+        {block(
+          "Новое и обновлённое",
+          [...visible]
+            .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+            .slice(0, 5),
+          "Пока нет доступных материалов.",
+          "Даты отражают демонстрационный каталог; даты источников указаны в статьях.",
+        )}
+        {block(
+          "Популярное",
+          [licensingArticleId, "licensing-kinds", "network-license"].flatMap(
+            (id) => visible.filter((a) => a.id === id),
+          ),
+          "Пока нет доступных материалов.",
+          "Демонстрационная подборка для знакомства с материалами, без статистики просмотров.",
+        )}
+        {block(
+          "Сохранённое",
+          lists.saved,
+          "Нажмите «Сохранить» в статье — она появится здесь.",
+        )}
+        {block(
+          "Недавно прочитанное",
+          lists.recent,
+          "Откройте материал — он появится здесь.",
+        )}
       </div>
     </>
   );

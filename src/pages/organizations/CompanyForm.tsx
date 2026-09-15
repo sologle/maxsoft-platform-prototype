@@ -1,23 +1,23 @@
-import { DomainFields, DOMAIN_PATTERN } from "./DomainFields";
+import { DomainFields } from "./DomainFields";
 import { InfoHint } from "../../components/InfoHint";
 import { useState, type FormEvent } from "react";
 import type { UserRole } from "../../app/types";
 import { Button, Field, SelectField } from "../../components/ui";
 import {
-  companyFields as initialCompanyFields,
   companyTypes as initialCompanyTypes,
-  type AuditEvent,
   type CompanyRecord,
 } from "../../data/platform-data";
 import {
-  getCompanyUniquenessConflicts,
-  getPrototypeCompanies,
-} from "../../data/prototype-entities";
-import {
-  appendPrototypeValue,
   prototypeStorageKeys,
   readPrototypeValue,
 } from "../../data/prototype-store";
+import { getCompanyFields } from "../../data/registration-fields";
+import {
+  companyFieldVisible,
+  canEditCompanyField,
+  newCompanyStatus,
+} from "../../data/company-field-policy";
+import { CompanySaveError, saveCompanyFromForm } from "../../data/company-save";
 
 interface CompanyFormProps {
   company?: CompanyRecord;
@@ -26,7 +26,12 @@ interface CompanyFormProps {
   role: UserRole;
 }
 
-export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProps) => {
+export const CompanyForm = ({
+  company,
+  onCancel,
+  onSave,
+  role,
+}: CompanyFormProps) => {
   const editing = Boolean(company);
   const [inn, setInn] = useState(company?.inn ?? "");
   const [domains, setDomains] = useState<string[]>(
@@ -37,111 +42,79 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
     prototypeStorageKeys.companyTypes,
     initialCompanyTypes,
   );
-  const fieldConfiguration = readPrototypeValue(
-    prototypeStorageKeys.companyFields,
-    initialCompanyFields,
-  );
+  const fieldConfiguration = getCompanyFields();
   const operation = editing ? "editing" : "creation";
-  const defaultCompanyType = availableCompanyTypes.find((type) => type.isDefault);
+  const defaultCompanyType = availableCompanyTypes.find(
+    (type) => type.isDefault,
+  );
   if (!defaultCompanyType)
-    throw new Error("ACC_DEFAULT_COMPANY_TYPE_MISSING: базовый тип компании не настроен");
+    throw new Error(
+      "ACC_DEFAULT_COMPANY_TYPE_MISSING: базовый тип компании не настроен",
+    );
 
   const fieldSetting = (id: string) => {
     const setting = fieldConfiguration.find((field) => field.id === id);
     if (!setting)
-      throw new Error(`PLAT_COMPANY_FIELD_CONFIG_MISSING: настройка поля ${id} отсутствует`);
+      throw new Error(
+        `PLAT_COMPANY_FIELD_CONFIG_MISSING: настройка поля ${id} отсутствует`,
+      );
     return setting;
   };
-  const showField = (id: string) => {
-    const setting = fieldSetting(id);
-    return setting.visible && setting[operation] && (role !== "manager" || setting.manager);
-  };
-  const isRequired = (id: string) => fieldSetting(id).required;
-  const getFormValue = (form: FormData, id: string, existingValue = "") => {
-    if (!showField(id)) return existingValue;
-    const value = form.get(id);
-    if (typeof value !== "string")
-      throw new Error(`ACC_COMPANY_FIELD_MISSING: поле ${id} отсутствует в форме`);
-    return value.trim();
-  };
-
+  const showField = (id: string) =>
+    companyFieldVisible(fieldSetting(id), role, operation);
+  const editable = (id: string) =>
+    canEditCompanyField(fieldSetting(id), role, operation);
+  const isRequired = (id: string) =>
+    editable(id) && (id === "name" || fieldSetting(id).required);
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const nextErrors: Record<string, string> = {};
-    const records = getPrototypeCompanies();
-    const normalizedDomains = domains
-      .map((domain) => domain.trim().toLocaleLowerCase("ru"))
-      .filter(Boolean);
-    domains.forEach((raw, index) => {
-      const domain = raw.trim().toLowerCase();
-      if (!domain) return;
-      if (!DOMAIN_PATTERN.test(domain))
-        nextErrors[`domain-${index}`] =
-          "Введите домен без протокола и пути. Код: ACC_DOMAIN_INVALID.";
-      else if (domains.slice(0, index).some((value) => value.trim().toLowerCase() === domain))
-        nextErrors[`domain-${index}`] = "Этот домен уже добавлен. Код: ACC_DOMAIN_DUPLICATE.";
-      else if (
-        fieldSetting("domains").unique &&
-        records.some(
-          (record) =>
-            record.id !== company?.id &&
-            record.domains.some((value) => value.toLowerCase() === domain),
-        )
-      )
-        nextErrors[`domain-${index}`] = "Домен занят другой компанией. Код: ACC_DOMAIN_CONFLICT.";
-    });
-    const record: CompanyRecord = {
-      id: company?.id ?? `company-${Date.now()}`,
-      name: getFormValue(form, "name", company?.name),
-      shortName: getFormValue(form, "shortName", company?.shortName),
-      inn,
-      kpp: getFormValue(form, "kpp", company?.kpp),
-      legalAddress: getFormValue(form, "legalAddress", company?.legalAddress),
-      primaryEmail: getFormValue(form, "primaryEmail", company?.primaryEmail),
-      phone: getFormValue(form, "phone", company?.phone),
-      type:
-        role === "manager"
-          ? (company?.type ?? defaultCompanyType.name)
-          : getFormValue(form, "type", company?.type),
-      status: getFormValue(form, "status", company?.status) as CompanyRecord["status"],
-      statusUntil: getFormValue(form, "statusUntil", company?.statusUntil),
-      contract: getFormValue(form, "contract", company?.contract),
-      contractDate: getFormValue(form, "contractDate", company?.contractDate),
-      project: getFormValue(form, "project", company?.project),
-      bitrixUrl: getFormValue(form, "bitrix", company?.bitrixUrl),
-      domains: normalizedDomains,
-      users: company?.users ?? 0,
-    };
-    const uniqueFieldIds = fieldConfiguration
-      .filter((field) => field.unique && showField(field.id))
-      .map((field) => field.id);
-    for (const id of getCompanyUniquenessConflicts(record, records, uniqueFieldIds, company?.id)) {
-      nextErrors[id] =
-        id === "domains"
-          ? "Домен уже связан с другой компанией. Код: ACC_DOMAIN_CONFLICT."
-          : id === "inn"
-            ? "Компания с таким ИНН уже существует. Код: ACC_INN_CONFLICT."
-            : `${fieldSetting(id).label} уже используется другой компанией. Код: ACC_COMPANY_FIELD_CONFLICT.`;
+    try {
+      const record = saveCompanyFromForm({
+        companyId: company?.id,
+        form: new FormData(event.currentTarget),
+        domains,
+        role,
+      });
+      setErrors({});
+      onSave(record);
+    } catch (error) {
+      if (error instanceof CompanySaveError) setErrors(error.fields);
+      else {
+        console.error("ACC_COMPANY_SAVE_FAILED", {
+          companyId: company?.id,
+          role,
+          error,
+        });
+        setErrors({
+          form: "Не удалось сохранить компанию. Обновите страницу и повторите. Код: ACC_COMPANY_SAVE_FAILED.",
+        });
+      }
     }
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length) return;
-
-    appendPrototypeValue<AuditEvent>(prototypeStorageKeys.audit, {
-      action: editing ? "Изменил карточку компании" : "Создал компанию",
-      category: "company",
-      date: "Только что",
-      object: record.name,
-      page: editing ? "company" : "companies",
-      resource: record.id,
-      result: "Успешно",
-      user: "Сотрудник MaxSoft",
-    });
-    onSave(record);
   };
 
   return (
-    <form onSubmit={submit}>
+    <form
+      onSubmit={submit}
+      className="[&_input:disabled]:bg-slate-50 [&_input:disabled]:text-[var(--ms-muted)]"
+    >
+      {errors.form || errors.domains ? (
+        <p className="mb-4 text-sm text-red-600" role="alert">
+          {errors.form || errors.domains}
+        </p>
+      ) : null}
+      {role === "manager" ? (
+        <p className="mb-4 text-sm leading-6 text-[var(--ms-muted)]">
+          Проект и тип компании доступны только для чтения. Остальные поля — в
+          пределах настроек администратора.
+        </p>
+      ) : null}
+      {!editing ? (
+        <p className="mb-4 text-sm leading-6 text-[var(--ms-muted)]">
+          При создании наименование компании обязательно. Оно используется для
+          привязки пользователей; ограничения изменения имени действуют после
+          создания.
+        </p>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         {showField("name") ? (
           <Field
@@ -150,6 +123,7 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             error={errors.name}
             label="Полное наименование"
             name="name"
+            disabled={!editable("name")}
             required={isRequired("name")}
           />
         ) : null}
@@ -159,6 +133,7 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             error={errors.shortName}
             label="Сокращённое наименование"
             name="shortName"
+            disabled={!editable("shortName")}
             required={isRequired("shortName")}
           />
         ) : null}
@@ -168,6 +143,7 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             inputMode="numeric"
             label="ИНН"
             name="inn"
+            disabled={!editable("inn")}
             onChange={(event) => setInn(event.target.value)}
             required={isRequired("inn")}
             value={inn}
@@ -180,6 +156,7 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             inputMode="numeric"
             label="КПП"
             name="kpp"
+            disabled={!editable("kpp")}
             required={isRequired("kpp")}
           />
         ) : null}
@@ -190,6 +167,7 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             error={errors.legalAddress}
             label="Юридический адрес"
             name="legalAddress"
+            disabled={!editable("legalAddress")}
             required={isRequired("legalAddress")}
           />
         ) : null}
@@ -199,6 +177,7 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             error={errors.primaryEmail}
             label="Основной email"
             name="primaryEmail"
+            disabled={!editable("primaryEmail")}
             required={isRequired("primaryEmail")}
             type="email"
           />
@@ -209,23 +188,18 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             error={errors.phone}
             label="Телефон"
             name="phone"
+            disabled={!editable("phone")}
             required={isRequired("phone")}
             type="tel"
           />
         ) : null}
-        {role === "manager" ? (
-          <div className="rounded-xl border border-[var(--ms-border)] bg-slate-50 p-3 text-sm leading-6 text-[var(--ms-muted)] sm:col-span-2">
-            <strong className="block text-[var(--ms-text)]">
-              Тип компании: {editing ? company?.type : defaultCompanyType.name}
-            </strong>
-            Менеджер не может менять это поле. Новой компании назначается базовый тип.
-          </div>
-        ) : showField("type") ? (
+        {showField("type") ? (
           <SelectField
             defaultValue={company?.type ?? defaultCompanyType.name}
             error={errors.type}
             label="Тип компании"
             name="type"
+            disabled={!editable("type")}
             required={isRequired("type")}
           >
             {availableCompanyTypes.map((type) => (
@@ -235,10 +209,11 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
         ) : null}
         {showField("status") ? (
           <SelectField
-            defaultValue={company?.status ?? "Активна"}
+            defaultValue={company?.status ?? newCompanyStatus}
             error={errors.status}
             label="Статус"
             name="status"
+            disabled={!editable("status")}
             required={isRequired("status")}
           >
             <option>Активна</option>
@@ -251,6 +226,7 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             error={errors.statusUntil}
             label="Срок действия статуса"
             name="statusUntil"
+            disabled={!editable("statusUntil")}
             required={isRequired("statusUntil")}
             type="date"
           />
@@ -261,6 +237,7 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             error={errors.contract}
             label="Договор / основание"
             name="contract"
+            disabled={!editable("contract")}
             required={isRequired("contract")}
           />
         ) : null}
@@ -270,6 +247,7 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             error={errors.contractDate}
             label="Дата договора"
             name="contractDate"
+            disabled={!editable("contractDate")}
             required={isRequired("contractDate")}
             type="date"
           />
@@ -280,6 +258,7 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             error={errors.project}
             label="Проект"
             name="project"
+            disabled={!editable("project")}
             placeholder="Необязательное поле"
             required={isRequired("project")}
           />
@@ -291,12 +270,20 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
             error={errors.bitrix}
             label="Ссылка на Битрикс24"
             name="bitrix"
+            disabled={!editable("bitrix")}
             placeholder="https://..."
             required={isRequired("bitrix")}
             type="url"
           />
         ) : null}
-        {showField("domains") ? (
+        {showField("domains") && !editable("domains") ? (
+          <Field
+            className="sm:col-span-2"
+            label="Рабочие домены"
+            value={domains.join(", ")}
+            disabled
+          />
+        ) : showField("domains") ? (
           <DomainFields
             values={domains}
             errors={errors}
@@ -306,7 +293,8 @@ export const CompanyForm = ({ company, onCancel, onSave, role }: CompanyFormProp
         ) : null}
       </div>
       <p className="mt-3 text-xs leading-5 text-[var(--ms-muted)]">
-        Каждый домен должен быть уникален для портала. Пустые дополнительные строки не сохраняются.
+        Каждый домен должен быть уникален для портала. Пустые дополнительные
+        строки не сохраняются.
       </p>
       <div className="mt-3 flex items-center text-sm text-[var(--ms-muted)]">
         Срок статуса

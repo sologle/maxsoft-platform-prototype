@@ -101,7 +101,7 @@ const createFieldScene = (width: number, height: number, mode: "living" | "wordm
       const uy = Math.sin(point.angle) * halfLength;
       context.lineWidth = ambient ? 1.5 : 1.25 + (centered ? morph * 0.55 : 0);
       const opacity = (dark ? 0.21 : 0.17) - (ambient ? 0.05 : 0);
-      context.strokeStyle = `rgba(${color},${opacity + point.energy * 0.7 + morph * (centered ? 0.48 : 0.32)})`;
+      context.strokeStyle = `rgba(${dark && word ? "255,255,255" : color},${opacity + point.energy * 0.7 + morph * (centered ? 0.48 : 0.32)})`;
       context.beginPath();
       context.moveTo(point.x - ux, point.y - uy);
       context.lineTo(point.x + ux, point.y + uy);

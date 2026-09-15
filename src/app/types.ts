@@ -6,6 +6,7 @@ export type AppPage =
   | "login"
   | "register"
   | "recover"
+  | "help"
   | "home"
   | "knowledge"
   | "article"

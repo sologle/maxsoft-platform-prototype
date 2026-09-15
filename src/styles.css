@@ -48,7 +48,6 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  overflow-x: hidden;
   background: var(--ms-stage);
 }
 
@@ -543,7 +542,10 @@ div[data-state="closed"][aria-hidden="true"] {
 }
 
 .ms-table-scroll {
-  max-height: min(60dvh, calc(100dvh - var(--portal-header-height, 72px) - 32px));
+  max-height: min(
+    60dvh,
+    calc(100dvh - var(--portal-header-height, 72px) - 32px)
+  );
   overflow: auto;
 }
 .ms-table-scroll thead {
@@ -563,5 +565,11 @@ html[data-theme="dark"] .reading-tools {
 @media (max-width: 639px) {
   .access-node .access-node {
     padding: 8px;
+  }
+}
+
+@media (min-width: 80rem) {
+  .global-search-trigger {
+    display: none;
   }
 }

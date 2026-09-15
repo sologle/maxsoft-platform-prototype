@@ -1,4 +1,8 @@
+import { licensingArticles } from "../src/data/licensing/catalog";
 import { test, expect } from "@playwright/test";
+const licensingAccess = Object.fromEntries(
+  licensingArticles.map((article) => [article.id, "all"]),
+);
 
 test("PL-10: удаление типа сохраняет аудиторию и требует отдельной замены компаний", async ({
   page,
@@ -42,6 +46,7 @@ test("PL-10: удаление типа сохраняет аудиторию и 
     companies: JSON.parse(localStorage.getItem("maxsoft-prototype-companies")!),
   }));
   expect(state.access).toEqual({
+    ...licensingAccess,
     "network-license": "all",
     "cad-integration": ["Клиент"],
     "project-template": ["ВИП-клиент"],
@@ -94,6 +99,7 @@ test("PL-12: конфликт последней аудитории остана
       JSON.parse(localStorage.getItem("maxsoft-prototype-article-access")!),
     ),
   ).toEqual({
+    ...licensingAccess,
     ...initial,
     "network-license": ["Клиент"],
     "cad-integration": ["Клиент"],
@@ -108,14 +114,14 @@ test("PL-06: PDF, DOCX, пересечение тегов, дерево и за�
   await page.getByRole("button", { name: "Найти", exact: true }).click();
   await expect(
     page.getByRole("button", {
-      name: "Открыть материал: Настройка сетевой лицензии",
+      name: "Просмотреть файл: инструкция_активации.pdf",
     }),
   ).toContainText("Совпадение в тексте PDF");
   await input.fill("журнал обновления");
   await page.getByRole("button", { name: "Найти", exact: true }).click();
   await expect(
     page.getByRole("button", {
-      name: "Открыть материал: Настройка сетевой лицензии",
+      name: "Просмотреть файл: регламент_обновления.docx",
     }),
   ).toContainText("Совпадение в тексте DOCX");
   await page.getByRole("button", { name: "Очистить поиск", exact: true }).click();

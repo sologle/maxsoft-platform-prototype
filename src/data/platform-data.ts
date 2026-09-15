@@ -1,3 +1,8 @@
+import {
+  licensingArticles,
+  licensingArticleId,
+  licensingFileName,
+} from "./licensing/catalog";
 import type { AppPage, UserRole } from "../app/types";
 import { prototypeStorageKeys, readPrototypeValue } from "./prototype-store";
 
@@ -8,6 +13,7 @@ export interface ArticleSummary {
   section: string;
   tags: string[];
   updated: string;
+  updatedAt: string;
   status: "Опубликована" | "Черновик";
   kind: "article" | "video";
   allowedCompanyTypes: string[] | "all";
@@ -53,10 +59,12 @@ export const articles: ArticleSummary[] = [
   {
     id: "network-license",
     title: "Настройка сетевой лицензии",
-    description: "Подготовка сервера лицензий, подключение рабочих мест и диагностика соединения.",
+    description:
+      "Подготовка сервера лицензий, подключение рабочих мест и диагностика соединения.",
     section: "НАВИСА / Установка",
     tags: ["НАВИСА", "Лицензирование"],
-    updated: "Сегодня, 10:42",
+    updated: "15.09.2026, 10:42",
+    updatedAt: "2026-09-15T10:42:00+03:00",
     status: "Опубликована",
     kind: "article",
     allowedCompanyTypes: "all",
@@ -64,10 +72,12 @@ export const articles: ArticleSummary[] = [
   {
     id: "cad-integration",
     title: "Настройка интеграции с САПР-комплексом",
-    description: "Видеоинструкция с быстрыми переходами по ключевым этапам настройки.",
+    description:
+      "Видеоинструкция с быстрыми переходами по ключевым этапам настройки.",
     section: "НАВИСА / Настройка",
     tags: ["НАВИСА", "Интеграция"],
-    updated: "Вчера, 16:18",
+    updated: "14.09.2026, 16:18",
+    updatedAt: "2026-09-14T16:18:00+03:00",
     status: "Опубликована",
     kind: "video",
     allowedCompanyTypes: ["Клиент", "ВИП-клиент", "Интегратор"],
@@ -78,7 +88,8 @@ export const articles: ArticleSummary[] = [
     description: "Рекомендуемая структура проекта и правила совместной работы.",
     section: "Продукты / Общие рекомендации",
     tags: ["Проекты", "Стандарты"],
-    updated: "29 августа",
+    updated: "29.08.2026",
+    updatedAt: "2026-08-29T00:00:00+03:00",
     status: "Опубликована",
     kind: "article",
     allowedCompanyTypes: ["Клиент", "ВИП-клиент", "Интегратор"],
@@ -86,10 +97,12 @@ export const articles: ArticleSummary[] = [
   {
     id: "server-migration",
     title: "Перенос сервера лицензий",
-    description: "Черновик регламента миграции лицензий без остановки рабочих мест.",
+    description:
+      "Черновик регламента миграции лицензий без остановки рабочих мест.",
     section: "НАВИСА / Администрирование",
     tags: ["Лицензирование"],
-    updated: "28 августа",
+    updated: "28.08.2026",
+    updatedAt: "2026-08-28T00:00:00+03:00",
     status: "Черновик",
     kind: "article",
     allowedCompanyTypes: [],
@@ -97,14 +110,17 @@ export const articles: ArticleSummary[] = [
   {
     id: "update-2026",
     title: "Обновление компонентов до версии 2026",
-    description: "Контрольный список перед обновлением и проверка совместимости модулей.",
+    description:
+      "Контрольный список перед обновлением и проверка совместимости модулей.",
     section: "НАВИСА / Обновление",
     tags: ["НАВИСА", "Обновление"],
-    updated: "27 августа",
+    updated: "27.08.2026",
+    updatedAt: "2026-08-27T00:00:00+03:00",
     status: "Опубликована",
     kind: "article",
     allowedCompanyTypes: ["ВИП-клиент"],
   },
+  ...licensingArticles,
 ];
 
 export const companies: CompanyRecord[] = [
@@ -272,52 +288,96 @@ export const users: UserRecord[] = [
 ];
 
 export const tagGroups = [
-  { id: "products", name: "Продукты", tags: ["НАВИСА", "Model Studio CS", "CADLib"] },
+  {
+    id: "products",
+    name: "Продукты",
+    tags: ["НАВИСА", "Model Studio CS", "CADLib"],
+  },
   {
     id: "topics",
     name: "Темы",
-    tags: ["Лицензирование", "Интеграция", "Обновление", "Проекты", "Стандарты"],
+    tags: [
+      "Лицензирование",
+      "Интеграция",
+      "Обновление",
+      "Проекты",
+      "Стандарты",
+    ],
   },
-  { id: "audience", name: "Аудитория", tags: ["Администратор", "Проектировщик"] },
+  {
+    id: "audience",
+    name: "Аудитория",
+    tags: ["Администратор", "Проектировщик"],
+  },
 ];
 
-export const files = [
+export interface KnowledgeFile {
+  name: string;
+  type: string;
+  size: string;
+  relatedArticleIds: string[];
+  updated: string;
+  updatedAt: string;
+}
+
+export const files: KnowledgeFile[] = [
   {
     name: "инструкция_активации.pdf",
     type: "PDF",
     size: "2,4 МБ",
     relatedArticleIds: ["network-license", "cad-integration"],
-    updated: "Сегодня, 10:42",
+    updated: "15.09.2026, 10:42",
+    updatedAt: "2026-09-15T10:42:00+03:00",
   },
   {
     name: "схема_подключения.dwg",
     type: "DWG",
     size: "8,1 МБ",
     relatedArticleIds: ["cad-integration"],
-    updated: "Вчера, 16:18",
+    updated: "14.09.2026, 16:18",
+    updatedAt: "2026-09-14T16:18:00+03:00",
   },
   {
     name: "регламент_обновления.docx",
     type: "DOCX",
     size: "1,8 МБ",
     relatedArticleIds: ["network-license", "project-template", "update-2026"],
-    updated: "29 августа",
+    updated: "29.08.2026",
+    updatedAt: "2026-08-29T00:00:00+03:00",
   },
   {
     name: "дистрибутив_модуля.zip",
     type: "ZIP",
     size: "42 МБ",
     relatedArticleIds: ["update-2026"],
-    updated: "27 августа",
+    updated: "27.08.2026",
+    updatedAt: "2026-08-27T00:00:00+03:00",
   },
-].map((file) => ({ ...file, uses: file.relatedArticleIds.length }));
+  {
+    name: licensingFileName,
+    type: "PDF",
+    size: "1,30 МБ",
+    relatedArticleIds: [
+      licensingArticleId,
+      "licensing-kinds",
+      "licensing-files",
+    ],
+    updated: "15.09.2026, 13:00",
+    updatedAt: "2026-09-15T13:00:00+03:00",
+  },
+];
 
-const staffRoles: readonly UserRole[] = ["portal-admin", "support-engineer", "manager"];
+const staffRoles: readonly UserRole[] = [
+  "portal-admin",
+  "support-engineer",
+  "manager",
+];
 
 export const isArticlePublished = (article: ArticleSummary) =>
-  readPrototypeValue<Record<string, boolean>>(prototypeStorageKeys.articlePublication, {})[
-    article.id
-  ] ?? article.status === "Опубликована";
+  readPrototypeValue<Record<string, boolean>>(
+    prototypeStorageKeys.articlePublication,
+    {},
+  )[article.id] ?? article.status === "Опубликована";
 
 export const canRoleAccessArticle = (
   article: ArticleSummary,
@@ -332,7 +392,9 @@ export const canRoleAccessArticle = (
     {},
   )[article.id];
   const allowedCompanyTypes = configuredAccess ?? article.allowedCompanyTypes;
-  return allowedCompanyTypes === "all" || allowedCompanyTypes.includes(companyType);
+  return (
+    allowedCompanyTypes === "all" || allowedCompanyTypes.includes(companyType)
+  );
 };
 
 export const canRoleAccessFile = (
@@ -426,7 +488,13 @@ export const auditEvents: AuditEvent[] = [
 ];
 
 export const companyFields = [
-  { id: "name", label: "Полное наименование", required: true, unique: true, registration: true },
+  {
+    id: "name",
+    label: "Полное наименование",
+    required: true,
+    unique: true,
+    registration: true,
+  },
   {
     id: "shortName",
     label: "Сокращённое наименование",
@@ -435,7 +503,13 @@ export const companyFields = [
     registration: false,
   },
   { id: "inn", label: "ИНН", required: true, unique: true, registration: true },
-  { id: "kpp", label: "КПП", required: false, unique: false, registration: false },
+  {
+    id: "kpp",
+    label: "КПП",
+    required: false,
+    unique: false,
+    registration: false,
+  },
   {
     id: "legalAddress",
     label: "Юридический адрес",
@@ -443,7 +517,13 @@ export const companyFields = [
     unique: false,
     registration: false,
   },
-  { id: "domains", label: "Рабочие домены", required: true, unique: true, registration: false },
+  {
+    id: "domains",
+    label: "Рабочие домены",
+    required: true,
+    unique: true,
+    registration: false,
+  },
   {
     id: "primaryEmail",
     label: "Основной email",
@@ -451,9 +531,27 @@ export const companyFields = [
     unique: true,
     registration: false,
   },
-  { id: "phone", label: "Телефон", required: false, unique: false, registration: false },
-  { id: "type", label: "Тип компании", required: true, unique: false, registration: false },
-  { id: "status", label: "Статус компании", required: true, unique: false, registration: false },
+  {
+    id: "phone",
+    label: "Телефон",
+    required: false,
+    unique: false,
+    registration: false,
+  },
+  {
+    id: "type",
+    label: "Тип компании",
+    required: true,
+    unique: false,
+    registration: false,
+  },
+  {
+    id: "status",
+    label: "Статус компании",
+    required: true,
+    unique: false,
+    registration: false,
+  },
   {
     id: "statusUntil",
     label: "Срок действия статуса",
@@ -475,7 +573,13 @@ export const companyFields = [
     unique: false,
     registration: false,
   },
-  { id: "project", label: "Проект", required: false, unique: false, registration: false },
+  {
+    id: "project",
+    label: "Проект",
+    required: false,
+    unique: false,
+    registration: false,
+  },
   {
     id: "bitrix",
     label: "Ссылка на Битрикс24",
@@ -486,7 +590,7 @@ export const companyFields = [
 ].map((field) => ({
   ...field,
   visible: true,
-  manager: !["bitrix", "type"].includes(field.id),
+  manager: field.id !== "bitrix",
   creation: true,
   editing: true,
 }));

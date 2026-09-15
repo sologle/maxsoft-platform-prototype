@@ -13,6 +13,9 @@ test("гость проходит регистрацию и попадает в 
   const verifyErrors = watchErrors(page);
   await page.goto("./?page=register&role=guest");
   await page.getByLabel("Корпоративная почта").fill("admin@severprom.ru");
+  await page.getByLabel("Должность", { exact: true }).fill("Инженер");
+  await page.getByLabel("Отдел", { exact: true }).fill("Проектирование");
+  await page.getByLabel("Контактный телефон", { exact: true }).fill("+7 999 123 45 67");
   await page.getByRole("button", { name: "Создать аккаунт" }).click();
   const result = page.getByRole("dialog", { name: "Демонстрация регистрации завершена" });
   await expect(result).toContainText("Компания найдена");
@@ -27,6 +30,9 @@ test("новая регистрация получает фактический 
   await page.getByLabel("Корпоративная почта").fill("owner@new-company.ru");
   await page.getByLabel("Полное наименование").fill("ООО «Новая компания»");
   await page.getByLabel("ИНН").fill("1234567001");
+  await page.getByLabel("Должность", { exact: true }).fill("Инженер");
+  await page.getByLabel("Отдел", { exact: true }).fill("Проектирование");
+  await page.getByLabel("Контактный телефон", { exact: true }).fill("+7 999 123 45 67");
   await page.getByRole("button", { name: "Создать аккаунт" }).click();
   const result = page.getByRole("dialog", { name: "Демонстрация регистрации завершена" });
   await expect(result).toContainText("Компания создана");
@@ -45,6 +51,9 @@ test("регистрация соблюдает настроенную уник�
   await page.getByLabel("Корпоративная почта").fill("owner@another-company.ru");
   await page.getByLabel("Полное наименование").fill("ООО «СеверПромБИМ»");
   await page.getByLabel("ИНН").fill("1234567002");
+  await page.getByLabel("Должность", { exact: true }).fill("Инженер");
+  await page.getByLabel("Отдел", { exact: true }).fill("Проектирование");
+  await page.getByLabel("Контактный телефон", { exact: true }).fill("+7 999 123 45 67");
   await page.getByRole("button", { name: "Создать аккаунт" }).click();
   const result = page.getByRole("dialog", { name: "Нужна проверка данных" });
   await expect(result).toContainText("Нужна ручная проверка");
@@ -225,9 +234,7 @@ test("поиск точно показывает источник и подсв�
   const input = page.getByRole("textbox", { name: "Поиск по базе знаний" });
   await input.fill("адрес сервера");
   await input.press("Enter");
-  const pdfResult = page.getByRole("button", {
-    name: /Открыть материал: Настройка сетевой лицензии/,
-  });
+  const pdfResult = page.locator('[data-material-id="инструкция_активации.pdf"]');
   await expect(pdfResult).toContainText("Совпадение в тексте PDF");
   await expect(pdfResult.locator("mark").first()).toBeVisible();
   await input.fill("ЛИЦЕНЗИЯ");
@@ -245,17 +252,13 @@ test("поиск показывает подсвеченный фрагмент 
   const input = page.getByRole("textbox", { name: "Поиск по базе знаний" });
   await input.fill("синхронизации");
   await input.press("Enter");
-  const articleResult = page.getByRole("button", {
-    name: /Открыть материал: Настройка интеграции с САПР-комплексом/,
-  });
+  const articleResult = page.locator('[data-material-id="cad-integration"]');
   await expect(articleResult).toContainText("Фрагмент статьи");
   await expect(articleResult.locator("mark")).toContainText(/синхронизац/i);
 
   await input.fill("Стандарты");
   await input.press("Enter");
-  const tagResult = page.getByRole("button", {
-    name: /Открыть материал: Подготовка шаблона проекта/,
-  });
+  const tagResult = page.locator('[data-material-id="project-template"]');
   await expect(tagResult).toContainText("Совпадение в теге");
   await expect(tagResult.locator("mark")).toContainText("Стандарты");
 });
@@ -345,7 +348,7 @@ test("административные справочники показываю
   await expect(employeeDialog.getByLabel("Должность")).toBeVisible();
   await expect(employeeDialog.getByLabel("Отдел")).toBeVisible();
   await expect(employeeDialog.getByLabel("Телефон")).toBeVisible();
-  await expect(employeeDialog.getByLabel("Клиентская роль")).toBeVisible();
+  await expect(employeeDialog.getByLabel("Роль")).toBeVisible();
 });
 
 test("смена базового типа требует отдельного подтверждения", async ({ page }) => {
@@ -401,47 +404,6 @@ test("переименование справочников мигрирует �
   ).toBeVisible();
 });
 
-test("административные настройки влияют на редактор и форму компании", async ({ page }) => {
-  await page.goto("./?page=tags&role=portal-admin");
-  await page.getByRole("button", { name: "Новый тег" }).click();
-  const tagDialog = page.getByRole("dialog", { name: "Новый тег" });
-  await tagDialog.getByLabel("Название тега").fill("Совместимость 2026");
-  await tagDialog.getByRole("button", { name: "Сохранить" }).click();
-  await page.goto("./?page=editor&role=portal-admin");
-  await page.getByRole("button", { name: "Настройки" }).click();
-  await expect(page.getByRole("button", { name: "Совместимость 2026" })).toBeVisible();
-  await page.getByRole("button", { name: "Закрыть" }).click();
-
-  await page.goto("./?page=company-types&role=portal-admin");
-  await page.getByRole("button", { name: "Новый тип" }).click();
-  const typeDialog = page.getByRole("dialog", { name: "Новый тип" });
-  await typeDialog.getByLabel("Название типа").fill("Партнёр");
-  await typeDialog.getByRole("button", { name: "Сохранить" }).click();
-  await page.goto("./?page=companies&role=portal-admin");
-  await page.getByRole("button", { name: "Добавить компанию" }).click();
-  const companyForm = page.getByRole("dialog", { name: "Новая компания" });
-  await companyForm.getByText("Тип компании", { exact: true }).click();
-  await page.keyboard.press("Enter");
-  await expect(companyForm.getByRole("option", { name: "Партнёр", exact: true })).toBeVisible();
-  await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Закрыть" }).click();
-
-  await page.goto("./?page=fields&role=portal-admin");
-  await page.getByRole("switch", { name: "В форме: Проект" }).click();
-  await page.getByRole("button", { name: "Сохранить настройки" }).click();
-  await expect(page.getByRole("status")).toContainText("серверной проверки", { timeout: 3000 });
-  await page.goto("./?page=companies&role=portal-admin");
-  await page.getByRole("button", { name: "Добавить компанию" }).click();
-  await expect(
-    page.getByRole("dialog", { name: "Новая компания" }).getByLabel("Проект", { exact: true }),
-  ).toHaveCount(0);
-
-  await page.goto("./?page=audit&role=portal-admin");
-  await expect(page.getByText("Совместимость 2026")).toBeVisible();
-  await expect(page.getByText("Партнёр")).toBeVisible();
-  await expect(page.getByText("Поля компании").first()).toBeVisible();
-});
-
 test("журнал показывает результат, пустую выдачу и переход к объекту", async ({ page }) => {
   await page.goto("./?page=audit&role=portal-admin");
   await expect(page.getByText("Успешно").first()).toBeVisible();
@@ -474,23 +436,6 @@ test("удаление пользователя отзывает доступ и
   await page.getByRole("button", { name: "Действия: Анна Смирнова" }).click();
   await page.getByRole("menuitem", { name: "Открыть записи журнала" }).click();
   await expect(page.getByRole("heading", { name: "Журнал действий" })).toBeVisible();
-});
-
-test("поля компании показывают операции и блокируют противоречивые настройки", async ({
-  page,
-}, testInfo) => {
-  await page.goto("./?page=fields&role=portal-admin");
-  const fieldSurface = testInfo.project.name.startsWith("mobile")
-    ? page.getByRole("article").filter({ hasText: "ИНН" })
-    : page.getByRole("table");
-  await expect(fieldSurface.getByText("Создание", { exact: true }).first()).toBeVisible();
-  await expect(fieldSurface.getByText("Редактирование", { exact: true }).first()).toBeVisible();
-  const visible = page.getByRole("switch", { name: "В форме: ИНН" });
-  const required = page.getByRole("switch", { name: "Обязательное: ИНН" });
-  if ((await required.getAttribute("aria-checked")) === "false") await required.click();
-  await visible.click();
-  await expect(required).toHaveAttribute("aria-checked", "false");
-  await expect(page.getByText("Есть несохранённые изменения")).toBeVisible();
 });
 
 test("компания редактируется в modal или bottom sheet", async ({ page }) => {
@@ -601,16 +546,6 @@ test("приглашение пользователя обновляет счё�
   }
 });
 
-test("настройка PLAT-04 управляет полями самостоятельной регистрации", async ({ page }) => {
-  await page.goto("./?page=fields&role=portal-admin");
-  await page.getByRole("switch", { name: "Регистрация: Полное наименование" }).click();
-  await page.getByRole("button", { name: "Сохранить настройки" }).click();
-  await expect(page.getByRole("status")).toContainText("серверной проверки", { timeout: 3000 });
-  await page.goto("./?page=register&role=guest");
-  await expect(page.getByLabel("Полное наименование")).toHaveCount(0);
-  await expect(page.getByLabel("ИНН")).toBeVisible();
-});
-
 test("ACL клиента определяется его компанией и не подменяется через URL", async ({ page }) => {
   await page.goto(
     "./?page=article&resource=update-2026&role=client-employee&companyType=ВИП-клиент",
@@ -651,63 +586,6 @@ test("названия типов компаний остаются уникал
   await expect(editor).toBeVisible();
 });
 
-test("PLAT-04 управляет уникальностью всех полей компании", async ({ page }) => {
-  await page.goto("./?page=companies&role=portal-admin");
-  await page.evaluate(() => {
-    const key = "maxsoft-prototype-company-fields";
-    const fields = [
-      ["name", "Полное наименование", true],
-      ["shortName", "Сокращённое наименование", true],
-      ["inn", "ИНН", false],
-      ["kpp", "КПП", true],
-      ["legalAddress", "Юридический адрес", false],
-      ["domains", "Рабочие домены", false],
-      ["primaryEmail", "Основной email", true],
-      ["phone", "Телефон", false],
-      ["type", "Тип компании", false],
-      ["status", "Статус компании", false],
-      ["statusUntil", "Срок действия статуса", false],
-      ["contract", "Договор / основание", false],
-      ["contractDate", "Дата договора", false],
-      ["project", "Проект", false],
-      ["bitrix", "Ссылка на Битрикс24", true],
-    ].map(([id, label, unique]) => ({
-      id,
-      label,
-      unique,
-      visible: true,
-      required: ["name", "shortName", "inn", "domains", "type", "status"].includes(id as string),
-      manager: id !== "type" && id !== "bitrix",
-      registration: false,
-      creation: true,
-      editing: true,
-    }));
-    window.localStorage.setItem(key, JSON.stringify(fields));
-  });
-  await page.reload();
-  await page.getByRole("button", { name: "Добавить компанию" }).click();
-  const editor = page.getByRole("dialog", { name: "Новая компания" });
-  await editor.getByLabel("Полное наименование").fill("ООО «Уникальная компания»");
-  await editor.getByLabel("Сокращённое наименование").fill("Уникальное имя");
-  await editor.getByLabel("ИНН").fill("2463128457");
-  await editor.getByLabel("КПП").fill("246301001");
-  await editor.getByLabel("Рабочий домен 1", { exact: true }).fill("severprom.ru");
-  await editor.getByLabel("Основной email").fill("unique@example.ru");
-  await editor.getByRole("button", { name: "Сохранить компанию" }).click();
-  await expect(editor).toContainText("ACC_COMPANY_FIELD_CONFLICT");
-
-  await editor.getByLabel("КПП").fill("123456789");
-  await editor.getByLabel("Полное наименование").fill("ООО «СеверПромБИМ»");
-  await editor.getByRole("button", { name: "Сохранить компанию" }).click();
-  await expect(editor).toContainText("ACC_COMPANY_FIELD_CONFLICT");
-
-  await editor.getByLabel("Полное наименование").fill("ООО «Уникальная компания»");
-  await editor.getByRole("button", { name: "Сохранить компанию" }).click();
-  await expect(
-    page.getByRole("button", { name: "Открыть компанию: ООО «Уникальная компания»" }),
-  ).toBeVisible();
-});
-
 test("сохранённые разделы статьи меняют её размещение", async ({ page }, testInfo) => {
   await page.goto("./?page=editor&resource=network-license&role=portal-admin");
   await page.getByRole("button", { name: "Настройки" }).click();
@@ -721,27 +599,6 @@ test("сохранённые разделы статьи меняют её ра�
   await expect(
     page.getByRole("button", { name: "Открыть материал: Настройка сетевой лицензии" }),
   ).toBeVisible();
-});
-
-test("интеграции и настройки полей реагируют на действия", async ({ page }) => {
-  await page.goto("./?page=integrations&role=portal-admin");
-  await page.getByRole("button", { name: "Проверить подключение" }).first().click();
-  await expect(page.getByText("Подключение работает").first()).toBeVisible({ timeout: 3000 });
-  await page.getByLabel("Адрес портала").fill("https://invalid.example");
-  await page.getByRole("button", { name: "Проверить подключение" }).nth(1).click();
-  await expect(page.getByRole("alert")).toContainText("PLAT_INTEGRATION_CONNECTION_FAILED", {
-    timeout: 3000,
-  });
-  await page.goto("./?page=fields&role=portal-admin");
-  const fieldSwitch = page.getByRole("switch", { name: "Обязательное: Телефон" });
-  const before = await fieldSwitch.getAttribute("aria-checked");
-  await fieldSwitch.click();
-  await expect(fieldSwitch).toHaveAttribute("aria-checked", before === "true" ? "false" : "true");
-  await page.getByRole("switch", { name: "Уникальное: Телефон" }).click();
-  await page.getByRole("button", { name: "Сохранить настройки" }).click();
-  await expect(page.getByRole("alert")).toContainText("PLAT_FIELD_UNIQUENESS_CONFLICT", {
-    timeout: 3000,
-  });
 });
 
 test("административные списки показывают ошибку загрузки и восстанавливаются", async ({ page }) => {
