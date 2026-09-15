@@ -126,7 +126,12 @@ test("оглавление следует ручной прокрутке и н�
 test("выход из полноэкранного чтения сохраняет исходную позицию статьи", async ({
   page,
 }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(articleUrl);
+  await page
+    .getByRole("button", { name: "На весь экран", exact: true })
+    .waitFor();
+  await page.evaluate(() => document.fonts.ready);
   await page.evaluate(() => window.scrollTo(0, 3500));
   const before = await page.evaluate(() => window.scrollY);
   await page

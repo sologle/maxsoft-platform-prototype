@@ -124,7 +124,7 @@ export const AppShell = ({
         ref={headerRef}
         className="sticky top-0 z-50 border-b border-[var(--ms-border)] bg-white/94 shadow-[0_2px_12px_rgba(27,51,75,.06)] backdrop-blur-xl"
       >
-        <div className="flex h-16 w-full items-center gap-2 px-4 sm:px-6 lg:h-[72px] lg:px-8 2xl:px-10">
+        <div className="flex h-16 w-full items-center gap-2 px-4 max-[359px]:gap-1 max-[359px]:px-2 sm:px-6 lg:h-[72px] lg:px-8 2xl:px-10">
           <button
             aria-label="Открыть меню"
             className="icon-button mobile-menu-trigger"
