@@ -188,7 +188,7 @@ test("карточка материала открывается целиком,
   if (testInfo.project.name.startsWith("mobile")) {
     await page.getByRole("button", { name: "Показать разделы" }).click();
   }
-  await page.getByRole("button", { exact: true, name: "Установка" }).click();
+  await page.getByRole("navigation", { name: "Дерево разделов" }).getByRole("button", { exact: true, name: "Установка" }).click();
   await expect(page.getByRole("heading", { name: "Установка" })).toBeVisible();
   await page.getByRole("button", { name: "Вернуться ко всем материалам" }).click();
   await expect(page.getByRole("heading", { name: "Все материалы" })).toBeVisible();
@@ -595,7 +595,7 @@ test("сохранённые разделы статьи меняют её ра�
   await page.goto("./?page=knowledge&role=portal-admin");
   if (testInfo.project.name.startsWith("mobile"))
     await page.getByRole("button", { name: "Показать разделы" }).click();
-  await page.getByRole("button", { name: "Настройка", exact: true }).click();
+  await page.getByRole("navigation", { name: "Дерево разделов" }).getByRole("button", { name: "Настройка", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Открыть материал: Настройка сетевой лицензии" }),
   ).toBeVisible();

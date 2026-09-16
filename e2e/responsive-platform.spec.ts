@@ -118,11 +118,11 @@ test("разделы базы знаний сворачиваются и раз�
 
   const navisa = page.getByRole("button", { name: "Свернуть раздел НАВИСА" });
   await expect(
-    page.getByRole("button", { exact: true, name: "Настройка" }),
+    page.getByRole("navigation", { name: "Дерево разделов" }).getByRole("button", { exact: true, name: "Настройка" }),
   ).toBeVisible();
   await navisa.click();
   await expect(
-    page.getByRole("button", { exact: true, name: "Настройка" }),
+    page.getByRole("navigation", { name: "Дерево разделов" }).getByRole("button", { exact: true, name: "Настройка" }),
   ).toBeHidden();
   const collapsedNavisa = page.getByRole("button", {
     name: "Развернуть раздел НАВИСА",
@@ -130,7 +130,7 @@ test("разделы базы знаний сворачиваются и раз�
   await expect(collapsedNavisa).toHaveAttribute("aria-expanded", "false");
   await collapsedNavisa.click();
   await expect(
-    page.getByRole("button", { exact: true, name: "Настройка" }),
+    page.getByRole("navigation", { name: "Дерево разделов" }).getByRole("button", { exact: true, name: "Настройка" }),
   ).toBeVisible();
 });
 
