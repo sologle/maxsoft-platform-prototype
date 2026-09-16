@@ -165,7 +165,13 @@ test("POL-14: details не оставляет фокус в закрытом с�
   });
   await expect(details).not.toHaveAttribute("open");
   expect(closed).toEqual({ targetExists: true, focused: false });
+  await expect.poll(() => details.evaluate(
+    (node) => getComputedStyle(node, "::details-content").contentVisibility,
+  )).toBe("hidden");
   await summary.click();
+  await expect.poll(() => details.evaluate(
+    (node) => getComputedStyle(node, "::details-content").opacity,
+  )).toBe("1");
   const reopenedFocus = await details.evaluate((node) => {
     const target = node.querySelector<HTMLElement>("button, input, a, select");
     target?.focus();
