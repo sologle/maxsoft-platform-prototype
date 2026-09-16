@@ -90,11 +90,22 @@
   line-height: 1.5;
   color: var(--ms-muted);
 }
-.material-section {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+.material-section-links {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.material-section-links button {
+  color: var(--ms-primary);
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: var(--ms-border-strong);
+  text-underline-offset: 3px;
+}
+.material-section-links button:hover {
+  text-decoration-color: currentColor;
 }
 .material-date-label {
   display: none;
@@ -119,15 +130,33 @@
   margin: 0;
   padding: 0;
 }
-.material-tag {
+.material-tag-list > li {
   min-width: 0;
   max-width: 100%;
-  padding: 2px 6px;
-  border-radius: 5px;
-  background: var(--ms-surface-subtle);
-  color: var(--ms-muted);
-  font-size: 10px;
+}
+.material-tag {
+  max-width: 100%;
+  min-height: 28px;
+  padding: 3px 8px;
+  border: 1px solid var(--ms-primary);
+  border-radius: 7px;
+  background: var(--ms-primary-soft);
+  color: var(--ms-primary);
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1.5;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.material-tag:hover,
+.material-tag[aria-pressed="true"] {
+  background: var(--ms-primary);
+  color: var(--ms-surface);
+}
+.material-tag:focus-visible,
+.material-section-links button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
 }
 .material-compact-tags {
   display: flex;
@@ -226,9 +255,6 @@
 .material-results-cards .material-title {
   font-size: 17px;
 }
-.material-results-cards .material-section {
-  display: none;
-}
 .material-results-cards .material-go {
   grid-column: 3;
   grid-row: 1;
@@ -270,9 +296,16 @@
 }
 @media (max-width: 767px) {
   .material-columns,
-  .material-results-table .material-section,
   .material-results-table .material-date {
     display: none;
+  }
+  .material-results-table .material-section {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+  .material-results-table .material-go {
+    grid-column: 3;
+    grid-row: 1;
   }
   .material-row {
     grid-template-columns: 24px minmax(0, 1fr) 44px;
@@ -322,11 +355,28 @@
   }
 }
 @media (pointer: coarse) {
+  .material-tag,
+  .material-section-links button,
   .material-disclosure,
   .material-go,
   .material-details summary,
   .material-related summary,
   .material-related button {
     min-height: 44px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .knowledge-library-sidebar {
+    position: sticky;
+    top: calc(var(--portal-header-height) + 16px);
+    max-height: calc(100dvh - var(--portal-header-height) - 32px);
+    flex-direction: column;
+  }
+  .knowledge-library-sidebar > nav {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
   }
 }

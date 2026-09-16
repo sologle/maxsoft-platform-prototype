@@ -213,6 +213,13 @@ export const SearchPage = ({
             <KnowledgeResults
               results={results}
               onNavigate={onNavigate}
+              selectedTags={tags}
+              onTagSelect={(tag) =>
+                setTags((current) =>
+                  current.includes(tag) ? current : [...current, tag],
+                )
+              }
+              onSectionSelect={setSection}
               view="table"
               search
               query={query}

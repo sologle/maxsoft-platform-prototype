@@ -35,6 +35,9 @@ it("groups only unique assigned tags, keeps unknown tags visible, and expands in
   const onNavigate = vi.fn();
   render(
     <KnowledgeResults
+      selectedTags={[]}
+      onTagSelect={vi.fn()}
+      onSectionSelect={vi.fn()}
       view="cards"
       onNavigate={onNavigate}
       results={[
@@ -75,6 +78,9 @@ it("uses the saved group catalogue and renders materials without tags", () => {
   );
   render(
     <KnowledgeResults
+      selectedTags={[]}
+      onTagSelect={vi.fn()}
+      onSectionSelect={vi.fn()}
       view="cards"
       onNavigate={vi.fn()}
       results={[
@@ -95,6 +101,9 @@ it("table has aligned column headings and separate disclosures and navigation", 
   const onNavigate = vi.fn();
   render(
     <KnowledgeResults
+      selectedTags={[]}
+      onTagSelect={vi.fn()}
+      onSectionSelect={vi.fn()}
       view="table"
       onNavigate={onNavigate}
       results={[{ ...result, tags: ["Проекты", "Стандарты", "Администратор"] }]}

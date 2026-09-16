@@ -6,6 +6,7 @@ import { canPreviewFile } from "../../data/file-types";
 import { downloadDemoFile } from "../../data/download";
 import { SearchHighlight } from "./SearchHighlight";
 import { CompactMaterialTags, MaterialTagGroups } from "./MaterialTags";
+import { MaterialSections } from "./MaterialSections";
 import "./materials.css";
 export type KnowledgeView = "cards" | "table";
 const MaterialIcon = ({ result }: { result: MaterialResult }) =>
@@ -53,12 +54,18 @@ export const KnowledgeResults = ({
   results,
   onNavigate,
   view,
+  selectedTags,
+  onTagSelect,
+  onSectionSelect,
   search = false,
   query = "",
 }: {
   results: MaterialResult[];
   onNavigate: Navigate;
   view: KnowledgeView;
+  selectedTags: string[];
+  onTagSelect: (tag: string) => void;
+  onSectionSelect: (id: string) => void;
   search?: boolean;
   query?: string;
 }) => (
@@ -117,17 +124,23 @@ export const KnowledgeResults = ({
                 </button>
               </h2>
               {view === "table" ? (
-                <CompactMaterialTags tags={result.tags} />
+                <CompactMaterialTags
+                  tags={result.tags}
+                  selectedTags={selectedTags}
+                  onTagSelect={onTagSelect}
+                />
               ) : (
                 <p className="material-description">{result.description}</p>
               )}
             </div>
-            <div className="material-section">
-              {result.sections[0]}
-              {result.sections.length > 1
-                ? ` (+${result.sections.length - 1})`
-                : ""}
-            </div>
+            {view === "table" && (
+              <div className="material-section">
+                <MaterialSections
+                  sections={result.sections}
+                  onSelect={onSectionSelect}
+                />
+              </div>
+            )}
             <div className="material-date">
               <span className="material-date-label">Обновлено: </span>
               <time dateTime={result.updatedAt}>{result.updated}</time>
@@ -141,7 +154,13 @@ export const KnowledgeResults = ({
               <ArrowRight aria-hidden="true" size={16} />
             </button>
           </div>
-          {view === "cards" && <MaterialTagGroups tags={result.tags} />}
+          {view === "cards" && (
+            <MaterialTagGroups
+              tags={result.tags}
+              selectedTags={selectedTags}
+              onTagSelect={onTagSelect}
+            />
+          )}
           {view === "table" ? (
             <details className="material-details">
               <summary>Подробности материала</summary>
@@ -150,7 +169,6 @@ export const KnowledgeResults = ({
                   <SearchHighlight text={result.title} query={query} />
                 </p>
                 <p>{result.description}</p>
-                <p>Разделы: {result.sections.join(" · ")}</p>
                 <p>
                   Обновлено:{" "}
                   <time dateTime={result.updatedAt}>{result.updated}</time>
@@ -158,9 +176,12 @@ export const KnowledgeResults = ({
               </div>
             </details>
           ) : (
-            <p className="material-paths">
-              Разделы: {result.sections.join(" · ")}
-            </p>
+            <div className="material-paths">
+              <MaterialSections
+                  sections={result.sections}
+                  onSelect={onSectionSelect}
+                />
+            </div>
           )}
           {search && result.snippet && (
             <p className="material-snippet">

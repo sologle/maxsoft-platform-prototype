@@ -30,7 +30,7 @@ for (const width of [320, 390, 768, 1024, 1440])
       const row = page.locator('[data-material-id="practice-review"]');
       await expect(row).toBeVisible();
       await row.getByText("Подробности материала", { exact: true }).click();
-      await expect(row.locator(".material-details-body")).toContainText(
+      await expect(row.locator(".material-section-links")).toContainText(
         pilotSection,
       );
       await row.getByRole("button", { name: "Ещё 2" }).click();
@@ -344,10 +344,10 @@ test("первый прямой поиск учитывает оба разме�
   );
   const row = page.locator('[data-material-id="practice-review"]');
   await row.getByText("Подробности материала", { exact: true }).click();
-  await expect(row.locator(".material-details-body")).toContainText(
+  await expect(row.locator(".material-section-links")).toContainText(
     pilotSection,
   );
-  await expect(row.locator(".material-details-body")).toContainText(
+  await expect(row.locator(".material-section-links")).toContainText(
     "Подготовка и проверка материалов",
   );
 });

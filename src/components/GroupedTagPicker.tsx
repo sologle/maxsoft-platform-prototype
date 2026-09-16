@@ -37,7 +37,7 @@ export const GroupedTagPicker = ({
               type="button"
               key={tag.name}
               aria-pressed={selected.includes(tag.name)}
-              className={`rounded-xl px-3 py-2 text-sm ring-1 ${selected.includes(tag.name) ? "bg-[var(--ms-primary)] text-white ring-[var(--ms-primary)]" : "bg-white ring-[var(--ms-border)]"}`}
+              className={`min-w-0 max-w-full rounded-xl border px-3 py-2 text-sm [overflow-wrap:anywhere] ${selected.includes(tag.name) ? "bg-[var(--ms-primary)] text-white border-[var(--ms-primary)]" : "bg-white border-[var(--ms-border-strong)]"}`}
               onClick={() => onToggle(tag.name)}
             >
               {tag.name}

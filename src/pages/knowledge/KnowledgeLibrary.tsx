@@ -118,7 +118,7 @@ export const KnowledgeLibrary = ({
       />
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="hidden self-start rounded-2xl border border-[var(--ms-border)] bg-white p-4 shadow-[var(--ms-card-shadow)] xl:sticky xl:top-28 xl:block">
+        <aside className="knowledge-library-sidebar hidden self-start rounded-2xl border border-[var(--ms-border)] bg-white p-4 shadow-[var(--ms-card-shadow)] xl:flex">
           <div className="mb-3 flex items-center gap-2 px-2">
             <FolderTree
               className="h-5 w-5 text-[var(--ms-primary)]"
@@ -208,6 +208,13 @@ export const KnowledgeLibrary = ({
             <KnowledgeResults
               results={results}
               onNavigate={onNavigate}
+              selectedTags={tags}
+              onTagSelect={(tag) =>
+                setTags((current) =>
+                  current.includes(tag) ? current : [...current, tag],
+                )
+              }
+              onSectionSelect={setSection}
               view={view}
             />
           ) : (
