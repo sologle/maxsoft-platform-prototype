@@ -1,3 +1,4 @@
+import { MotionMessage } from "./MotionMessage";
 import {
   AlertCircle,
   ArrowLeft,
@@ -81,16 +82,13 @@ export const Field = ({
           </span>
         ) : null}
       </span>
-      {error ? (
-        <span
-          id={`${fieldId}-error`}
-          className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-650"
-          role="alert"
-        >
-          <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
-          {error}
-        </span>
-      ) : null}
+      <MotionMessage
+        message={error}
+        icon={<AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />}
+        id={`${fieldId}-error`}
+        className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-650"
+        role="alert"
+      />
     </label>
   );
 };

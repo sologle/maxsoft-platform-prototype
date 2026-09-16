@@ -1,5 +1,10 @@
+import { practiceTree, practicePlacements } from "./practice/catalog";
 import { licensingTree } from "./licensing/catalog";
-import { readPrototypeValue, writePrototypeBatch } from "./prototype-store";
+import {
+  prototypeStorageKeys,
+  readPrototypeValue,
+  writePrototypeBatch,
+} from "./prototype-store";
 export interface TreeNode {
   id: string;
   name: string;
@@ -34,12 +39,40 @@ export const getKnowledgeTree = (): TreeNode[] => {
     key,
     structuredClone(initialTree),
   );
-  if (readPrototypeValue<number>(versionKey, 0) >= 1) return tree;
-  const next = tree.some((node) => node.id === licensingTree.id)
-    ? tree
-    : [...tree, structuredClone(licensingTree)];
-  writePrototypeBatch({ [key]: next, [versionKey]: 1 });
-  return next;
+  const version = readPrototypeValue<number>(versionKey, 0);
+  if (version >= 2) return tree;
+  const next =
+    version >= 1 || tree.some((node) => node.id === licensingTree.id)
+      ? tree
+      : [...tree, structuredClone(licensingTree)];
+  const reservedIds = new Set(
+    flattenTree([practiceTree]).map((node) => node.id),
+  );
+  if (
+    flattenTree(next).some((node) => reservedIds.has(node.id)) ||
+    next.some(
+      (node) =>
+        node.name.trim().toLocaleLowerCase("ru") ===
+        practiceTree.name.toLocaleLowerCase("ru"),
+    )
+  )
+    throw new Error(
+      "KB_CATALOG_CONFLICT: Не удалось добавить демонстрационные разделы: совпали названия или идентификаторы. Обратитесь к администратору.",
+    );
+  const sections = readPrototypeValue<Record<string, string[]>>(
+    prototypeStorageKeys.articleSections,
+    {},
+  );
+  const populated = [...next, structuredClone(practiceTree)];
+  writePrototypeBatch({
+    [key]: populated,
+    [prototypeStorageKeys.articleSections]: {
+      ...practicePlacements,
+      ...sections,
+    },
+    [versionKey]: 2,
+  });
+  return populated;
 };
 export const flattenTree = (
   nodes: TreeNode[],

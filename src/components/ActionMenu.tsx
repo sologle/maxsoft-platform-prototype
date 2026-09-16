@@ -1,6 +1,8 @@
+import { visibleViewport } from "../hooks/viewport";
 import { MoreHorizontal } from "lucide-react";
 import {
   useEffect,
+  useEffectEvent,
   useId,
   useRef,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -27,6 +29,7 @@ export const ActionMenu = ({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
+  const changeOpen = useEffectEvent(onOpenChange);
   const menuItems = () =>
     Array.from(
       menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
@@ -41,28 +44,31 @@ export const ActionMenu = ({
         "UI_ACTION_MENU_MISSING: Не удалось открыть меню. Обновите страницу.",
       );
     const position = () => {
+      const viewport = visibleViewport();
       const gap = 8;
       const rect = trigger.getBoundingClientRect();
-      const below = window.innerHeight - rect.bottom - gap * 2;
-      const above = rect.top - gap * 2;
+      const below = viewport.bottom - rect.bottom - gap * 2;
+      const above = rect.top - viewport.top - gap * 2;
       const upwards = below < menu.scrollHeight && above > below;
-      menu.style.maxWidth = `${window.innerWidth - gap * 2}px`;
+      menu.style.maxWidth = `${viewport.width - gap * 2}px`;
       menu.style.maxHeight = `${Math.max(0, upwards ? above : below)}px`;
       const bounds = menu.getBoundingClientRect();
-      menu.style.left = `${Math.max(gap, Math.min(rect.right - bounds.width, window.innerWidth - bounds.width - gap))}px`;
+      menu.style.left = `${Math.max(viewport.left + gap, Math.min(rect.right - bounds.width, viewport.right - bounds.width - gap))}px`;
       menu.style.top = `${upwards ? rect.top - bounds.height - gap : rect.bottom + gap}px`;
     };
     menu.showPopover();
     position();
+    window.visualViewport?.addEventListener("resize", position);
+    window.visualViewport?.addEventListener("scroll", position);
     window.addEventListener("resize", position);
     window.addEventListener("scroll", position, true);
     const closeOutside = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) onOpenChange(false);
+      if (!rootRef.current?.contains(event.target as Node)) changeOpen(false);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
-      onOpenChange(false);
+      changeOpen(false);
       triggerRef.current?.focus();
     };
     document.addEventListener("pointerdown", closeOutside);
@@ -73,12 +79,14 @@ export const ActionMenu = ({
     return () => {
       window.cancelAnimationFrame(focusFrame);
       if (menu.matches(":popover-open")) menu.hidePopover();
+      window.visualViewport?.removeEventListener("resize", position);
+      window.visualViewport?.removeEventListener("scroll", position);
       window.removeEventListener("resize", position);
       window.removeEventListener("scroll", position, true);
       document.removeEventListener("pointerdown", closeOutside);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [onOpenChange, open]);
+  }, [open]);
 
   const moveFocus = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
@@ -109,18 +117,22 @@ export const ActionMenu = ({
       >
         <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
       </button>
-      {open ? (
-        <div
-          popover="manual"
-          className={`fixed inset-auto m-0 overflow-y-auto animate-[popover-in_140ms_ease-out] rounded-xl border border-[var(--ms-border)] bg-[var(--ms-surface)] text-[var(--ms-text)] p-1.5 shadow-[0_14px_40px_rgba(24,43,66,.16)] ${panelClassName}`}
-          id={menuId}
-          onKeyDown={moveFocus}
-          ref={menuRef}
-          role="menu"
-        >
-          {children}
-        </div>
-      ) : null}
+      <div
+        popover="manual"
+        inert={!open || undefined}
+        aria-hidden={!open || undefined}
+        className={`fixed inset-auto m-0 overflow-y-auto rounded-xl border border-[var(--ms-border)] bg-[var(--ms-surface)] text-[var(--ms-text)] p-1.5 shadow-[0_14px_40px_rgba(24,43,66,.16)] ${panelClassName}`}
+        id={menuId}
+        onKeyDown={moveFocus}
+        onClickCapture={(event) => {
+          if ((event.target as HTMLElement).closest('[role="menuitem"]'))
+            triggerRef.current?.focus();
+        }}
+        ref={menuRef}
+        role="menu"
+      >
+        {children}
+      </div>
     </div>
   );
 };

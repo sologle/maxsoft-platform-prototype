@@ -1,3 +1,5 @@
+import { visibleViewport } from "../hooks/viewport";
+import { MotionMessage } from "./MotionMessage";
 import { AlertCircle, Check, ChevronDown } from "lucide-react";
 import {
   Children,
@@ -84,18 +86,19 @@ export const SelectField = ({
     if (!menu || !trigger)
       throw new Error("UI_SELECT_ELEMENT_MISSING: список не найден");
     const position = () => {
+      const viewport = visibleViewport();
       const rect = trigger.getBoundingClientRect();
       const gap = 8;
-      const below = window.innerHeight - rect.bottom - gap * 2;
-      const above = rect.top - gap * 2;
+      const below = viewport.bottom - rect.bottom - gap * 2;
+      const above = rect.top - viewport.top - gap * 2;
       const upwards = below < Math.min(menu.scrollHeight, 288) && above > below;
       const width = Math.min(
         Math.max(rect.width, 192),
-        window.innerWidth - gap * 2,
+        viewport.width - gap * 2,
       );
       menu.style.width = `${width}px`;
       menu.style.maxHeight = `${Math.max(0, Math.min(288, upwards ? above : below))}px`;
-      menu.style.left = `${Math.max(gap, Math.min(rect.left, window.innerWidth - width - gap))}px`;
+      menu.style.left = `${Math.max(viewport.left + gap, Math.min(rect.left, viewport.right - width - gap))}px`;
       menu.style.top = `${upwards ? rect.top - menu.getBoundingClientRect().height - gap : rect.bottom + gap}px`;
     };
     menu.showPopover();
@@ -111,11 +114,15 @@ export const SelectField = ({
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     };
     document.addEventListener("pointerdown", closeOutside);
+    window.visualViewport?.addEventListener("resize", position);
+    window.visualViewport?.addEventListener("scroll", position);
     window.addEventListener("resize", position);
     window.addEventListener("scroll", position, true);
     return () => {
       if (menu.matches(":popover-open")) menu.hidePopover();
       document.removeEventListener("pointerdown", closeOutside);
+      window.visualViewport?.removeEventListener("resize", position);
+      window.visualViewport?.removeEventListener("scroll", position);
       window.removeEventListener("resize", position);
       window.removeEventListener("scroll", position, true);
     };
@@ -236,43 +243,40 @@ export const SelectField = ({
           className={`h-4 w-4 shrink-0 opacity-65 transition ${open ? "rotate-180" : ""}`}
         />
       </button>
-      {open ? (
-        <div
-          aria-labelledby={labelId}
-          className={`fixed inset-auto m-0 overflow-y-auto rounded-xl border p-1.5 shadow-[0_18px_50px_rgba(24,43,66,.2)] ${variant === "dark" ? "border-white/15 bg-[#172b42] text-white" : "border-[var(--ms-border)] bg-[var(--ms-surface-raised)] text-[var(--ms-text)]"}`}
-          id={listboxId}
-          ref={menuRef}
-          popover="manual"
-          role="listbox"
-        >
-          {options.map((option) => (
-            <button
-              aria-selected={option.value === selectedValue}
-              className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm transition ${option.value === selectedValue ? "bg-[var(--ms-primary)] font-semibold text-white" : variant === "dark" ? "hover:bg-white/10" : "hover:bg-[var(--ms-primary-soft)]"}`}
-              disabled={option.disabled}
-              key={option.value}
-              onClick={() => chooseOption(option.value)}
-              role="option"
-              tabIndex={-1}
-              type="button"
-            >
-              <span className="min-w-0 flex-1 truncate">{option.label}</span>
-              {option.value === selectedValue ? (
-                <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
-              ) : null}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      {error ? (
-        <span
-          className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-650"
-          role="alert"
-        >
-          <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
-          {error}
-        </span>
-      ) : null}
+      <div
+        aria-labelledby={open ? labelId : undefined}
+        className={`fixed inset-auto m-0 overflow-y-auto rounded-xl border p-1.5 shadow-[0_18px_50px_rgba(24,43,66,.2)] ${variant === "dark" ? "border-white/15 bg-[#172b42] text-white" : "border-[var(--ms-border)] bg-[var(--ms-surface-raised)] text-[var(--ms-text)]"}`}
+        id={listboxId}
+        ref={menuRef}
+        popover="manual"
+        inert={!open || undefined}
+        aria-hidden={!open || undefined}
+        role="listbox"
+      >
+        {options.map((option) => (
+          <button
+            aria-selected={option.value === selectedValue}
+            className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm transition ${option.value === selectedValue ? "bg-[var(--ms-primary)] font-semibold text-white" : variant === "dark" ? "hover:bg-white/10" : "hover:bg-[var(--ms-primary-soft)]"}`}
+            disabled={option.disabled}
+            key={option.value}
+            onClick={() => chooseOption(option.value)}
+            role="option"
+            tabIndex={-1}
+            type="button"
+          >
+            <span className="min-w-0 flex-1 truncate">{option.label}</span>
+            {option.value === selectedValue ? (
+              <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+            ) : null}
+          </button>
+        ))}
+      </div>
+      <MotionMessage
+        message={error}
+        icon={<AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />}
+        className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-650"
+        role="alert"
+      />
     </div>
   );
 };

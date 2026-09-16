@@ -1,26 +1,26 @@
-import { FolderTree, Maximize2, Minimize2, Minus, Plus } from "lucide-react";
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { Button } from "../../components/ui";
-import { BackButton } from "../../components/BackButton";
-import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
 import type { Navigate, UserRole } from "../../app/types";
+import { files } from "../../data/platform-data";
 import {
-  articles,
-  canRoleAccessArticle,
-  files,
-} from "../../data/platform-data";
-import { KnowledgeTree } from "./KnowledgeTree";
+  readPrototypeValue,
+  writePrototypeValue,
+} from "../../data/prototype-store";
+import { ReadingNavigation } from "./ReadingNavigation";
+import { ReadingIntro } from "./ReadingIntro";
 import { ReadingToc, type ReadingSection } from "./ReadingToc";
-import { getKnowledgeTree, sectionArticleIds } from "../../data/knowledge-tree";
+import { visibleViewport } from "../../hooks/viewport";
 import "./reading.css";
+const panelKey = "maxsoft-prototype-reading-panel-open";
 export const ReadingLayout = ({
   children,
+  header,
   sections,
   onNavigate,
   articleId,
@@ -28,6 +28,7 @@ export const ReadingLayout = ({
   companyType,
 }: {
   children: ReactNode;
+  header: ReactNode;
   sections: ReadingSection[];
   onNavigate: Navigate;
   articleId: string;
@@ -36,26 +37,93 @@ export const ReadingLayout = ({
 }) => {
   const [scale, setScale] = useState(1);
   const [reading, setReading] = useState(false);
-  const [treeOpen, setTreeOpen] = useState(false);
-  const [treeSection, setTreeSection] = useState("all");
+  const [desktopOpen, setDesktopOpen] = useState(() =>
+    readPrototypeValue(panelKey, true),
+  );
+  const [mobile, setMobile] = useState(
+    () => !window.matchMedia("(min-width: 1024px)").matches,
+  );
+  const [surface, setSurface] = useState<"tools" | "toc" | null>(null);
   const [active, setActive] = useState(sections[0]?.id ?? "");
   const root = useRef<HTMLDivElement>(null);
   const toolbar = useRef<HTMLDivElement>(null);
   const modeButton = useRef<HTMLButtonElement>(null);
+  const intro = useRef<HTMLDetailsElement>(null);
   const savedScroll = useRef(0);
-  const visible = articles.filter((a) =>
-    canRoleAccessArticle(a, role, companyType),
-  );
+  const anchor = useRef<{ element: HTMLElement; top: number } | null>(null);
   const attachmentCount = files.filter((f) =>
     f.relatedArticleIds.includes(articleId),
   ).length;
+  const tocSections = attachmentCount
+    ? [
+        { id: "attachments-title", title: `Вложения · ${attachmentCount}` },
+        ...sections,
+      ]
+    : sections;
   const headingOffset = () => {
     const header = reading
-      ? 0
-      : (document.querySelector("header")?.getBoundingClientRect().height ??
-        72);
-    return header + (toolbar.current?.getBoundingClientRect().height ?? 0) + 20;
+      ? parseFloat(getComputedStyle(root.current!).paddingTop)
+      : document.querySelector("header")!.getBoundingClientRect().height;
+    const controls = mobile
+      ? toolbar.current!.getBoundingClientRect().height +
+        root
+          .current!.querySelector(".reading-toc-trigger")!
+          .getBoundingClientRect().height +
+        16
+      : 24;
+    return visibleViewport().top + header + controls;
   };
+  const preservePosition = () => {
+    const elements = Array.from(
+      root.current!.querySelectorAll<HTMLElement>(
+        "article h1, .article-content h2, .article-content h3, .article-content p",
+      ),
+    );
+    const element = elements.find(
+      (node) => node.getBoundingClientRect().bottom > headingOffset(),
+    );
+    if (element)
+      anchor.current = { element, top: element.getBoundingClientRect().top };
+  };
+  useLayoutEffect(() => {
+    if (!anchor.current) return;
+    const { element, top } = anchor.current;
+    const delta = element.getBoundingClientRect().top - top;
+    if (reading) root.current!.scrollTop += delta;
+    else window.scrollBy({ top: delta, behavior: "instant" });
+    anchor.current = null;
+  }, [scale, desktopOpen, reading]);
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 1024px)");
+    const update = () => {
+      setMobile(!query.matches);
+      setSurface(null);
+    };
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  useLayoutEffect(() => {
+    const update = () => {
+      const viewport = visibleViewport();
+      root.current!.style.setProperty(
+        "--reading-viewport-height",
+        `${viewport.height}px`,
+      );
+      root.current!.style.setProperty(
+        "--reading-viewport-top",
+        `${viewport.top}px`,
+      );
+    };
+    update();
+    window.visualViewport?.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
   useEffect(() => {
     if (!reading) return;
     const background: HTMLElement[] = [];
@@ -90,8 +158,10 @@ export const ReadingLayout = ({
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const offset = headingOffset();
-        const targets = sections
-          .map((s) => root.current?.querySelector<HTMLElement>(`#${s.id}`))
+        const targets = tocSections
+          .map((s) =>
+            root.current?.querySelector<HTMLElement>(`#${CSS.escape(s.id)}`),
+          )
           .filter((s): s is HTMLElement => Boolean(s));
         const passed = targets.filter(
           (t) => t.getBoundingClientRect().top <= offset + 24,
@@ -112,8 +182,9 @@ export const ReadingLayout = ({
       observer.disconnect();
       cancelAnimationFrame(frame);
     };
-  }, [reading, sections, scale]);
+  }, [reading, sections, scale, attachmentCount, mobile]);
   const jump = (id: string) => {
+    if (id === "attachments-title" && intro.current) intro.current.open = true;
     const target = root.current?.querySelector<HTMLElement>(
       `#${CSS.escape(id)}`,
     );
@@ -132,142 +203,77 @@ export const ReadingLayout = ({
     <div
       ref={root}
       className={`reading-layout ${reading ? "reading-fullscreen" : ""}`}
+      data-panel-open={desktopOpen}
       data-reading-mode={reading ? "fullscreen" : "standard"}
       onKeyDown={(event) => {
-        if (event.key === "Escape" && reading && !treeOpen) {
+        if (event.key === "Escape" && reading && !surface) {
           event.preventDefault();
           setReading(false);
-          modeButton.current?.focus();
+          modeButton.current?.focus({ preventScroll: true });
         }
       }}
       onClick={(event) => {
         const link = (event.target as HTMLElement).closest<HTMLAnchorElement>(
           'a[href^="#"]',
         );
-        if (link && root.current?.contains(link)) {
+        if (link && !event.defaultPrevented && root.current?.contains(link)) {
           event.preventDefault();
           jump(link.hash.slice(1));
         }
       }}
     >
-      <div ref={toolbar} className="reading-tools" aria-label="Панель чтения">
-        <Button
-          tone="secondary"
-          icon={<FolderTree className="h-4 w-4" />}
-          onClick={() => setTreeOpen(true)}
-        >
-          Дерево БЗ
-        </Button>
-        <div className="reading-size" role="group" aria-label="Размер текста">
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="Уменьшить размер текста"
-            disabled={scale <= 0.7}
-            onClick={() =>
-              setScale((v) => Math.max(0.7, +(v - 0.1).toFixed(1)))
-            }
-          >
-            <Minus className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="Сбросить размер текста до 100%"
-            onClick={() => setScale(1)}
-          >
-            {Math.round(scale * 100)}%
-          </button>
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="Увеличить размер текста"
-            disabled={scale >= 1.4}
-            onClick={() =>
-              setScale((v) => Math.min(1.4, +(v + 0.1).toFixed(1)))
-            }
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        </div>
-        <button
-          ref={modeButton}
-          type="button"
-          className="reading-mode-button"
-          aria-label={
-            reading ? "Выйти из полноэкранного режима" : "На весь экран"
+      <ReadingNavigation
+        onNavigate={onNavigate}
+        articleId={articleId}
+        role={role}
+        companyType={companyType}
+        mobile={mobile}
+        open={mobile ? surface === "tools" : desktopOpen}
+        setOpen={(open) => {
+          if (mobile) setSurface(open ? "tools" : null);
+          else {
+            preservePosition();
+            writePrototypeValue(panelKey, open);
+            setDesktopOpen(open);
           }
-          onClick={() => {
-            if (!reading) savedScroll.current = window.scrollY;
-            setReading((v) => !v);
-          }}
-        >
-          {reading ? (
-            <Minimize2 className="h-4 w-4" />
-          ) : (
-            <Maximize2 className="h-4 w-4" />
-          )}
-          {reading ? "Выйти" : "Режим чтения"}
-        </button>
-        {attachmentCount ? (
-          <button
-            type="button"
-            className="reading-attachments-link"
-            onClick={() => jump("attachments-title")}
-          >
-            Вложения · {attachmentCount}
-          </button>
-        ) : null}
-      </div>
-      <ReadingToc sections={sections} active={active} jump={jump} />
-      <div className="reading-material min-w-0">
-        <div className="mb-4">
-          <BackButton onNavigate={onNavigate} />
-        </div>
+        }}
+        scale={scale}
+        setScale={(value) => {
+          if (value === scale) return;
+          preservePosition();
+          setScale(value);
+        }}
+        reading={reading}
+        toggleReading={() => {
+          if (!reading) savedScroll.current = window.scrollY;
+          setReading((value) => !value);
+        }}
+        modeButton={modeButton}
+        toolbar={toolbar}
+      />
+      <div className="reading-material">
+        <ReadingToc
+          sections={tocSections}
+          active={active}
+          jump={jump}
+          open={surface === "toc"}
+          setOpen={(open) => setSurface(open ? "toc" : null)}
+        />
         <article
-          className="article-scaled rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] sm:p-8"
+          className="article-scaled"
           style={{ "--article-scale": scale } as CSSProperties}
         >
+          {header}
+          <ReadingIntro
+            sections={sections}
+            articleId={articleId}
+            onNavigate={onNavigate}
+            attachmentCount={attachmentCount}
+            detailsRef={intro}
+          />
           {children}
         </article>
       </div>
-      <ResponsiveOverlay
-        label="Дерево базы знаний"
-        open={treeOpen}
-        onClose={() => setTreeOpen(false)}
-      >
-        <KnowledgeTree
-          persistExpansion
-          currentArticleId={articleId}
-          selected={treeSection}
-          onSelect={setTreeSection}
-          articleIds={visible.map((a) => a.id)}
-        />
-        <div className="mt-5 space-y-2" aria-label="Материалы раздела">
-          {visible
-            .filter(
-              (a) =>
-                treeSection === "all" ||
-                sectionArticleIds(getKnowledgeTree(), treeSection).includes(
-                  a.id,
-                ),
-            )
-            .map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                aria-current={a.id === articleId ? "page" : undefined}
-                className="block w-full rounded-xl border border-[var(--ms-border)] p-3 text-left text-sm hover:bg-[var(--ms-primary-soft)] aria-[current=page]:bg-[var(--ms-primary-soft)]"
-                onClick={() => {
-                  setTreeOpen(false);
-                  if (a.id !== articleId)
-                    onNavigate(a.kind === "video" ? "video" : "article", a.id);
-                }}
-              >
-                {a.title}
-              </button>
-            ))}
-        </div>
-      </ResponsiveOverlay>
     </div>
   );
 };

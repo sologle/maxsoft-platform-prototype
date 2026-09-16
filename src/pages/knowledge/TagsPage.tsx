@@ -1,3 +1,4 @@
+import { MotionMessage } from "../../components/MotionMessage";
 import type { Navigate } from "../../app/types";
 import { goBack } from "../../components/BackButton";
 import { ChevronDown, ChevronRight, Pencil, Plus, Tag, Tags, Trash2 } from "lucide-react";
@@ -494,7 +495,7 @@ export const TagsPage = ({
             }}
           >
             <Field
-              autoFocus
+              data-autofocus
               label={
                 dialog === "group" || dialog === "rename-group"
                   ? "Название группы"
@@ -521,14 +522,10 @@ export const TagsPage = ({
                 ))}
               </SelectField>
             ) : null}
-            {formError ? (
-              <p
-                className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700"
+            <MotionMessage message={formError}
+                className="block mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700"
                 role="alert"
-              >
-                {formError}
-              </p>
-            ) : null}
+               />
             {dialog === "tag" || dialog === "rename" ? (
               <Field
                 className="mt-4"

@@ -143,9 +143,7 @@ const PlatformApp = () => {
         onNavigate={navigate}
         onRoleChange={changeRole}
       />
-      {notice ? (
-        <Toast key={notice.id} message={notice.message} onClose={() => setNotice(null)} />
-      ) : null}
+      <Toast message={notice?.message ?? null} onClose={() => setNotice(null)} />
     </>
   );
 };

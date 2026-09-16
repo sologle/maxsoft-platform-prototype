@@ -79,6 +79,8 @@ export const AppShell = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const menuMounted = usePresence(menuOpen);
+  const profileMounted = usePresence(profileOpen);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
   const profile = roleProfile(location.role);
   const profileShortLabel = clientRoleLabel(profile.shortLabel);
@@ -86,19 +88,33 @@ export const AppShell = ({
   useEffect(() => {
     setMenuOpen(false);
     setProfileOpen(false);
-  }, [location.page]);
+  }, [location.page, location.resource, location.role]);
 
   useEffect(() => {
-    if (!menuMounted) return;
+    const desktop = window.matchMedia("(min-width: 80rem)");
+    const close = () => {
+      if (desktop.matches) setMenuOpen(false);
+    };
+    desktop.addEventListener("change", close);
+    return () => desktop.removeEventListener("change", close);
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [menuMounted]);
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!profileOpen) return;
+    const frame = requestAnimationFrame(() =>
+      profileMenuRef.current
+        ?.querySelector<HTMLButtonElement>('[role="menuitem"]')
+        ?.focus(),
+    );
     const closeOutside = (event: MouseEvent) => {
       const container = profileButtonRef.current?.parentElement;
       if (event.target instanceof Node && !container?.contains(event.target))
@@ -113,6 +129,7 @@ export const AppShell = ({
     document.addEventListener("mousedown", closeOutside);
     document.addEventListener("keydown", closeOnEscape);
     return () => {
+      cancelAnimationFrame(frame);
       document.removeEventListener("mousedown", closeOutside);
       document.removeEventListener("keydown", closeOnEscape);
     };
@@ -124,7 +141,7 @@ export const AppShell = ({
         ref={headerRef}
         className="sticky top-0 z-50 border-b border-[var(--ms-border)] bg-white/94 shadow-[0_2px_12px_rgba(27,51,75,.06)] backdrop-blur-xl"
       >
-        <div className="flex h-16 w-full items-center gap-2 px-4 max-[359px]:gap-1 max-[359px]:px-2 sm:px-6 lg:h-[72px] lg:px-8 2xl:px-10">
+        <div className="portal-header-controls flex h-16 w-full items-center gap-2 px-4 sm:px-6 lg:h-[72px] lg:px-8 2xl:px-10">
           <button
             aria-label="Открыть меню"
             className="icon-button mobile-menu-trigger"
@@ -160,7 +177,13 @@ export const AppShell = ({
 
           <ThemeToggle />
 
-          <div className="relative">
+          <div
+            className="relative"
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget))
+                setProfileOpen(false);
+            }}
+          >
             <button
               aria-label={`${profileShortLabel}. Демо-профиль`}
               aria-expanded={profileOpen}
@@ -186,10 +209,39 @@ export const AppShell = ({
                 aria-hidden="true"
               />
             </button>
-            {profileOpen ? (
+            {profileMounted ? (
               <div
-                className="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(300px,calc(100vw-24px))] origin-top-right animate-[popover-in_160ms_ease-out] rounded-2xl border border-[var(--ms-border)] bg-white p-2 shadow-[0_18px_50px_rgba(24,43,66,.18)]"
+                className="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(300px,calc(100vw-24px))] origin-top-right motion-surface rounded-2xl border border-[var(--ms-border)] bg-white p-2 shadow-[0_18px_50px_rgba(24,43,66,.18)]"
+                ref={profileMenuRef}
+                onKeyDown={(event) => {
+                  if (
+                    !["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)
+                  )
+                    return;
+                  event.preventDefault();
+                  const items = Array.from(
+                    event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                      '[role="menuitem"]',
+                    ),
+                  );
+                  const index = items.indexOf(
+                    document.activeElement as HTMLButtonElement,
+                  );
+                  const next =
+                    event.key === "Home"
+                      ? 0
+                      : event.key === "End"
+                        ? items.length - 1
+                        : (index +
+                            (event.key === "ArrowDown" ? 1 : -1) +
+                            items.length) %
+                          items.length;
+                  items[next]?.focus();
+                }}
                 role="menu"
+                data-state={profileOpen ? "open" : "closed"}
+                inert={!profileOpen || undefined}
+                aria-hidden={!profileOpen || undefined}
               >
                 <div className="border-b border-[var(--ms-border)] px-3 py-3">
                   <p className="text-sm font-bold">
@@ -242,20 +294,21 @@ export const AppShell = ({
         ? createPortal(
             <ModalSurface
               className="fixed inset-0 z-[80] xl:hidden"
+              open={menuOpen}
               labelledBy="mobile-navigation-title"
               onClose={() => setMenuOpen(false)}
               surfaceRole="presentation"
             >
               <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-[#0c1b2c]/48 backdrop-blur-[2px] transition-opacity duration-200"
+                className="absolute inset-0 bg-[#0c1b2c]/48 backdrop-blur-[2px] motion-surface"
                 data-state={menuOpen ? "open" : "closed"}
                 onMouseDown={() => setMenuOpen(false)}
               />
               <aside
                 aria-label="Навигационное меню"
                 aria-modal="true"
-                className="mobile-navigation fixed inset-y-0 left-0 flex w-[min(340px,88vw)] flex-col bg-white shadow-[20px_0_60px_rgba(10,28,48,.24)]"
+                className="mobile-navigation motion-surface absolute inset-y-0 left-0 flex w-[min(340px,88%)] flex-col bg-white shadow-[20px_0_60px_rgba(10,28,48,.24)]"
                 data-state={menuOpen ? "open" : "closed"}
                 role="dialog"
               >

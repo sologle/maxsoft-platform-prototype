@@ -1,0 +1,119 @@
+:root {
+  --ms-motion-enter: 160ms;
+  --ms-motion-exit: 120ms;
+  --ms-motion-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+.motion-surface {
+  opacity: 1;
+  transition: opacity var(--ms-motion-enter) var(--ms-motion-ease);
+}
+.motion-surface[data-state="closed"] {
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: var(--ms-motion-exit);
+}
+@starting-style {
+  .motion-surface[data-state="open"] {
+    opacity: 0;
+  }
+}
+.modal-surface[data-state="closed"] {
+  pointer-events: none;
+}
+[popover] {
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--ms-motion-exit) var(--ms-motion-ease),
+    display var(--ms-motion-exit) allow-discrete,
+    overlay var(--ms-motion-exit) allow-discrete;
+}
+[popover]:popover-open {
+  opacity: 1;
+  pointer-events: auto;
+  transition-duration: var(--ms-motion-enter);
+}
+@starting-style {
+  [popover]:popover-open {
+    opacity: 0;
+  }
+}
+.tree-children {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    grid-template-rows var(--ms-motion-enter) var(--ms-motion-ease),
+    opacity var(--ms-motion-enter) var(--ms-motion-ease),
+    visibility 0s;
+}
+.tree-children[data-open="false"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition-duration: var(--ms-motion-exit), var(--ms-motion-exit), 0s;
+  transition-delay: 0s, 0s, var(--ms-motion-exit);
+}
+details::details-content {
+  opacity: 0;
+  transition:
+    opacity var(--ms-motion-exit) var(--ms-motion-ease),
+    content-visibility var(--ms-motion-exit) allow-discrete;
+}
+details[open]::details-content {
+  opacity: 1;
+  transition-duration: var(--ms-motion-enter);
+}
+details:not([open])::details-content {
+  interactivity: inert;
+  pointer-events: none;
+}
+.overlay-content {
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+.mobile-navigation {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ms-motion-enter: 0ms;
+    --ms-motion-exit: 0ms;
+  }
+  .tree-children {
+    transition-delay: 0s;
+  }
+}
+
+@supports (interpolate-size: allow-keywords) {
+  details::details-content {
+    interpolate-size: allow-keywords;
+    block-size: 0;
+    overflow: clip;
+    transition:
+      opacity var(--ms-motion-exit) var(--ms-motion-ease),
+      block-size var(--ms-motion-exit) var(--ms-motion-ease),
+      content-visibility var(--ms-motion-exit) allow-discrete;
+  }
+  details[open]::details-content {
+    block-size: auto;
+    transition-duration: var(--ms-motion-enter);
+  }
+}
+
+@media (max-width: 767px) {
+  button.icon-button {
+    width: 44px;
+    height: 44px;
+  }
+}
+@media (max-width: 359px) {
+  .portal-header-controls {
+    padding-inline: 8px;
+    gap: 4px;
+  }
+  .portal-header-controls .brand-logo {
+    width: 76px;
+  }
+}

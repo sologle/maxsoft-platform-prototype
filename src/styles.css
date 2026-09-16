@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./motion.css";
 
 :root {
   color: #1a1f26;
@@ -104,112 +105,6 @@ svg {
   font-family: "Funnel Sans", Inter, system-ui, sans-serif;
 }
 
-@keyframes toolbar-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes modal-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes modal-out {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(10px) scale(0.98);
-  }
-}
-
-@keyframes drawer-in {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes drawer-out {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-}
-
-@keyframes mobile-nav-in {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes mobile-nav-out {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-100%);
-  }
-}
-
-@keyframes bottom-sheet-in {
-  from {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes bottom-sheet-out {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-}
-
-@keyframes popover-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 @keyframes page-in {
   from {
     opacity: 0;
@@ -218,17 +113,6 @@ svg {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateX(-12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
   }
 }
 
@@ -324,26 +208,6 @@ svg {
 .tree-item-active {
   background: var(--ms-primary-soft);
   color: var(--ms-primary);
-}
-
-.tree-children {
-  grid-template-rows: 1fr;
-  opacity: 1;
-  visibility: visible;
-  transition:
-    grid-template-rows 220ms ease,
-    opacity 180ms ease,
-    visibility 0s linear 0s;
-}
-
-.tree-children[data-open="false"] {
-  grid-template-rows: 0fr;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    grid-template-rows 220ms ease,
-    opacity 150ms ease,
-    visibility 0s linear 220ms;
 }
 
 .tree-branch {
@@ -489,45 +353,6 @@ html[data-theme="dark"] .search-highlight {
   color: var(--ms-article-lead);
   font-size: 1.12rem;
   line-height: 1.75;
-}
-
-[data-state="closed"][aria-hidden="true"],
-div[data-state="closed"][aria-hidden="true"] {
-  opacity: 0;
-}
-
-.mobile-navigation[data-state="open"] {
-  animation: mobile-nav-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.mobile-navigation[data-state="closed"] {
-  animation: mobile-nav-out 200ms ease-in both;
-}
-
-.responsive-overlay-panel[data-state="open"] {
-  animation: bottom-sheet-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.responsive-overlay-panel[data-state="closed"] {
-  animation: bottom-sheet-out 200ms ease-in both;
-}
-
-@media (min-width: 48rem) {
-  .responsive-overlay-panel[data-desktop="drawer"][data-state="open"] {
-    animation: drawer-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-
-  .responsive-overlay-panel[data-desktop="drawer"][data-state="closed"] {
-    animation: drawer-out 200ms ease-in both;
-  }
-
-  .responsive-overlay-panel[data-desktop="modal"][data-state="open"] {
-    animation: modal-in 190ms ease-out both;
-  }
-
-  .responsive-overlay-panel[data-desktop="modal"][data-state="closed"] {
-    animation: modal-out 170ms ease-in both;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,3 +1,4 @@
+import { practiceContent } from "./practice/content";
 import {
   excerptSections,
   licensingArticleId,
@@ -98,6 +99,7 @@ export const legacyArticleSections: Record<
 };
 
 export const getArticleContent = (id: string) => {
+  if (practiceContent[id]) return practiceContent[id];
   if (id === licensingArticleId) return licensingSections;
   if (excerptSections[id])
     return licensingSections.filter((s) => excerptSections[id].includes(s.id));

@@ -104,21 +104,23 @@ export const getArticleTags = (article: ArticleSummary) =>
   readPrototypeValue<Record<string, string[]>>(prototypeStorageKeys.articleTags, {})[article.id] ??
   article.tags;
 
-export const getArticleSections = (article: ArticleSummary) =>
-  Array.from(
+export const getArticleSections = (article: ArticleSummary) => {
+  // Catalogue upgrades must finish before reading their persisted placements.
+  const paths = new Set(flattenTree(getKnowledgeTree()).map((node) => node.path));
+  const sections =
+    readPrototypeValue<Record<string, string[]>>(prototypeStorageKeys.articleSections, {})[
+      article.id
+    ] ?? [article.section];
+  return Array.from(
     new Set(
-      (
-        readPrototypeValue<Record<string, string[]>>(prototypeStorageKeys.articleSections, {})[
-          article.id
-        ] ?? [article.section]
-      ).map((section) =>
-        section.includes(" / ") ||
-        flattenTree(getKnowledgeTree()).some((node) => node.path === section)
+      sections.map((section) =>
+        section.includes(" / ") || paths.has(section)
           ? section
           : `${article.section.split(" / ")[0]} / ${section}`,
       ),
     ),
   );
+};
 
 export const writeArticleSettings = (
   article: ArticleSummary,

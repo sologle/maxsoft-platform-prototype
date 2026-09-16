@@ -1,3 +1,4 @@
+import { openReadingTools, jumpToAttachments } from "./reading-helpers";
 import { test, expect } from "@playwright/test";
 import { fixtureTest } from "./fixtures/vite-fixture";
 const title = "Технические данные о системе лицензирования продуктов";
@@ -58,9 +59,9 @@ test("поиск по скрытой панели и отдельный резу
 test("виды, теги и сортировки в библиотеке и поиске", async ({ page }) => {
   await page.goto("./?page=knowledge&role=client-employee");
   const row = page.locator('[data-material-id="licensing-system"]');
-  await row.getByRole("button", { name: "Ещё тегов: 2" }).click();
+  await row.getByRole("button", { name: "Ещё 2" }).click();
   await expect(row).toContainText("Стандарты");
-  await row.getByRole("button", { name: "Свернуть теги" }).press("Enter");
+  await row.getByRole("button", { name: "Свернуть" }).press("Enter");
   await page
     .getByRole("button", {
       name: "Открыть варианты. Выбрано: Все",
@@ -96,7 +97,7 @@ test("виды, теги и сортировки в библиотеке и по
     .click();
   await page.getByRole("option", { name: "По названию", exact: true }).click();
   const labels = await page
-    .locator("[data-material-id] > div > div > button")
+    .locator("[data-material-id] .material-title button")
     .allTextContents();
   expect(labels.length).toBeGreaterThan(3);
 });
@@ -117,7 +118,7 @@ test("старый профиль сохраняет настройки, а гл
   });
   await page.reload();
   await page
-    .getByRole("button", { name: "Лицензирование nanoCAD Материалов: 9" })
+    .getByRole("button", { name: "Лицензирование nanoCAD Статей и видео: 9" })
     .click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Лицензирование nanoCAD",
@@ -184,46 +185,50 @@ test("файл с одной и нулём доступных связей не 
     page.getByRole("region", { name: "Связанные статьи" }),
   ).toHaveCount(0);
 });
-fixtureTest(
-  "семь длинных вложений: компактные строки и отдельное скачивание",
-  async ({ page, fixtureUrl }) => {
-    const extraFiles = Array.from({ length: 6 }, (_, n) => ({
-      name: `${n}-очень-длинное-название-вложения-для-проверки-переноса-строки-и-доступности-действия.dwg`,
-      type: "DWG",
-      size: "1 МБ",
-      relatedArticleIds: ["licensing-system"],
-      updated: "15.09.2026",
-      updatedAt: "2026-09-15T13:00:00+03:00",
-    }));
-    await page.route("**/src/data/platform-data.ts*", async (route) => {
-      const response = await route.fetch();
-      await route.fulfill({
-        response,
-        body: `${await response.text()}\nfiles.push(...${JSON.stringify(extraFiles)});`,
-      });
+fixtureTest("семь длинных вложений: компактные строки и отдельное скачивание", async ({
+  page,
+  fixtureUrl,
+}) => {
+  const extraFiles = Array.from({ length: 6 }, (_, n) => ({
+    name: `${n}-очень-длинное-название-вложения-для-проверки-переноса-строки-и-доступности-действия.dwg`,
+    type: "DWG",
+    size: "1 МБ",
+    relatedArticleIds: ["licensing-system"],
+    updated: "15.09.2026",
+    updatedAt: "2026-09-15T13:00:00+03:00",
+  }));
+  await page.route("**/src/data/platform-data.ts*", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      body: `${await response.text()}\nfiles.push(...${JSON.stringify(extraFiles)});`,
     });
-    await page.goto(`${fixtureUrl}?page=home&role=client-employee`);
-    await page
-      .getByRole("region", { name: "Новое и обновлённое" })
-      .getByRole("button", { name: /Технические данные/ })
-      .click();
-    await page.getByRole("button", { name: "Вложения · 7" }).click();
-    const attachments = page.locator(
-      'section[aria-labelledby="attachments-title"]',
-    );
-    await expect(
-      attachments.getByRole("button", { name: /^Скачать / }),
-    ).toHaveCount(7);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth + 1,
-      ),
-    ).toBe(true);
-    const download = page.waitForEvent("download");
-    await attachments.getByRole("button", { name: /^Скачать 0-/ }).click();
-    expect((await download).suggestedFilename()).toMatch(/\.dwg\.demo\.txt$/);
-  },
-);
+  });
+  await page.goto(`${fixtureUrl}?page=home&role=client-employee`);
+  await page
+    .getByRole("region", { name: "Новое и обновлённое" })
+    .getByRole("button", { name: "Ещё 2" })
+    .click();
+  await page
+    .getByRole("region", { name: "Новое и обновлённое" })
+    .getByRole("button", { name: /Технические данные/ })
+    .click();
+  await jumpToAttachments(page, 7);
+  const attachments = page.locator(
+    'section[aria-labelledby="attachments-title"]',
+  );
+  await expect(
+    attachments.getByRole("button", { name: /^Скачать / }),
+  ).toHaveCount(7);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth + 1,
+    ),
+  ).toBe(true);
+  const download = page.waitForEvent("download");
+  await attachments.getByRole("button", { name: /^Скачать 0-/ }).click();
+  expect((await download).suggestedFilename()).toMatch(/\.dwg\.demo\.txt$/);
+});
 
 test("переход в соседнюю статью из полноэкранного дерева освобождает прокрутку", async ({
   page,
@@ -232,12 +237,15 @@ test("переход в соседнюю статью из полноэкран�
     "./?page=article&role=client-employee&resource=licensing-system",
   );
   await page.evaluate(() => window.scrollTo(0, 3500));
+  await openReadingTools(page);
   await page
     .getByRole("button", { name: "На весь экран", exact: true })
     .click();
-  await page.getByRole("button", { name: "Дерево БЗ", exact: true }).click();
-  await page
-    .getByRole("dialog")
+  const tools = await openReadingTools(page);
+  await tools
+    .getByRole("button", { name: "Лицензирование nanoCAD", exact: true })
+    .click();
+  await tools
     .getByRole("button", {
       name: "Файл лицензии: расположение в nanoLM и FlexLM",
       exact: true,

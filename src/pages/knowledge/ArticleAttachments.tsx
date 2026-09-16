@@ -18,7 +18,7 @@ export const ArticleAttachments = ({
   if (!attachments.length) return null;
   return (
     <section
-      className="mt-10 border-t border-[var(--ms-border)] pt-5"
+      className="reading-attachments"
       aria-labelledby="attachments-title"
     >
       <h2 id="attachments-title" tabIndex={-1}>

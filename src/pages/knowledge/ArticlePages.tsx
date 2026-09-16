@@ -1,7 +1,10 @@
 import { ArticleBlocks } from "./ArticleBlocks";
 import { getArticleContent } from "../../data/article-content";
 import { usePersonalArticle } from "../../hooks/usePersonalArticle";
-import { licensingArticleId } from "../../data/licensing/catalog";
+import {
+  excerptSections,
+  licensingArticleId,
+} from "../../data/licensing/catalog";
 import { legacyArticleSections as articleSections } from "../../data/article-content";
 import { demoResources } from "../../app/demo-resources";
 import {
@@ -14,20 +17,16 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Navigate, UserRole } from "../../app/types";
-import { Badge, Breadcrumbs, Button } from "../../components/ui";
+import { Badge, Button } from "../../components/ui";
 import {
   articles,
-  files,
   canRoleAccessArticle,
   isArticlePublished,
   type ArticleSummary,
 } from "../../data/platform-data";
-import {
-  getArticleSections,
-  getArticleTags,
-} from "../../data/prototype-entities";
+import { getArticleTags } from "../../data/prototype-entities";
 import { ReadingLayout } from "./ReadingLayout";
-import { ArticleAttachments } from "./ArticleAttachments";
+import { ReadingBreadcrumbs } from "./ReadingBreadcrumbs";
 interface ArticlePageProps {
   onDownload: () => void;
   onNavigate: Navigate;
@@ -60,20 +59,10 @@ const ArticleHeader = ({
     onNotice,
   );
   const canEdit = role === "portal-admin" || role === "support-engineer";
-  const primarySection = getArticleSections(article)[0];
-  if (!primarySection)
-    throw new Error(
-      `KB_ARTICLE_SECTION_MISSING: у статьи ${article.id} не задан раздел`,
-    );
   return (
     <>
-      <Breadcrumbs
-        items={[
-          { label: "База знаний", onClick: () => onNavigate("knowledge") },
-          ...primarySection.split(" / ").map((label) => ({ label })),
-        ]}
-      />
-      <div className="flex flex-col gap-4 border-b border-[var(--ms-border)] pb-6 sm:flex-row sm:items-start sm:justify-between">
+      <ReadingBreadcrumbs article={article} onNavigate={onNavigate} />
+      <div className="reading-article-header flex flex-col gap-4 border-b border-[var(--ms-border)] pb-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <Badge tone={isArticlePublished(article) ? "green" : "amber"}>
@@ -141,25 +130,23 @@ export const ArticlePage = ({
       articleId={article.id}
       role={role}
       companyType={companyType}
-      sections={[
-        ...sections,
-        ...(files.some((f) => f.relatedArticleIds.includes(article.id))
-          ? [{ id: "attachments-title", title: "Вложения" }]
-          : []),
-      ]}
+      sections={sections}
+      header={
+        <ArticleHeader
+          article={article}
+          onNavigate={onNavigate}
+          role={role}
+          companyId={companyId}
+          companyType={companyType}
+          onNotice={onNotice}
+        />
+      }
     >
-      <ArticleHeader
-        article={article}
-        onNavigate={onNavigate}
-        role={role}
-        companyId={companyId}
-        companyType={companyType}
-        onNotice={onNotice}
-      />
       <div className="article-content mt-8">
-        <p className="article-lead">{article.description}</p>
-        {content.length &&
-        article.id !== licensingArticleId &&
+        {article.id !== licensingArticleId && (
+          <p className="article-lead">{article.description}</p>
+        )}
+        {excerptSections[article.id] &&
         canRoleAccessArticle(
           articles.find((a) => a.id === licensingArticleId)!,
           role,
@@ -194,7 +181,6 @@ export const ArticlePage = ({
             </section>
           ))
         )}
-        <ArticleAttachments articleId={article.id} onNavigate={onNavigate} />
       </div>
     </ReadingLayout>
   );
@@ -240,20 +226,19 @@ export const VideoArticlePage = ({
       articleId={article.id}
       role={role}
       companyType={companyType}
-      sections={[
-        { id: "video-details", title: "Что показано в видео" },
-        { id: "attachments-title", title: "Вложения" },
-      ]}
+      sections={[{ id: "video-details", title: "Что показано в видео" }]}
+      header={
+        <ArticleHeader
+          article={article}
+          onNavigate={onNavigate}
+          role={role}
+          companyId={companyId}
+          companyType={companyType}
+          onNotice={onNotice}
+        />
+      }
     >
-      <ArticleHeader
-        article={article}
-        onNavigate={onNavigate}
-        role={role}
-        companyId={companyId}
-        companyType={companyType}
-        onNotice={onNotice}
-      />
-      <div className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_330px]">
+      <div className="mt-8 grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
         <section className="min-w-0">
           <div className="relative aspect-video min-w-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#153550] via-[#0e2438] to-[#081827] shadow-[0_18px_48px_rgba(9,25,40,.28)]">
             <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_60%_35%,rgba(61,155,219,.32),transparent_38%)]">
@@ -316,7 +301,9 @@ export const VideoArticlePage = ({
           </div>
           <div className="article-content mt-7">
             <p className="article-lead">{article.description}</p>
-            <h2 id="video-details">Что показано в видео</h2>
+            <h2 id="video-details" tabIndex={-1}>
+              Что показано в видео
+            </h2>
             <p className="text-sm text-[var(--ms-muted)]">
               Демонстрация плеера и таймкодов; видеозапись не подключена.
             </p>
@@ -360,9 +347,6 @@ export const VideoArticlePage = ({
             })}
           </div>
         </aside>
-      </div>
-      <div className="article-content">
-        <ArticleAttachments articleId={article.id} onNavigate={onNavigate} />
       </div>
     </ReadingLayout>
   );

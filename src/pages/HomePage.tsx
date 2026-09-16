@@ -7,12 +7,24 @@ import {
   articles,
   canRoleAccessArticle,
   isArticlePublished,
-  type ArticleSummary,
 } from "../data/platform-data";
 import { getArticleSections } from "../data/prototype-entities";
 import { getKnowledgeTree, sectionArticleIds } from "../data/knowledge-tree";
 import { personalKey, readPersonalArticles } from "../data/personal-articles";
 import { licensingArticleId } from "../data/licensing/catalog";
+import { queryMaterials } from "../data/material-query";
+import {
+  ArrowRight,
+  BookOpen,
+  Bookmark,
+  Clock,
+  FolderOpen,
+  Sparkles,
+  Star,
+} from "lucide-react";
+import { ClientSupport } from "./home/ClientSupport";
+import { HomeCollection } from "./home/HomeCollection";
+import "./home/home.css";
 interface HomePageProps {
   companyId?: string;
   companyType?: string;
@@ -42,112 +54,117 @@ export const HomePage = ({
         .length,
     }))
     .filter((n) => n.count);
-  const block = (
-    title: string,
-    items: ArticleSummary[],
-    empty: string,
-    note?: string,
-  ) => (
-    <section
-      aria-label={title}
-      className="min-w-0 rounded-2xl border border-[var(--ms-border)] bg-white p-5"
-    >
-      <h2 className="font-heading text-xl font-bold">
-        {title}{" "}
-        <span className="text-sm text-[var(--ms-muted)]">· {items.length}</span>
-      </h2>
-      {note ? (
-        <p className="mt-2 text-xs text-[var(--ms-muted)]">{note}</p>
-      ) : null}
-      {!items.length ? (
-        <p className="mt-4 text-sm text-[var(--ms-muted)]">{empty}</p>
-      ) : (
-        <ul className="mt-3 max-h-96 divide-y divide-[var(--ms-border)] overflow-auto">
-          {items.map((a) => (
-            <li key={a.id}>
+  const materialCount = queryMaterials({ role, companyType }).length;
+  const articleBlocks = [
+    {
+      title: "Новое и обновлённое",
+      icon: Sparkles,
+      accent: "bg-emerald-50 text-emerald-700",
+      items: [...visible]
+        .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+        .slice(0, 5),
+      empty: "Пока нет доступных материалов.",
+      note: "Даты отражают демонстрационный каталог; даты источников указаны в статьях.",
+    },
+    {
+      title: "Популярное",
+      icon: Star,
+      accent: "bg-amber-50 text-amber-700",
+      items: [licensingArticleId, "licensing-kinds", "network-license"].flatMap(
+        (id) => visible.filter((a) => a.id === id),
+      ),
+      empty: "Пока нет доступных материалов.",
+      note: "Демонстрационная подборка для знакомства с материалами, без статистики просмотров.",
+    },
+    {
+      title: "Сохранённое",
+      icon: Bookmark,
+      accent: "bg-violet-50 text-violet-700",
+      items: lists.saved,
+      empty: "Нажмите «Сохранить» в статье — она появится здесь.",
+    },
+    {
+      title: "Недавно прочитанное",
+      icon: Clock,
+      accent: "bg-rose-50 text-rose-700",
+      items: lists.recent,
+      empty: "Откройте материал — он появится здесь.",
+    },
+  ];
+  return (
+    <div className="home-page">
+      <PageHeading
+        eyebrow="Личный кабинет"
+        title="Рабочее пространство"
+        subtitle={`Вы вошли как ${clientRoleLabel(profile.label).toLowerCase()}.`}
+      />
+      <div className="home-summary">
+        <button
+          type="button"
+          className="home-knowledge-summary"
+          onClick={() => onNavigate("knowledge")}
+        >
+          <BookOpen size={24} aria-hidden="true" />
+          <span>
+            <span className="home-total">{materialCount}</span>
+            <span className="home-total-label">Материалов в базе знаний</span>
+          </span>
+          <ArrowRight size={22} aria-hidden="true" />
+        </button>
+        <ClientSupport role={role} companyId={companyId} />
+      </div>
+      <SupportReminder role={role} onNavigate={onNavigate} />
+      <HomeCollection
+        title="Разделы по продуктам"
+        icon={FolderOpen}
+        accent="bg-sky-50 text-sky-700"
+        items={products}
+        itemKey={(p) => p.id}
+        grid
+        empty="Пока нет доступных разделов."
+        action={
+          <button
+            type="button"
+            className="home-all"
+            onClick={() => onNavigate("knowledge")}
+          >
+            Все материалы <ArrowRight size={16} aria-hidden="true" />
+          </button>
+        }
+        renderItem={(p) => (
+          <button
+            type="button"
+            className="home-product"
+            onClick={() => onNavigate("knowledge", p.id)}
+          >
+            {p.name}
+            <span>Статей и видео: {p.count}</span>
+          </button>
+        )}
+      />
+      <div className="home-collections">
+        {articleBlocks.map((block) => (
+          <HomeCollection
+            key={`${role}:${companyId}:${block.title}`}
+            {...block}
+            itemKey={(a) => a.id}
+            renderItem={(a) => (
               <button
                 type="button"
-                className="w-full py-3 text-left hover:text-[var(--ms-primary)]"
+                className="home-article"
                 onClick={() =>
                   onNavigate(a.kind === "video" ? "video" : "article", a.id)
                 }
               >
-                <span className="block font-semibold">{a.title}</span>
-                <span className="mt-1 block text-xs text-[var(--ms-muted)]">
+                <span>{a.title}</span>
+                <span className="home-article-meta">
                   {getArticleSections(a).join(" · ")} · {a.updated}
                 </span>
               </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-  return (
-    <>
-      <PageHeading
-        eyebrow="Личный кабинет"
-        title="Рабочее пространство"
-        subtitle={`Вы вошли как ${clientRoleLabel(profile.label).toLowerCase()}. Доступно опубликованных материалов: ${visible.length}.`}
-      />
-      <SupportReminder role={role} onNavigate={onNavigate} />
-      <section aria-label="Разделы по продуктам" className="mb-5">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-heading text-xl font-bold">
-            Разделы по продуктам
-          </h2>
-          <button
-            type="button"
-            className="text-sm font-semibold text-[var(--ms-primary)]"
-            onClick={() => onNavigate("knowledge")}
-          >
-            Все статьи
-          </button>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {products.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className="min-w-0 rounded-xl border border-[var(--ms-border)] bg-white p-4 text-left font-bold hover:border-[var(--ms-primary)]"
-              onClick={() => onNavigate("knowledge", p.id)}
-            >
-              {p.name}
-              <span className="mt-2 block text-sm font-normal text-[var(--ms-muted)]">
-                Материалов: {p.count}
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
-      <div className="grid min-w-0 gap-5 xl:grid-cols-2">
-        {block(
-          "Новое и обновлённое",
-          [...visible]
-            .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
-            .slice(0, 5),
-          "Пока нет доступных материалов.",
-          "Даты отражают демонстрационный каталог; даты источников указаны в статьях.",
-        )}
-        {block(
-          "Популярное",
-          [licensingArticleId, "licensing-kinds", "network-license"].flatMap(
-            (id) => visible.filter((a) => a.id === id),
-          ),
-          "Пока нет доступных материалов.",
-          "Демонстрационная подборка для знакомства с материалами, без статистики просмотров.",
-        )}
-        {block(
-          "Сохранённое",
-          lists.saved,
-          "Нажмите «Сохранить» в статье — она появится здесь.",
-        )}
-        {block(
-          "Недавно прочитанное",
-          lists.recent,
-          "Откройте материал — он появится здесь.",
-        )}
+            )}
+          />
+        ))}
       </div>
-    </>
+    </div>
   );
 };

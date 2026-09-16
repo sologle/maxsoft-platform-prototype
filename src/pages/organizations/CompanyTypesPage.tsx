@@ -284,7 +284,7 @@ export const CompanyTypesPage = ({ onNavigate, onNotice }: OrganizationProps) =>
               </div>
             ) : null}
             <Field
-              autoFocus
+              data-autofocus
               error={formError}
               label="Название типа"
               onChange={(event) => setName(event.target.value)}

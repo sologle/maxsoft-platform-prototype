@@ -1,3 +1,4 @@
+import { openReadingTools, closeReadingTools } from "./reading-helpers";
 import { test, expect } from "@playwright/test";
 import { companies } from "../src/data/platform-data";
 
@@ -70,6 +71,7 @@ test("видеостатья использует масштаб и выход �
   await page.goto(
     "./?page=video&role=client-employee&resource=cad-integration",
   );
+  await closeReadingTools(page);
   await page
     .getByRole("button", { name: "Развернуть содержание статьи" })
     .click();
@@ -77,6 +79,7 @@ test("видеостатья использует масштаб и выход �
     .locator("article h1")
     .evaluate((n) => parseFloat(getComputedStyle(n).fontSize));
   for (const mode of ["standard", "fullscreen"]) {
+    await openReadingTools(page);
     if (mode === "fullscreen")
       await page
         .getByRole("button", { name: "На весь экран", exact: true })
@@ -98,10 +101,12 @@ test("видеостатья использует масштаб и выход �
       animations: "disabled",
     });
   }
+  await closeReadingTools(page);
   await page
     .getByRole("button", { name: "Развернуть содержание статьи" })
     .click();
   await page.getByRole("button", { name: "Закрыть содержание" }).click();
+  await openReadingTools(page);
   await page
     .getByRole("button", { name: "Выйти из полноэкранного режима" })
     .click();

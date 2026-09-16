@@ -1,3 +1,4 @@
+import { useOverlayViewport } from "../hooks/useOverlayViewport";
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 
 interface ModalSurfaceProps {
@@ -5,6 +6,7 @@ interface ModalSurfaceProps {
   className: string;
   labelledBy: string;
   onClose: () => void;
+  open?: boolean;
   surfaceRole?: "dialog" | "presentation";
 }
 
@@ -23,23 +25,39 @@ export const ModalSurface = ({
   labelledBy,
   onClose,
   surfaceRole = "dialog",
+  open = true,
 }: ModalSurfaceProps) => {
   const dialogRef = useRef<HTMLDivElement>(null);
+  useOverlayViewport(dialogRef);
 
   const focusableElements = () =>
-    Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) ?? []).filter(
-      (node) => node.getAttribute("aria-hidden") !== "true",
+    Array.from(
+      dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) ?? [],
+    ).filter(
+      (node) =>
+        !node.closest('[inert], [aria-hidden="true"]') &&
+        node.getClientRects().length > 0,
     );
 
   useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!open) return;
+    const previousFocus =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     const appRoot = document.getElementById("root");
     const rootWasInert = appRoot?.hasAttribute("inert") ?? false;
-    const previousAriaHidden = appRoot ? appRoot.getAttribute("aria-hidden") : null;
+    const previousAriaHidden = appRoot
+      ? appRoot.getAttribute("aria-hidden")
+      : null;
     appRoot?.setAttribute("inert", "");
     appRoot?.setAttribute("aria-hidden", "true");
     const timeout = window.setTimeout(() => {
-      (focusableElements()[0] ?? dialogRef.current)?.focus();
+      (
+        dialogRef.current?.querySelector<HTMLElement>("[data-autofocus]") ??
+        focusableElements()[0] ??
+        dialogRef.current
+      )?.focus();
     }, 0);
     return () => {
       window.clearTimeout(timeout);
@@ -48,9 +66,10 @@ export const ModalSurface = ({
       else if (appRoot) appRoot.setAttribute("aria-hidden", previousAriaHidden);
       if (previousFocus?.isConnected) previousFocus.focus();
     };
-  }, []);
+  }, [open]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!open) return;
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
@@ -59,11 +78,16 @@ export const ModalSurface = ({
     }
     if (event.key !== "Tab") return;
     const focusable = focusableElements();
-    const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+    const currentIndex = focusable.indexOf(
+      document.activeElement as HTMLElement,
+    );
     const nextIndex = event.shiftKey ? currentIndex - 1 : currentIndex + 1;
     if (currentIndex === -1 || nextIndex < 0 || nextIndex >= focusable.length) {
       event.preventDefault();
-      focusable[event.shiftKey ? focusable.length - 1 : 0]?.focus();
+      (
+        focusable[event.shiftKey ? focusable.length - 1 : 0] ??
+        dialogRef.current
+      )?.focus();
     }
   };
 
@@ -71,7 +95,10 @@ export const ModalSurface = ({
     <div
       aria-labelledby={surfaceRole === "dialog" ? labelledBy : undefined}
       aria-modal={surfaceRole === "dialog" ? "true" : undefined}
-      className={className}
+      className={`modal-surface ${className}`}
+      inert={!open || undefined}
+      aria-hidden={!open || undefined}
+      data-state={open ? "open" : "closed"}
       onKeyDown={handleKeyDown}
       onMouseDown={(event) => {
         if (event.currentTarget === event.target) onClose();

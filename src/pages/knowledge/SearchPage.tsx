@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
+import { SearchSuggestions } from "./SearchSuggestions";
 import { Filter, Search, X } from "lucide-react";
 import type { Navigate, UserRole } from "../../app/types";
 import { usePageState } from "../../hooks/usePageState";
@@ -37,10 +38,16 @@ export const SearchPage = ({
   const [sort, setSort] = usePageState("sort", "updated");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [focused, setFocused] = useState(false);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const suggestionsId = useId();
   const ids = visibleArticleIds({ role, companyType });
   const names = new Set(
     articles.filter((a) => ids.includes(a.id)).flatMap(getArticleTags),
   );
+  const suggestions = [...names].filter((name) =>
+    name.toLowerCase().includes(draft.toLowerCase()),
+  );
+  const suggestionsOpen = focused && Boolean(draft) && suggestions.length > 0;
   const groups = getTagGroups()
     .map((g) => ({ ...g, tags: g.tags.filter((t) => names.has(t.name)) }))
     .filter((g) => g.tags.length);
@@ -101,6 +108,16 @@ export const SearchPage = ({
       />
       <form
         className="relative mb-5"
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || !suggestionsOpen) return;
+          event.preventDefault();
+          event.stopPropagation();
+          searchInput.current?.focus({ preventScroll: true });
+          setFocused(false);
+        }}
         onSubmit={(e) => {
           e.preventDefault();
           setQuery(draft);
@@ -109,11 +126,16 @@ export const SearchPage = ({
       >
         <Search className="pointer-events-none absolute left-3 top-4 h-5 w-5 text-slate-400" />
         <input
+          ref={searchInput}
           aria-label="Поиск по базе знаний"
+          aria-controls={suggestionsId}
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setFocused(true);
+          }}
           onFocus={() => setFocused(true)}
-          onBlur={() => setTimeout(() => setFocused(false), 120)}
+          onClick={() => setFocused(true)}
           placeholder="Название, термин или фраза"
           className="h-12 w-full min-w-0 rounded-xl border border-[var(--ms-border)] bg-white pl-10 pr-32 text-sm"
         />
@@ -136,27 +158,19 @@ export const SearchPage = ({
         >
           Найти
         </button>
-        {focused && draft ? (
-          <div className="absolute inset-x-0 top-full z-30 rounded-xl bg-white shadow-lg">
-            {[...names]
-              .filter((n) => n.toLowerCase().includes(draft.toLowerCase()))
-              .map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className="block w-full p-3 text-left"
-                  onClick={() => {
-                    if (!tags.includes(n)) setTags([...tags, n]);
-                    setDraft("");
-                    setQuery("");
-                    setFocused(false);
-                  }}
-                >
-                  {n}
-                </button>
-              ))}
-          </div>
-        ) : null}
+        <SearchSuggestions
+          id={suggestionsId}
+          anchor={searchInput}
+          open={suggestionsOpen}
+          suggestions={suggestions}
+          onSelect={(name) => {
+            if (!tags.includes(name)) setTags([...tags, name]);
+            setDraft("");
+            setQuery("");
+            searchInput.current?.focus({ preventScroll: true });
+            setFocused(false);
+          }}
+        />
       </form>
       <div className="grid min-w-0 gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden self-start rounded-xl border border-[var(--ms-border)] bg-white p-4 lg:block">

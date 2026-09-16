@@ -1,3 +1,4 @@
+import { MotionMessage } from "../../components/MotionMessage";
 import type { Navigate } from "../../app/types";
 import { goBack } from "../../components/BackButton";
 import {
@@ -327,7 +328,7 @@ export const StructurePage = ({
         >
           {dialog !== "move" ? (
             <Field
-              autoFocus
+              data-autofocus
               label="Название раздела"
               onChange={(event) => setName(event.target.value)}
               placeholder="Например, Первые шаги"
@@ -359,11 +360,7 @@ export const StructurePage = ({
                 ))}
             </SelectField>
           ) : null}
-          {formError ? (
-            <p className="mt-4 text-sm text-red-600" role="alert">
-              {formError}
-            </p>
-          ) : null}
+          <MotionMessage message={formError} className="block mt-4 text-sm text-red-600" role="alert" />
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button onClick={() => setDialog(null)} tone="ghost">
               Отмена

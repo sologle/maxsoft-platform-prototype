@@ -9,6 +9,7 @@ vi.mock("./components/auth-backgrounds/ReactiveCanvas", () => ({
 
 describe("адаптивная оболочка платформы", () => {
   beforeEach(() => {
+    vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
     // jsdom has no layout observer; header geometry is covered in Playwright.
     vi.stubGlobal(
       "ResizeObserver",

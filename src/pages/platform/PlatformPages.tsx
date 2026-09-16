@@ -1,3 +1,4 @@
+import { MotionMessage } from "../../components/MotionMessage";
 import { goBack } from "../../components/BackButton";
 import {
   Activity,
@@ -157,27 +158,35 @@ export const IntegrationsPage = ({ onNotice, onNavigate }: PlatformProps) => {
     }, 1200);
     return () => window.clearTimeout(timeout);
   }, [bitrixUrl, checking, mailHost]);
-  const status = (kind: "mail" | "bitrix") =>
-    checking === kind ? (
-      <span className="flex items-center gap-2 text-xs font-semibold text-[var(--ms-primary)]">
-        <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
-        Проверяем…
-      </span>
-    ) : result?.kind === kind && result.status === "success" ? (
-      <span className="flex items-center gap-2 text-xs font-semibold text-emerald-700">
-        <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-        Подключение работает
-      </span>
-    ) : result?.kind === kind && result.status === "error" ? (
-      <span
-        className="flex items-center gap-2 text-xs font-semibold text-red-700"
-        role="alert"
-      >
-        <CircleAlert className="h-4 w-4" aria-hidden="true" />
-        Не удалось подключиться. Проверьте адрес. Код:
-        PLAT_INTEGRATION_CONNECTION_FAILED.
-      </span>
-    ) : null;
+  const status = (kind: "mail" | "bitrix") => {
+    const busy = checking === kind;
+    const completed = result?.kind === kind;
+    const failed = completed && result.status === "error";
+    return (
+      <MotionMessage
+        message={
+          busy
+            ? "Проверяем…"
+            : completed
+              ? failed
+                ? "Не удалось подключиться. Проверьте адрес. Код: PLAT_INTEGRATION_CONNECTION_FAILED."
+                : "Подключение работает"
+              : null
+        }
+        role={failed ? "alert" : "status"}
+        className={`flex items-center gap-2 text-xs font-semibold ${busy ? "text-[var(--ms-primary)]" : failed ? "text-red-700" : "text-emerald-700"}`}
+        icon={
+          busy ? (
+            <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : failed ? (
+            <CircleAlert className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+          )
+        }
+      />
+    );
+  };
   return (
     <>
       <PageHeading

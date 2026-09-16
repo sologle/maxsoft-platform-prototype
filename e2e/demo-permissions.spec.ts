@@ -1,7 +1,12 @@
+import { practiceArticles } from "../src/data/practice/catalog";
 import { licensingArticles } from "../src/data/licensing/catalog";
 import { test, expect } from "@playwright/test";
 const licensingAccess = Object.fromEntries(
   licensingArticles.map((article) => [article.id, "all"]),
+);
+
+const practiceAccess = Object.fromEntries(
+  practiceArticles.map((article) => [article.id, article.allowedCompanyTypes]),
 );
 
 test("PL-10: удаление типа сохраняет аудиторию и требует отдельной замены компаний", async ({
@@ -26,36 +31,48 @@ test("PL-10: удаление типа сохраняет аудиторию и 
   });
   await card.getByRole("button", { name: "Удалить", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Удалить тип компании" });
-  await expect(dialog.getByRole("button", { name: "Удалить тип", exact: true })).toBeDisabled();
+  await expect(
+    dialog.getByRole("button", { name: "Удалить тип", exact: true }),
+  ).toBeDisabled();
   await dialog.getByLabel("Новый тип для компаний").selectOption("Клиент");
-  await expect(dialog.getByRole("button", { name: "Удалить тип", exact: true })).toBeDisabled();
+  await expect(
+    dialog.getByRole("button", { name: "Удалить тип", exact: true }),
+  ).toBeDisabled();
   await dialog.getByLabel("Новая аудитория статей").selectOption("ВИП-клиент");
   await dialog.getByRole("button", { name: "Отмена", exact: true }).click();
   expect(
     await page.evaluate(
       () =>
-        JSON.parse(localStorage.getItem("maxsoft-prototype-article-access")!)["project-template"],
+        JSON.parse(localStorage.getItem("maxsoft-prototype-article-access")!)[
+          "project-template"
+        ],
     ),
   ).toEqual(["Интегратор"]);
   await card.getByRole("button", { name: "Удалить", exact: true }).click();
   await dialog.getByLabel("Новый тип для компаний").selectOption("Клиент");
   await dialog.getByLabel("Новая аудитория статей").selectOption("ВИП-клиент");
-  await dialog.getByRole("button", { name: "Удалить тип", exact: true }).click();
+  await dialog
+    .getByRole("button", { name: "Удалить тип", exact: true })
+    .click();
   const state = await page.evaluate(() => ({
-    access: JSON.parse(localStorage.getItem("maxsoft-prototype-article-access")!),
+    access: JSON.parse(
+      localStorage.getItem("maxsoft-prototype-article-access")!,
+    ),
     companies: JSON.parse(localStorage.getItem("maxsoft-prototype-companies")!),
   }));
   expect(state.access).toEqual({
     ...licensingAccess,
+    ...practiceAccess,
+    "practice-model": ["Клиент", "ВИП-клиент"],
     "network-license": "all",
     "cad-integration": ["Клиент"],
     "project-template": ["ВИП-клиент"],
     "server-migration": [],
     "update-2026": ["ВИП-клиент"],
   });
-  expect(state.companies.find((c: { id: string }) => c.id === "integrator-pro").type).toBe(
-    "Клиент",
-  );
+  expect(
+    state.companies.find((c: { id: string }) => c.id === "integrator-pro").type,
+  ).toBe("Клиент");
 });
 
 test("PL-12: конфликт последней аудитории останавливает всё поддерево и отмена ничего не меняет", async ({
@@ -70,15 +87,24 @@ test("PL-12: конфликт последней аудитории остана
   };
   await page.goto("./?page=access-settings&role=portal-admin");
   await page.evaluate(
-    (value) => localStorage.setItem("maxsoft-prototype-article-access", JSON.stringify(value)),
+    (value) =>
+      localStorage.setItem(
+        "maxsoft-prototype-article-access",
+        JSON.stringify(value),
+      ),
     initial,
   );
   await page.reload();
   await page.getByLabel("Компания для проверки").selectOption("integrator-pro");
-  await page.getByRole("button", { name: "Закрыть раздел", exact: true }).first().click();
+  await page
+    .getByRole("button", { name: "Закрыть раздел", exact: true })
+    .first()
+    .click();
   const dialog = page.getByRole("dialog", { name: "Изменить доступ" });
   await expect(dialog).toContainText("Настройка сетевой лицензии");
-  await expect(dialog.getByRole("button", { name: "Применить", exact: true })).toBeDisabled();
+  await expect(
+    dialog.getByRole("button", { name: "Применить", exact: true }),
+  ).toBeDisabled();
   expect(
     await page.evaluate(() =>
       JSON.parse(localStorage.getItem("maxsoft-prototype-article-access")!),
@@ -90,16 +116,22 @@ test("PL-12: конфликт последней аудитории остана
       name: "Доступ: Настройка интеграции с САПР-комплексом",
     }),
   ).toHaveAttribute("aria-checked", "true");
-  await page.getByRole("button", { name: "Закрыть раздел", exact: true }).first().click();
+  await page
+    .getByRole("button", { name: "Закрыть раздел", exact: true })
+    .first()
+    .click();
   await dialog.getByLabel("Другая аудитория").selectOption("Клиент");
   await dialog.getByRole("button", { name: "Применить", exact: true }).click();
-  await page.getByRole("button", { name: "Сохранить изменения", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Сохранить изменения", exact: true })
+    .click();
   expect(
     await page.evaluate(() =>
       JSON.parse(localStorage.getItem("maxsoft-prototype-article-access")!),
     ),
   ).toEqual({
     ...licensingAccess,
+    ...practiceAccess,
     ...initial,
     "network-license": ["Клиент"],
     "cad-integration": ["Клиент"],
@@ -107,32 +139,40 @@ test("PL-12: конфликт последней аудитории остана
   });
 });
 
-test("PL-06: PDF, DOCX, пересечение тегов, дерево и закрытые материалы", async ({ page }, info) => {
+test("PL-06: PDF, DOCX, пересечение тегов, дерево и закрытые материалы", async ({
+  page,
+}, info) => {
   await page.goto("./?page=search&role=client-employee");
   const input = page.getByRole("textbox", { name: "Поиск по базе знаний" });
   await input.fill("адрес сервера");
   await page.getByRole("button", { name: "Найти", exact: true }).click();
   await expect(
-    page.getByRole("button", {
-      name: "Просмотреть файл: инструкция_активации.pdf",
-    }),
+    page.locator(
+      '[data-material-id="инструкция_активации.pdf"] .material-kind',
+    ),
   ).toContainText("Совпадение в тексте PDF");
   await input.fill("журнал обновления");
   await page.getByRole("button", { name: "Найти", exact: true }).click();
   await expect(
-    page.getByRole("button", {
-      name: "Просмотреть файл: регламент_обновления.docx",
-    }),
+    page.locator(
+      '[data-material-id="регламент_обновления.docx"] .material-kind',
+    ),
   ).toContainText("Совпадение в тексте DOCX");
-  await page.getByRole("button", { name: "Очистить поиск", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Очистить поиск", exact: true })
+    .click();
   const mobile = info.project.name.includes("mobile");
-  if (mobile) await page.getByRole("button", { name: "Фильтры", exact: true }).click();
-  await page.getByRole("button", { name: "Лицензирование", exact: true }).click();
+  if (mobile)
+    await page.getByRole("button", { name: "Фильтры", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Лицензирование", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "НАВИСА", exact: true })
     .and(page.locator("[aria-pressed]"))
     .click();
-  if (mobile) await page.getByRole("button", { name: "Показать результаты" }).click();
+  if (mobile)
+    await page.getByRole("button", { name: "Показать результаты" }).click();
   await expect(
     page.getByRole("heading", {
       name: "Настройка сетевой лицензии",
@@ -141,8 +181,11 @@ test("PL-06: PDF, DOCX, пересечение тегов, дерево и за�
   ).toBeVisible();
   if (mobile) await page.getByRole("button", { name: /^Фильтры/ }).click();
   await page.getByRole("button", { name: "Стандарты", exact: true }).click();
-  if (mobile) await page.getByRole("button", { name: "Показать результаты" }).click();
-  await expect(page.getByRole("heading", { name: "Ничего не найдено" })).toBeVisible();
+  if (mobile)
+    await page.getByRole("button", { name: "Показать результаты" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Ничего не найдено" }),
+  ).toBeVisible();
   for (const role of [
     "client-employee",
     "client-admin",
@@ -165,17 +208,27 @@ test("PL-06: PDF, DOCX, пересечение тегов, дерево и за�
 test("PL-00: административные экраны закрыты клиентам, инженер выбирает существующие теги", async ({
   page,
 }) => {
-  for (const role of ["client-employee", "client-admin", "manager", "support-engineer"]) {
+  for (const role of [
+    "client-employee",
+    "client-admin",
+    "manager",
+    "support-engineer",
+  ]) {
     for (const route of ["access-settings", "structure", "tags", "fields"]) {
       await page.goto(`./?page=${route}&role=${role}`);
-      await expect(page.getByRole("heading", { name: "Нет доступа к разделу" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Нет доступа к разделу" }),
+      ).toBeVisible();
     }
   }
-  await page.goto("./?page=editor&role=support-engineer&resource=network-license");
-  await page.getByRole("button", { name: "Настройки", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Новый тег", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Лицензирование", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true",
+  await page.goto(
+    "./?page=editor&role=support-engineer&resource=network-license",
   );
+  await page.getByRole("button", { name: "Настройки", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Новый тег", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Лицензирование", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
 });

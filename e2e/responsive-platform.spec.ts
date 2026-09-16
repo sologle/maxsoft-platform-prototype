@@ -54,8 +54,8 @@ test("мобильное меню выезжает поверх страницы
 
   const drawer = page.getByRole("dialog", { name: "Навигационное меню" });
   await expect(drawer).toBeVisible();
-  await expect(drawer).toHaveCSS("position", "fixed");
-  await expect(drawer).toHaveCSS("animation-name", "mobile-nav-in");
+  await expect(drawer).toHaveCSS("position", "absolute");
+  await expect(drawer).toHaveCSS("opacity", "1");
   await drawer.getByRole("link", { name: "База знаний" }).click();
   await expect(page).toHaveURL(/page=knowledge/);
   await expect(drawer).toBeHidden();
@@ -141,7 +141,7 @@ test("mobile bottom sheet остаётся внутри viewport", async ({ page
 
   const sheet = page.getByRole("dialog", { name: "Разделы базы знаний" });
   await expect(sheet).toBeVisible();
-  await expect(sheet).toHaveCSS("position", "fixed");
+  await expect(sheet).toHaveCSS("position", "absolute");
   await expect
     .poll(() =>
       sheet.evaluate(

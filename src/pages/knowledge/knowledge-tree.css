@@ -1,0 +1,32 @@
+.knowledge-tree-row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: start;
+  min-width: 0;
+}
+.knowledge-tree-row > .icon-button {
+  width: 32px;
+  margin-top: 2px;
+}
+.knowledge-tree-item.tree-item {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 2.5ch;
+  gap: 6px;
+  align-items: start;
+  padding: 10px 6px;
+}
+.knowledge-tree-item svg {
+  margin-top: 2px;
+}
+.knowledge-tree-count {
+  text-align: right;
+  white-space: nowrap;
+}
+@media (pointer: coarse) {
+  .knowledge-tree-row {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+  .knowledge-tree-row > .icon-button {
+    width: 44px;
+  }
+}

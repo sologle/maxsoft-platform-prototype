@@ -1,3 +1,4 @@
+import { practiceArticles } from "./practice/catalog";
 import {
   licensingArticles,
   licensingArticleId,
@@ -121,6 +122,7 @@ export const articles: ArticleSummary[] = [
     allowedCompanyTypes: ["ВИП-клиент"],
   },
   ...licensingArticles,
+  ...practiceArticles,
 ];
 
 export const companies: CompanyRecord[] = [

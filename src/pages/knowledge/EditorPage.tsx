@@ -1,3 +1,5 @@
+import { MotionRegion } from "../../components/MotionRegion";
+import { MotionMessage } from "../../components/MotionMessage";
 import { GroupedTagPicker, getTagGroups } from "../../components/GroupedTagPicker";
 import { flattenTree, getKnowledgeTree } from "../../data/knowledge-tree";
 import { goBack } from "../../components/BackButton";
@@ -128,12 +130,14 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
 
   return (
     <>
-      {importedDemo ? (
-        <p className="mb-4 rounded-xl bg-sky-50 p-4 text-sm text-sky-900">
-          Демонстрационный черновик. Настоящий импорт и сохранение файла не выполнены; существующие
-          статьи не изменяются.
-        </p>
-      ) : null}
+      <MotionMessage
+        message={
+          importedDemo
+            ? "Демонстрационный черновик. Настоящий импорт и сохранение файла не выполнены; существующие статьи не изменяются."
+            : null
+        }
+        className="mb-4 block rounded-xl bg-sky-50 p-4 text-sm text-sky-900"
+      />
       <div className="mx-auto max-w-[1280px]">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <Button
@@ -339,11 +343,8 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
                   </label>
                 ))}
             </div>
-            {!sections.length ? (
-              <p className="mt-3 text-sm font-semibold text-red-600" role="alert">
-                Выберите хотя бы один раздел. Код: KB_SECTION_REQUIRED.
-              </p>
-            ) : null}
+            <MotionMessage message={!sections.length ? "Выберите хотя бы один раздел. Код: KB_SECTION_REQUIRED." : null}
+              className="mt-3 block text-sm font-semibold text-red-600" role="alert" />
           </section>
           <section>
             <h3 className="mb-3 font-heading text-lg font-bold">Теги</h3>
@@ -379,33 +380,42 @@ export const EditorPage = ({ onNavigate, onNotice, resource }: EditorPageProps) 
               />
               <span>Только выбранные типы</span>
             </label>
-            {!allCompanies ? (
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {availableCompanyTypes.map((companyType) => (
-                  <label className="option-row" key={companyType.name}>
-                    <input
-                      checked={selectedCompanyTypes.includes(companyType.name)}
-                      onChange={() =>
-                        toggleItem(companyType.name, selectedCompanyTypes, setSelectedCompanyTypes)
-                      }
-                      type="checkbox"
-                    />
-                    {companyType.name}
-                  </label>
-                ))}
-              </div>
-            ) : null}
-            {!allCompanies && !selectedCompanyTypes.length ? (
-              <p className="mt-3 text-sm font-semibold text-red-600">
-                Выберите хотя бы один тип компании. Код: KB_ACCESS_TYPE_REQUIRED.
-              </p>
-            ) : null}
-            {published && !allCompanies ? (
-              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-700">
-                После сохранения исключённые типы компаний сразу потеряют доступ к статье и
-                вложениям.
-              </p>
-            ) : null}
+            <MotionRegion
+              open={!allCompanies}
+              role="region"
+              aria-label="Типы компаний с доступом"
+              className="mt-3 grid gap-2 sm:grid-cols-2"
+            >
+              {availableCompanyTypes.map((companyType) => (
+                <label className="option-row" key={companyType.name}>
+                  <input
+                    checked={selectedCompanyTypes.includes(companyType.name)}
+                    onChange={() =>
+                      toggleItem(companyType.name, selectedCompanyTypes, setSelectedCompanyTypes)
+                    }
+                    type="checkbox"
+                  />
+                  {companyType.name}
+                </label>
+              ))}
+            </MotionRegion>
+            <MotionMessage
+              message={
+                !allCompanies && !selectedCompanyTypes.length
+                  ? "Выберите хотя бы один тип компании. Код: KB_ACCESS_TYPE_REQUIRED."
+                  : null
+              }
+              className="mt-3 block text-sm font-semibold text-red-600"
+              role="alert"
+            />
+            <MotionMessage
+              message={
+                published && !allCompanies
+                  ? "После сохранения исключённые типы компаний сразу потеряют доступ к статье и вложениям."
+                  : null
+              }
+              className="mt-3 block rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-700"
+            />
             <div
               className="mt-3 rounded-xl border border-[var(--ms-border)] bg-slate-50 p-3 text-sm leading-6"
               data-testid="article-access-summary"

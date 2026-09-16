@@ -1,3 +1,8 @@
+import {
+  openReadingTools,
+  closeReadingTools,
+  jumpToAttachments,
+} from "./reading-helpers";
 import { test, expect } from "@playwright/test";
 
 test("репетиция короткого маршрута по пяти ролям без технических переходов", async ({
@@ -8,6 +13,16 @@ test("репетиция короткого маршрута по пяти ро�
   const started = Date.now();
   const button = (name: string) =>
     page.getByRole("button", { name, exact: true });
+  const attachments = async () => {
+    await jumpToAttachments(
+      page,
+      Number(
+        (await page.locator(".reading-file-count").innerText()).match(
+          /\d+/,
+        )![0],
+      ),
+    );
+  };
   const closeDialog = async () => {
     const dialog = page.getByRole("dialog");
     await dialog.evaluate(async (node) => {
@@ -65,19 +80,23 @@ test("репетиция короткого маршрута по пяти ро�
   await button("Вся база знаний").click();
   await button("Крупные карточки").click();
   await button("Открыть материал: Настройка сетевой лицензии").click();
-  await button("Развернуть содержание статьи").click();
+  await openReadingTools(page);
   for (let i = 0; i < 4; i++) await button("Увеличить размер текста").click();
+  await closeReadingTools(page);
   await button("Развернуть содержание статьи").click();
   await page
+    .locator(".reading-toc-panel")
     .getByRole("link", { name: "Перед началом работы", exact: true })
     .click();
-  if (await button("Развернуть содержание статьи").count())
-    await button("Развернуть содержание статьи").click();
+  await openReadingTools(page);
   await button("Сбросить размер текста до 100%").click();
   await button("На весь экран").click();
+  await closeReadingTools(page);
   await button("Развернуть содержание статьи").click();
   await button("Закрыть содержание").click();
+  await openReadingTools(page);
   await button("Выйти из полноэкранного режима").click();
+  await attachments();
   await page
     .getByRole("button", {
       name: "Открыть файл: инструкция_активации.pdf",
@@ -87,6 +106,7 @@ test("репетиция короткого маршрута по пяти ро�
   await button("Повернуть страницу").click();
   await button("Сбросить вид").click();
   await button("Назад").click();
+  await attachments();
   await page
     .getByRole("button", {
       name: "Открыть файл: регламент_обновления.docx",
@@ -102,6 +122,7 @@ test("репетиция короткого маршрута по пяти ро�
     "Открыть материал: Настройка интеграции с САПР-комплексом",
   ).click();
   await page.getByRole("button", { name: /07:12/ }).click();
+  await attachments();
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /схема_подключения.dwg/ }).click();
   expect((await download).suggestedFilename()).toContain(".demo.txt");
@@ -215,7 +236,11 @@ test("репетиция короткого маршрута по пяти ро�
   await button("Отмена").click();
   await admin("Реестр файлов");
   await button("Табличный вид").click();
-  await page.getByRole("row").filter({ hasText: "регламент_обновления.docx" }).getByRole("button", { name: "3 статьи", exact: true }).click();
+  await page
+    .getByRole("row")
+    .filter({ hasText: "регламент_обновления.docx" })
+    .getByRole("button", { name: "3 статьи", exact: true })
+    .click();
   await closeDialog();
   await admin("Журнал действий");
   await admin("Интеграции");

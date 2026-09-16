@@ -1,7 +1,9 @@
 import { ChevronDown, ChevronRight, Folder } from "lucide-react";
+import "./knowledge-tree.css";
 import { useState } from "react";
 import {
   getKnowledgeTree,
+  flattenTree,
   sectionArticleIds,
   type TreeNode,
 } from "../../data/knowledge-tree";
@@ -24,7 +26,11 @@ export const KnowledgeTree = ({
       ? sessionStorage.getItem("maxsoft-prototype-reading-tree")
       : null;
     const initial = new Set<string>(
-      saved ? JSON.parse(saved) : ["products", "navisa"],
+      saved
+        ? JSON.parse(saved)
+        : persistExpansion
+          ? []
+          : ["products", "navisa"],
     );
     const includeParents = (nodes: TreeNode[]) =>
       nodes.forEach((node) => {
@@ -36,10 +42,12 @@ export const KnowledgeTree = ({
           initial.add(node.id);
         if (node.children) includeParents(node.children);
       });
-    includeParents(tree);
+    if (saved === null) includeParents(tree);
+    const valid = new Set(flattenTree(tree).map((node) => node.id));
+    for (const id of initial) if (!valid.has(id)) initial.delete(id);
     return initial;
   });
-  const render = (nodes: TreeNode[]) =>
+  const render = (nodes: TreeNode[], depth = 0) =>
     nodes
       .filter(
         (node) =>
@@ -50,7 +58,7 @@ export const KnowledgeTree = ({
       )
       .map((node) => (
         <div key={node.id}>
-          <div className="flex items-center min-w-0">
+          <div className="knowledge-tree-row">
             {node.children?.length ? (
               <button
                 className="icon-button shrink-0"
@@ -77,15 +85,19 @@ export const KnowledgeTree = ({
                   <ChevronRight className="h-4 w-4" />
                 )}
               </button>
-            ) : null}
+            ) : (
+              <span className="knowledge-tree-spacer" aria-hidden="true" />
+            )}
             <button
               aria-label={node.name}
-              className={`tree-item min-w-0 flex-1 ${selected === node.id ? "tree-item-active" : ""}`}
+              className={`tree-item knowledge-tree-item min-w-0 ${selected === node.id ? "tree-item-active" : ""}`}
               onClick={() => onSelect(node.id)}
             >
               <Folder className="h-4 w-4 shrink-0" />
-              <span className="flex-1 text-left break-words">{node.name}</span>
-              <span className="text-xs text-slate-400">
+              <span className="min-w-0 text-left [overflow-wrap:anywhere]">
+                {node.name}
+              </span>
+              <span className="knowledge-tree-count text-xs text-slate-400">
                 {
                   sectionArticleIds(tree, node.id).filter(
                     (id) => !articleIds || articleIds.includes(id),
@@ -94,9 +106,19 @@ export const KnowledgeTree = ({
               </span>
             </button>
           </div>
-          {node.children && expanded.has(node.id) ? (
-            <div className="pl-3 border-l border-[var(--ms-border)]">
-              {render(node.children)}
+          {node.children ? (
+            <div
+              className="tree-children grid"
+              data-open={expanded.has(node.id) ? "true" : "false"}
+              inert={!expanded.has(node.id) || undefined}
+              aria-hidden={!expanded.has(node.id)}
+            >
+              <div
+                className="knowledge-tree-branch min-h-0 overflow-hidden border-l border-[var(--ms-border)]"
+                style={{ paddingLeft: depth < 3 ? 8 : 0 }}
+              >
+                {render(node.children, depth + 1)}
+              </div>
             </div>
           ) : null}
         </div>

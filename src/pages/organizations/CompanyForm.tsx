@@ -1,3 +1,4 @@
+import { MotionMessage } from "../../components/MotionMessage";
 import { DomainFields } from "./DomainFields";
 import { InfoHint } from "../../components/InfoHint";
 import { useState, type FormEvent } from "react";
@@ -97,11 +98,7 @@ export const CompanyForm = ({
       onSubmit={submit}
       className="[&_input:disabled]:bg-slate-50 [&_input:disabled]:text-[var(--ms-muted)]"
     >
-      {errors.form || errors.domains ? (
-        <p className="mb-4 text-sm text-red-600" role="alert">
-          {errors.form || errors.domains}
-        </p>
-      ) : null}
+      <MotionMessage message={errors.form || errors.domains} className="block mb-4 text-sm text-red-600" role="alert" />
       {role === "manager" ? (
         <p className="mb-4 text-sm leading-6 text-[var(--ms-muted)]">
           Проект и тип компании доступны только для чтения. Остальные поля — в

@@ -1,3 +1,4 @@
+import { MotionMessage } from "../../components/MotionMessage";
 import { useState } from "react";
 import type { Navigate } from "../../app/types";
 import { goBack } from "../../components/BackButton";
@@ -205,14 +206,10 @@ export const FieldsPage = ({
         действуют после создания. Остальные настройки и сохранённые значения
         остаются прежними.
       </p>
-      {error ? (
-        <p
-          className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700"
+      <MotionMessage message={error}
+          className="block mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700"
           role="alert"
-        >
-          {error}
-        </p>
-      ) : null}
+         />
       <div className="hidden overflow-x-auto rounded-2xl border border-[var(--ms-border)] bg-white xl:block ms-table-scroll">
         <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
           <thead>
