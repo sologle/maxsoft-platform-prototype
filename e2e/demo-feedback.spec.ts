@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { jumpToAttachments } from "./reading-helpers";
 
 test("PL-05: все вложения доступны сотруднику через статьи", async ({
   page,
@@ -6,6 +7,7 @@ test("PL-05: все вложения доступны сотруднику че�
   await page.goto(
     "./?page=article&role=client-employee&resource=network-license",
   );
+  await jumpToAttachments(page, 2);
   await expect(
     page.getByRole("button", {
       name: "Открыть файл: регламент_обновления.docx",
@@ -34,6 +36,7 @@ test("PL-05: все вложения доступны сотруднику че�
   await page.goto(
     "./?page=video&role=client-employee&resource=cad-integration",
   );
+  await jumpToAttachments(page, 2);
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /схема_подключения.dwg/ }).click();
   expect((await download).suggestedFilename()).toBe(
