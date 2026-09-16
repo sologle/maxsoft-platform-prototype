@@ -16,7 +16,7 @@ export const MaterialSections = ({
           <li key={path}>
             {section ? (
               <button type="button" onClick={() => onSelect(section.id)}>
-                {path}
+                {section.name}
               </button>
             ) : path}
           </li>

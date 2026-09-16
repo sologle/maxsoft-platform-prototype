@@ -23,11 +23,16 @@ test("разделы кликабельны в обоих видах без по
   await row.getByText("Подробности материала", { exact: true }).click();
   await expect(row.locator(".material-details-body")).not.toContainText("Разделы:");
   const sections = row.locator(".material-section-links button");
-  await expect(sections).toHaveCount(2);
+  const sectionNames = [
+    "Подготовка и проверка материалов",
+    "Подготовка пилотного проекта и согласование результатов с участниками",
+  ];
+  await expect(sections).toHaveText(sectionNames);
   await sections.filter({ hasText: "Подготовка и проверка материалов" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Подготовка и проверка материалов");
   await expect(page.locator('[data-material-id="network-license"]')).toHaveCount(0);
   await page.getByRole("button", { name: "Крупные карточки" }).click();
+  await expect(sections).toHaveText(sectionNames);
   await sections.filter({ hasText: "Подготовка пилотного проекта" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Подготовка пилотного проекта");
 });
