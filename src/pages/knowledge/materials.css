@@ -12,7 +12,7 @@
   background: var(--ms-surface);
 }
 .material-results-table .material-result {
-  padding: 8px 12px;
+  padding: calc(8px * var(--ms-space-scale, 1)) calc(12px * var(--ms-space-scale, 1));
   border-bottom: 1px solid var(--ms-border);
 }
 .material-results-table .material-result:last-child {
@@ -22,15 +22,15 @@
 .material-row,
 .material-columns {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 0.52fr) 100px 32px;
-  gap: 10px;
+  grid-template-columns: calc(28px * var(--ms-ui-scale, 1)) minmax(0, 1fr) minmax(0, 0.52fr) calc(100px * var(--ms-ui-scale, 1)) calc(32px * var(--ms-ui-scale, 1));
+  gap: calc(10px * var(--ms-space-scale, 1));
   align-items: start;
 }
 .material-columns {
-  padding: 10px 12px;
+  padding: calc(10px * var(--ms-space-scale, 1)) calc(12px * var(--ms-space-scale, 1));
   background: var(--ms-surface-subtle);
   border-radius: 12px 12px 0 0;
-  font-size: 11px;
+  font-size: calc(11px * var(--ms-ui-scale, 1));
   font-weight: 700;
   color: var(--ms-muted);
 }
@@ -39,33 +39,33 @@
   min-width: 0;
 }
 .material-type {
-  padding-top: 4px;
+  padding-top: calc(4px * var(--ms-space-scale, 1));
 }
 .material-icon {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: calc(28px * var(--ms-ui-scale, 1));
+  height: calc(28px * var(--ms-ui-scale, 1));
   border-radius: 7px;
   background: var(--ms-primary-soft);
   color: var(--ms-primary);
 }
 .material-icon svg {
-  width: 16px;
-  height: 16px;
+  width: calc(16px * var(--ms-ui-scale, 1));
+  height: calc(16px * var(--ms-ui-scale, 1));
 }
 .material-results-table .file-type-icon {
-  width: 28px;
-  height: 28px;
+  width: calc(28px * var(--ms-ui-scale, 1));
+  height: calc(28px * var(--ms-ui-scale, 1));
 }
 .material-kind {
-  font-size: 10px;
+  font-size: calc(10px * var(--ms-ui-scale, 1));
   color: var(--ms-muted);
   line-height: 1.4;
 }
 .material-title {
-  margin: 2px 0;
-  font-size: 14px;
+  margin: calc(2px * var(--ms-space-scale, 1)) 0;
+  font-size: calc(14px * var(--ms-ui-scale, 1));
   font-weight: 700;
   line-height: 1.4;
 }
@@ -85,14 +85,14 @@
 }
 .material-section,
 .material-date {
-  padding-top: 4px;
-  font-size: 11px;
+  padding-top: calc(4px * var(--ms-space-scale, 1));
+  font-size: calc(11px * var(--ms-ui-scale, 1));
   line-height: 1.5;
   color: var(--ms-muted);
 }
 .material-section-links {
   display: grid;
-  gap: 6px;
+  gap: calc(6px * var(--ms-space-scale, 1));
   list-style: none;
   margin: 0;
   padding: 0;
@@ -113,7 +113,7 @@
 .material-go {
   display: grid;
   place-items: center;
-  min-height: 32px;
+  min-height: calc(32px * var(--ms-ui-scale, 1));
   color: var(--ms-primary);
   border-radius: 8px;
 }
@@ -124,7 +124,7 @@
 .material-tag-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: calc(4px * var(--ms-space-scale, 1));
   min-width: 0;
   list-style: none;
   margin: 0;
@@ -136,13 +136,13 @@
 }
 .material-tag {
   max-width: 100%;
-  min-height: 28px;
-  padding: 3px 8px;
+  min-height: calc(28px * var(--ms-ui-scale, 1));
+  padding: calc(3px * var(--ms-space-scale, 1)) calc(8px * var(--ms-space-scale, 1));
   border: 1px solid var(--ms-primary);
   border-radius: 7px;
   background: var(--ms-primary-soft);
   color: var(--ms-primary);
-  font-size: 12px;
+  font-size: calc(12px * var(--ms-ui-scale, 1));
   font-weight: 600;
   line-height: 1.5;
   text-align: left;
@@ -162,8 +162,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
-  margin-top: 4px;
+  gap: calc(4px * var(--ms-space-scale, 1));
+  margin-top: calc(4px * var(--ms-space-scale, 1));
 }
 .material-compact-tags > .motion-surface {
   flex-basis: 100%;
@@ -171,11 +171,11 @@
 .material-disclosure {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(6px * var(--ms-space-scale, 1));
   max-width: 100%;
-  min-height: 24px;
-  padding: 2px 6px;
-  font-size: 11px;
+  min-height: calc(24px * var(--ms-ui-scale, 1));
+  padding: calc(2px * var(--ms-space-scale, 1)) calc(6px * var(--ms-space-scale, 1));
+  font-size: calc(11px * var(--ms-ui-scale, 1));
   font-weight: 600;
   color: var(--ms-primary);
   text-align: left;
@@ -189,37 +189,37 @@
 }
 .material-details,
 .material-related {
-  font-size: 12px;
+  font-size: calc(12px * var(--ms-ui-scale, 1));
   color: var(--ms-muted);
 }
 .material-results-table .material-details,
 .material-results-table .material-related {
-  margin-left: 38px;
+  margin-left: calc(28px * var(--ms-ui-scale, 1) + 10px * var(--ms-space-scale, 1));
 }
 .material-details summary,
 .material-related summary {
   width: fit-content;
   max-width: 100%;
-  padding-block: 3px;
+  padding-block: calc(3px * var(--ms-space-scale, 1));
   cursor: pointer;
   color: var(--ms-primary);
 }
 .material-details-body {
-  padding: 8px 0;
+  padding: calc(8px * var(--ms-space-scale, 1)) 0;
   display: grid;
-  gap: 5px;
+  gap: calc(5px * var(--ms-space-scale, 1));
 }
 .material-related ul {
   display: grid;
-  gap: 4px;
+  gap: calc(4px * var(--ms-space-scale, 1));
   max-height: 224px;
   overflow: auto;
-  padding: 6px 0;
+  padding: calc(6px * var(--ms-space-scale, 1)) 0;
 }
 .material-related button {
   text-align: left;
   color: var(--ms-primary);
-  padding-block: 4px;
+  padding-block: calc(4px * var(--ms-space-scale, 1));
 }
 .material-related button:hover {
   text-decoration: underline;
@@ -227,33 +227,33 @@
 .material-snippet {
   border-radius: 8px;
   background: var(--ms-surface-subtle);
-  padding: 8px;
-  margin-top: 8px;
-  font-size: 12px;
+  padding: calc(8px * var(--ms-space-scale, 1));
+  margin-top: calc(8px * var(--ms-space-scale, 1));
+  font-size: calc(12px * var(--ms-ui-scale, 1));
 }
 .material-results-cards {
   display: grid;
-  gap: 12px;
+  gap: calc(12px * var(--ms-space-scale, 1));
   align-items: start;
 }
 .material-results-cards .material-result {
   border: 1px solid var(--ms-border);
   border-radius: 12px;
-  padding: 16px;
+  padding: calc(16px * var(--ms-space-scale, 1));
 }
 .material-results-cards .material-row {
-  grid-template-columns: 40px minmax(0, 1fr) 32px;
+  grid-template-columns: calc(40px * var(--ms-ui-scale, 1)) minmax(0, 1fr) calc(32px * var(--ms-ui-scale, 1));
 }
 .material-results-cards .material-icon {
-  width: 40px;
-  height: 40px;
+  width: calc(40px * var(--ms-ui-scale, 1));
+  height: calc(40px * var(--ms-ui-scale, 1));
 }
 .material-results-cards .material-icon svg {
-  width: 20px;
-  height: 20px;
+  width: calc(20px * var(--ms-ui-scale, 1));
+  height: calc(20px * var(--ms-ui-scale, 1));
 }
 .material-results-cards .material-title {
-  font-size: 17px;
+  font-size: calc(17px * var(--ms-ui-scale, 1));
 }
 .material-results-cards .material-go {
   grid-column: 3;
@@ -266,27 +266,27 @@
   display: inline;
 }
 .material-description {
-  margin-top: 6px;
-  font-size: 13px;
+  margin-top: calc(6px * var(--ms-space-scale, 1));
+  font-size: calc(13px * var(--ms-ui-scale, 1));
   color: var(--ms-muted);
 }
 .material-tag-groups {
   display: grid;
-  gap: 4px;
-  margin-top: 12px;
+  gap: calc(4px * var(--ms-space-scale, 1));
+  margin-top: calc(12px * var(--ms-space-scale, 1));
 }
 .material-tag-group {
   min-width: 0;
 }
 .material-tag-group .material-tag-list {
-  padding: 6px;
+  padding: calc(6px * var(--ms-space-scale, 1));
 }
 .material-tag-group .material-disclosure {
   background: var(--ms-primary-soft);
 }
 .material-paths {
-  margin-top: 10px;
-  font-size: 11px;
+  margin-top: calc(10px * var(--ms-space-scale, 1));
+  font-size: calc(11px * var(--ms-ui-scale, 1));
   color: var(--ms-muted);
 }
 @media (min-width: 1024px) {
@@ -308,19 +308,19 @@
     grid-row: 1;
   }
   .material-row {
-    grid-template-columns: 24px minmax(0, 1fr) 44px;
-    gap: 8px;
+    grid-template-columns: calc(24px * var(--ms-ui-scale, 1)) minmax(0, 1fr) calc(44px * var(--ms-ui-scale, 1));
+    gap: calc(8px * var(--ms-space-scale, 1));
   }
   .material-results-table .material-result {
-    padding: 8px;
+    padding: calc(8px * var(--ms-space-scale, 1));
   }
   .material-icon,
   .material-results-table .file-type-icon {
-    width: 24px;
-    height: 24px;
+    width: calc(24px * var(--ms-ui-scale, 1));
+    height: calc(24px * var(--ms-ui-scale, 1));
   }
   .material-title {
-    font-size: 13px;
+    font-size: calc(13px * var(--ms-ui-scale, 1));
   }
   .material-results-table .material-title button {
     white-space: normal;
@@ -329,29 +329,29 @@
     -webkit-line-clamp: 2;
   }
   .material-go {
-    min-height: 44px;
+    min-height: calc(44px * var(--ms-ui-scale, 1));
   }
   .material-disclosure,
   .material-details summary,
   .material-related summary,
   .material-related button {
-    min-height: 44px;
-    padding-block: 12px;
+    min-height: calc(44px * var(--ms-ui-scale, 1));
+    padding-block: calc(12px * var(--ms-space-scale, 1));
   }
   .material-results-table .material-details,
   .material-results-table .material-related {
-    margin-left: 32px;
+    margin-left: calc(32px * var(--ms-space-scale, 1));
   }
   .material-results-cards .material-row {
-    grid-template-columns: 32px minmax(0, 1fr) 44px;
+    grid-template-columns: calc(32px * var(--ms-ui-scale, 1)) minmax(0, 1fr) calc(44px * var(--ms-ui-scale, 1));
   }
   .material-results-cards .material-result {
-    padding: 12px;
+    padding: calc(12px * var(--ms-space-scale, 1));
   }
   .material-results-cards .material-icon,
   .material-results-cards .file-type-icon {
-    width: 32px;
-    height: 32px;
+    width: calc(32px * var(--ms-ui-scale, 1));
+    height: calc(32px * var(--ms-ui-scale, 1));
   }
 }
 @media (pointer: coarse) {
@@ -362,7 +362,7 @@
   .material-details summary,
   .material-related summary,
   .material-related button {
-    min-height: 44px;
+    min-height: calc(44px * var(--ms-ui-scale, 1));
   }
 }
 

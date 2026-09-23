@@ -1,22 +1,22 @@
 .knowledge-tree-row {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-columns: calc(32px * var(--ms-ui-scale, 1)) minmax(0, 1fr);
   align-items: start;
   min-width: 0;
 }
 .knowledge-tree-row > .icon-button {
-  width: 32px;
-  margin-top: 2px;
+  width: calc(32px * var(--ms-ui-scale, 1));
+  margin-top: calc(2px * var(--ms-space-scale, 1));
 }
 .knowledge-tree-item.tree-item {
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr) 2.5ch;
-  gap: 6px;
+  grid-template-columns: calc(16px * var(--ms-ui-scale, 1)) minmax(0, 1fr) 2.5ch;
+  gap: calc(6px * var(--ms-space-scale, 1));
   align-items: start;
-  padding: 7px 6px;
+  padding: calc(7px * var(--ms-space-scale, 1)) calc(6px * var(--ms-space-scale, 1));
 }
 .knowledge-tree-item svg {
-  margin-top: 2px;
+  margin-top: calc(2px * var(--ms-space-scale, 1));
 }
 .knowledge-tree-count {
   text-align: right;
@@ -25,23 +25,23 @@
 .knowledge-tree-article.tree-item {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: calc(8px * var(--ms-space-scale, 1));
   width: 100%;
-  padding: 7px 8px 7px 14px;
+  padding: calc(7px * var(--ms-space-scale, 1)) calc(8px * var(--ms-space-scale, 1)) calc(7px * var(--ms-space-scale, 1)) calc(14px * var(--ms-space-scale, 1));
   text-align: left;
-  font-size: 13px;
+  font-size: calc(13px * var(--ms-ui-scale, 1));
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
 .knowledge-tree-article svg {
   flex: none;
-  margin-top: 1px;
+  margin-top: calc(1px * var(--ms-space-scale, 1));
 }
 @media (pointer: coarse) {
   .knowledge-tree-row {
-    grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-columns: calc(44px * var(--ms-ui-scale, 1)) minmax(0, 1fr);
   }
   .knowledge-tree-row > .icon-button {
-    width: 44px;
+    width: calc(44px * var(--ms-ui-scale, 1));
   }
 }
