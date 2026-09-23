@@ -44,11 +44,13 @@ test("DEMO-09/10: старый профиль не разрешает менят
   await dialog.getByRole("button", { name: "Сохранить компанию" }).click();
   await expect(dialog).toHaveCount(0);
   await page.reload();
+  await page.getByRole("button", { name: "Реквизиты и контакты" }).click();
+  const details = page.getByRole("dialog", { name: "Реквизиты и контакты" });
   await expect(
-    page.locator("dd").filter({ hasText: companies[0].project }),
+    details.locator("dd").filter({ hasText: companies[0].project }),
   ).toBeVisible();
   await expect(
-    page.locator("dd").filter({ hasText: "Новый договор" }),
+    details.locator("dd").filter({ hasText: "Новый договор" }),
   ).toBeVisible();
 });
 
@@ -228,10 +230,13 @@ for (const role of ["manager", "support-engineer"])
         .locator("dd")
         .filter({ hasText: role === "manager" ? "Базовый" : "ВИП-клиент" }),
     ).toBeVisible();
-    if (role === "support-engineer")
+    if (role === "support-engineer") {
+      await page.getByRole("button", { name: "Реквизиты и контакты" }).click();
       await expect(
-        page.getByText("Проект инженера", { exact: true }),
+        page.getByRole("dialog", { name: "Реквизиты и контакты" })
+          .getByText("Проект инженера", { exact: true }),
       ).toBeVisible();
+    }
     await page.goto(`./?page=users&role=${role}`);
     await expect(
       page.getByRole("button", { name: "Пригласить пользователя" }),

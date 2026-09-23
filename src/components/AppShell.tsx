@@ -136,12 +136,12 @@ export const AppShell = ({
   }, [profileOpen]);
 
   return (
-    <div className="min-h-dvh min-w-0 bg-[var(--ms-background)] text-[var(--ms-text)]">
+    <div className="portal-shell min-h-dvh min-w-0 bg-[var(--ms-background)] text-[var(--ms-text)]">
       <header
         ref={headerRef}
         className="sticky top-0 z-50 border-b border-[var(--ms-border)] bg-white/94 shadow-[0_2px_12px_rgba(27,51,75,.06)] backdrop-blur-xl"
       >
-        <div className="portal-header-controls flex h-16 w-full items-center gap-2 px-4 sm:px-6 lg:h-[72px] lg:px-8 2xl:px-10">
+        <div className="portal-header-controls flex h-16 w-full items-center gap-2 px-4 sm:px-6 lg:h-[54px] lg:px-8 2xl:px-10">
           <button
             aria-label="Открыть меню"
             className="icon-button mobile-menu-trigger"
@@ -281,7 +281,7 @@ export const AppShell = ({
         </div>
       </header>
 
-      <main className="min-w-0 w-full px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-24 lg:px-8 lg:py-10 lg:pb-24 2xl:px-10">
+      <main className="min-w-0 w-full px-4 py-5 pb-24 sm:px-6 sm:py-6 sm:pb-24 lg:px-8 lg:py-6 lg:pb-24 2xl:px-10">
         <div
           className="page-enter min-w-0 [overflow-wrap:anywhere]"
           key={`${location.page}:${location.resource ?? ""}:${location.companyType ?? ""}`}

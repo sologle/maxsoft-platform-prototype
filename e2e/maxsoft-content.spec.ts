@@ -215,7 +215,9 @@ fixtureTest("семь длинных вложений: компактные ст
     .click();
   await jumpToAttachments(page, 7);
   const attachments = page.locator(
-    'section[aria-labelledby="attachments-title"]',
+    await page.locator(".reading-service-rail").isVisible()
+      ? 'section[aria-labelledby="reading-rail-attachments"]'
+      : 'section[aria-labelledby="attachments-title"]',
   );
   await expect(
     attachments.getByRole("button", { name: /^Скачать / }),
@@ -243,7 +245,7 @@ test("переход в соседнюю статью из полноэкран�
     .click();
   const tools = await openReadingTools(page);
   await tools
-    .getByRole("button", { name: "Лицензирование nanoCAD", exact: true })
+    .getByRole("button", { name: "Службы и файлы лицензий", exact: true })
     .click();
   await tools
     .getByRole("button", {

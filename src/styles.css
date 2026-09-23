@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./motion.css";
+@import "./density.css";
 
 :root {
   color: #1a1f26;
@@ -58,7 +59,7 @@ body {
 
 button,
 select {
-  font: inherit;
+  font-family: inherit;
 }
 
 select:not([multiple]):not(.styled-select) {
@@ -102,7 +103,7 @@ svg {
 }
 
 .font-heading {
-  font-family: "Funnel Sans", Inter, system-ui, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
 }
 
 @keyframes page-in {
@@ -301,7 +302,7 @@ svg {
 .article-content {
   color: var(--ms-article-text);
   font-size: var(--article-font-size, 1rem);
-  line-height: 1.85;
+  line-height: 1.6;
 }
 
 .search-highlight {
@@ -320,7 +321,7 @@ html[data-theme="dark"] .search-highlight {
 .article-content h2 {
   margin: 2rem 0 0.75rem;
   color: var(--ms-text);
-  font-family: "Funnel Sans", Inter, system-ui, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
   font-size: 1.45rem;
   font-weight: 750;
   line-height: 1.3;

@@ -21,7 +21,8 @@ import {
 import type { AuditEvent } from "../../data/platform-data";
 
 type Setting = Exclude<keyof CompanyField, "id" | "label">;
-const columns: { key: Setting; label: string; hint: string }[] = [
+const settingGroups: { title: string; description: string; columns: { key: Setting; label: string; hint: string }[] }[] = [
+  { title: "Показ", description: "Где сотрудники и клиенты увидят поле", columns: [
   {
     key: "visible",
     label: "Показывать поле",
@@ -42,6 +43,8 @@ const columns: { key: Setting; label: string; hint: string }[] = [
     label: "При редактировании",
     hint: "Показывает поле в форме изменения компании.",
   },
+  ] },
+  { title: "Обязательность и проверка", description: "Что требуется заполнить и проверить перед сохранением", columns: [
   {
     key: "required",
     label: "Требовать заполнения",
@@ -52,6 +55,8 @@ const columns: { key: Setting; label: string; hint: string }[] = [
     label: "Проверять уникальность",
     hint: "Проверяет совпадения с другими компаниями. Пустое необязательное значение не считается совпадением.",
   },
+  ] },
+  { title: "Доступ менеджера", description: "Что менеджер может читать и изменять", columns: [
   {
     key: "manager",
     label: "Менеджер видит",
@@ -62,7 +67,9 @@ const columns: { key: Setting; label: string; hint: string }[] = [
     label: "Менеджер изменяет",
     hint: "Разрешает заполнение и изменение показанного поля. Проект и тип компании защищены независимо от настроек.",
   },
+  ] },
 ];
+const columns = settingGroups.flatMap((group) => group.columns);
 const disabledSetting = (field: CompanyField, key: Setting) =>
   (["creation", "required"].includes(key) && field.id === "name") ||
   (key === "registration" && excludedRegistrationFields.includes(field.id)) ||
@@ -180,32 +187,21 @@ export const FieldsPage = ({
         subtitle="Показ полей, заполнение и доступ менеджера."
         onBack={() => goBack(onNavigate, "administration")}
       />
-      <section className="mb-5 min-w-0 rounded-2xl border border-[var(--ms-border)] bg-white p-5 text-sm leading-6">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-bold">Как настройки влияют на формы</h2>
-          <Badge tone={dirty ? "amber" : "green"}>
-            {dirty ? "Есть несохранённые изменения" : "Настройки сохранены"}
-          </Badge>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-[var(--ms-muted)]">Настройте показ, проверку и доступ для каждого поля.</p>
+        <Badge tone={dirty ? "amber" : "green"}>
+          {dirty ? "Есть несохранённые изменения" : "Настройки сохранены"}
+        </Badge>
+      </div>
+      <details className="mb-4 rounded-xl border border-[var(--ms-border)] bg-white px-4 py-3 text-sm leading-6">
+        <summary className="cursor-pointer font-semibold">Как работают настройки</summary>
+        <div className="mt-3 space-y-2 text-[var(--ms-muted)]">
+          <p>Закрашенный переключатель — включено, пустой — выключено, недоступный — правило нельзя изменить для этого поля.</p>
+          <p>Менеджер может читать поле, если включено «Менеджер видит», и менять его только при включённом «Менеджер изменяет». Проект и тип компании менеджер не меняет.</p>
+          <p>Скрытые поля и поля только для чтения не требуют ввода; сохранённые значения остаются. Наименование всегда обязательно при создании компании сотрудником MaxSoft.</p>
+          <p>Тип, сокращённое имя, домены, общий email и телефон компании не входят в регистрацию. Контактный телефон при регистрации относится к человеку. Уникальность проверяется среди компаний в этом браузере.</p>
         </div>
-        <p>
-          Например: включите «Менеджер видит» и выключите «Менеджер изменяет» у
-          договора — менеджер прочитает договор, но не сможет его поменять.
-          Проект и тип компании всегда защищены от изменения менеджером.
-        </p>
-        <p className="mt-2 text-[var(--ms-muted)]">
-          Скрытые поля и поля только для чтения не требуют ввода; их значения
-          сохраняются. Тип, сокращённое имя, домены, общий email и телефон
-          компании исключены из регистрации. Контактный телефон в регистрации
-          относится к человеку. Проверка уникальности использует компании этого
-          браузера.
-        </p>
-      </section>
-      <p className="mb-5 text-sm leading-6 text-[var(--ms-muted)]">
-        Наименование нельзя оставлять пустым. При создании оно запрашивается у
-        всех сотрудников MaxSoft. Для него ограничения видимости и изменения
-        действуют после создания. Остальные настройки и сохранённые значения
-        остаются прежними.
-      </p>
+      </details>
       <MotionMessage message={error}
           className="block mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700"
           role="alert"
@@ -213,8 +209,13 @@ export const FieldsPage = ({
       <div className="hidden overflow-x-auto rounded-2xl border border-[var(--ms-border)] bg-white xl:block ms-table-scroll">
         <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
           <thead>
+            <tr className="border-b border-[var(--ms-border)] bg-slate-50">
+              <th className="w-48 p-4" rowSpan={2} scope="col">Поле</th>
+              {settingGroups.map((group) => (
+                <th className="border-l border-[var(--ms-border)] px-3 py-2 text-center text-xs font-bold text-[var(--ms-primary)]" colSpan={group.columns.length} key={group.title} scope="colgroup" title={group.description}>{group.title}</th>
+              ))}
+            </tr>
             <tr className="border-b border-[var(--ms-border)]">
-              <th className="w-48 p-4">Поле</th>
               {columns.map((column) => (
                 <th
                   key={column.key}
@@ -259,8 +260,11 @@ export const FieldsPage = ({
             <h2 className="break-words font-bold [overflow-wrap:anywhere]">
               {field.label}
             </h2>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {columns.map((column) => (
+            <div className="mt-4 space-y-4">
+              {settingGroups.map((group) => <section key={group.title}>
+                <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--ms-primary)]">{group.title}</h3>
+                <p className="mb-2 text-xs text-[var(--ms-muted)]">{group.description}</p>
+                <div className="grid gap-2 sm:grid-cols-2">{group.columns.map((column) => (
                 <div
                   key={column.key}
                   className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-slate-50 p-3"
@@ -271,7 +275,8 @@ export const FieldsPage = ({
                   </span>
                   {control(field, column)}
                 </div>
-              ))}
+              ))}</div>
+              </section>)}
             </div>
           </article>
         ))}

@@ -68,9 +68,11 @@ const ArticleHeader = ({
             <Badge tone={isArticlePublished(article) ? "green" : "amber"}>
               {isArticlePublished(article) ? "Опубликована" : "Черновик"}
             </Badge>
-            {getArticleTags(article).map((tag) => (
-              <Badge key={tag}>{tag}</Badge>
-            ))}
+            <span className="reading-header-tags flex flex-wrap gap-2">
+              {getArticleTags(article).map((tag) => (
+                <Badge key={tag}>{tag}</Badge>
+              ))}
+            </span>
           </div>
           <h1 className="font-heading text-[clamp(1.9rem,5vw,2.8rem)] font-bold leading-[1.12] tracking-[-.03em]">
             {article.title}

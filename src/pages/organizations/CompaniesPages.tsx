@@ -4,10 +4,8 @@ import { BackButton } from "../../components/BackButton";
 import { usePageState } from "../../hooks/usePageState";
 import {
   Building2,
-  CalendarDays,
   ChevronRight,
   ExternalLink,
-  Link2,
   Pencil,
   Plus,
   Search,
@@ -37,6 +35,8 @@ import {
   readPrototypeValue,
 } from "../../data/prototype-store";
 import { CompanyForm } from "./CompanyForm";
+import { InviteUserForm, inviteCompanyUser } from "./InviteUserForm";
+import { UserRows } from "./UserRows";
 
 interface OrganizationProps {
   onNavigate: Navigate;
@@ -364,8 +364,9 @@ export const CompanyPage = ({
   resource,
   role,
 }: OrganizationProps) => {
-  const [tab, setTab] = useState<"general" | "users">("general");
   const [editOpen, setEditOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [company, setCompany] = useState(() => {
     const record = getPrototypeCompanies().find(
       (candidate) => candidate.id === (resource ?? "severprom"),
@@ -374,16 +375,23 @@ export const CompanyPage = ({
       throw new Error(`ACC_COMPANY_NOT_FOUND: ${resource ?? "severprom"}`);
     return record;
   });
+  const [companyUsers, setCompanyUsers] = useState(() =>
+    getPrototypeUsers().filter((user) => user.company === company.name),
+  );
   const canSee = (id: string) =>
     getCompanyFields().some(
       (field) => field.id === id && companyFieldVisible(field, role),
     );
-  const companyUsers = getPrototypeUsers().filter(
-    (user) => user.company === company.name,
+  const detailFields = getCompanyFields().filter(
+    (field) =>
+      companyFieldVisible(field, role) &&
+      !["name", "type", "status", "statusUntil", "bitrix"].includes(field.id),
   );
+  const updateUsers = (companyName: string) =>
+    setCompanyUsers(getPrototypeUsers().filter((user) => user.company === companyName));
   return (
     <>
-      <div className="mb-4">
+      <div className="mb-3">
         <BackButton onNavigate={onNavigate} fallback="companies" />
       </div>
       <Breadcrumbs
@@ -401,176 +409,105 @@ export const CompanyPage = ({
             Редактировать
           </Button>
         }
-        subtitle={[
-          canSee("inn") ? `ИНН ${company.inn}` : "",
-          canSee("domains") ? company.domains.join(", ") : "",
-        ]
-          .filter(Boolean)
-          .join(" · ")}
+        eyebrow="Компания"
+        subtitle="Пользователи и доступ компании к порталу."
         title={canSee("name") ? company.name : "Компания"}
       />
-      <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-[var(--ms-border)] bg-white p-1 shadow-[var(--ms-card-shadow)] sm:w-fit">
-        <button
-          aria-selected={tab === "general"}
-          className={`tab-button ${tab === "general" ? "tab-button-active" : ""}`}
-          onClick={() => setTab("general")}
-          role="tab"
-          type="button"
-        >
-          Общее
-        </button>
-        <button
-          aria-selected={tab === "users"}
-          className={`tab-button ${tab === "users" ? "tab-button-active" : ""}`}
-          onClick={() => setTab("users")}
-          role="tab"
-          type="button"
-        >
-          Пользователи · {companyUsers.length}
-        </button>
-        <button
-          aria-label="Запросы — Этап 2"
-          className="tab-button cursor-not-allowed opacity-55"
-          disabled
-          role="tab"
-          type="button"
-        >
-          Запросы · Этап 2
-        </button>
-      </div>
-      {tab === "general" ? (
-        <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="min-w-0 rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)] sm:p-6">
-            <h2 className="font-heading text-xl font-bold">Данные компании</h2>
-            <dl className="mt-5 grid gap-5 sm:grid-cols-2">
-              {getCompanyFields()
-                .filter((field) => companyFieldVisible(field, role))
-                .map((field) => {
-                  const value =
-                    company[
-                      (field.id === "bitrix"
-                        ? "bitrixUrl"
-                        : field.id) as keyof CompanyRecord
-                    ];
-                  const text = Array.isArray(value)
-                    ? value.join(", ")
-                    : String(value);
-                  return (
-                    <div key={field.id} className="min-w-0">
-                      <dt className="text-xs font-bold uppercase tracking-[.08em] text-[var(--ms-muted)]">
-                        {field.label}
-                      </dt>
-                      <dd className="mt-1.5 break-words text-sm font-semibold leading-6 [overflow-wrap:anywhere]">
-                        {["statusUntil", "contractDate"].includes(field.id)
-                          ? formatDate(text)
-                          : text || "Не указано"}
-                      </dd>
-                    </div>
-                  );
-                })}
-            </dl>
-          </section>
-          <aside className="space-y-4">
-            {canSee("bitrix") ? (
-              <div className="rounded-2xl border border-[var(--ms-border)] bg-white p-5 shadow-[var(--ms-card-shadow)]">
-                <div className="flex items-center gap-3">
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600">
-                    <Link2 className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <div>
-                    <h2 className="font-bold">Битрикс24</h2>
-                    <p className="text-xs text-[var(--ms-muted)]">
-                      Карточка клиента
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  className="mt-4 w-full"
-                  icon={<ExternalLink className="h-4 w-4" aria-hidden="true" />}
-                  onClick={() =>
-                    onNotice(
-                      "В рабочей версии откроется карточка компании в Битрикс24.",
-                    )
-                  }
-                  tone="secondary"
-                >
-                  Открыть карточку
-                </Button>
-              </div>
-            ) : null}
-            {canSee("statusUntil") && canSee("status") ? (
-              <div className="rounded-2xl bg-[#123b5a] p-5 text-white">
-                <CalendarDays className="h-5 w-5" aria-hidden="true" />
-                <h2 className="mt-3 font-heading text-lg font-bold">
-                  Статус действует
-                </h2>
-                <p className="mt-2 text-sm text-white/70">
-                  {company.status === "Активна"
-                    ? `Доступ пользователей активен до ${formatDate(company.statusUntil)}.`
-                    : `Доступ приостановлен. Последний срок — ${formatDate(company.statusUntil)}.`}
-                </p>
-              </div>
-            ) : null}
-          </aside>
-        </div>
-      ) : (
-        <section className="rounded-2xl border border-[var(--ms-border)] bg-white p-4 shadow-[var(--ms-card-shadow)] sm:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-heading text-xl font-bold">
-              Пользователи компании
-            </h2>
+      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <section className="min-w-0">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-heading text-lg font-bold">Пользователи</h2>
+              <p className="text-sm text-[var(--ms-muted)]">
+                Показано: {companyUsers.length}
+              </p>
+            </div>
             <Button
               icon={<Plus className="h-4 w-4" aria-hidden="true" />}
-              onClick={() => onNavigate("users")}
+              onClick={() => setInviteOpen(true)}
             >
               Добавить
             </Button>
           </div>
-          <div className="space-y-2">
-            {companyUsers.map((user) => (
-              <div
-                className="flex min-w-0 items-center gap-3 rounded-xl bg-slate-50 p-3"
-                key={user.id}
-              >
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--ms-primary-soft)] font-bold text-[var(--ms-primary)]">
-                  {user.name.slice(0, 1)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold">{user.name}</p>
-                  <p className="truncate text-xs text-[var(--ms-muted)]">
-                    {user.email}
-                  </p>
-                  <p className="mt-1 truncate text-xs text-[var(--ms-muted)]">
-                    {user.position} · {user.role} · вход: {user.lastLogin}
-                  </p>
-                </div>
-                <Badge tone={user.status === "Активен" ? "green" : "amber"}>
-                  {user.status}
-                </Badge>
-                <button
-                  aria-label={`Открыть действия пользователя: ${user.name}`}
-                  className="icon-button"
-                  onClick={() => onNavigate("users")}
-                  type="button"
-                >
-                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                </button>
-              </div>
-            ))}
+          {companyUsers.length ? (
+            <UserRows companyView records={companyUsers} role={role} />
+          ) : (
+            <EmptyState
+              action={<Button onClick={() => setInviteOpen(true)}>Добавить пользователя</Button>}
+              text="Пригласите первого пользователя компании."
+              title="Пользователей пока нет"
+            />
+          )}
+          <div className="mt-4 flex items-center gap-3 rounded-xl border border-dashed border-[var(--ms-border-strong)] bg-slate-50 px-4 py-3 text-sm text-[var(--ms-muted)]">
+            <span className="font-semibold text-[var(--ms-text)]">Запросы</span>
+            <span>Будут доступны на этапе 2</span>
           </div>
         </section>
-      )}
-      <ResponsiveOverlay
-        desktop="modal"
-        label="Редактирование компании"
-        onClose={() => setEditOpen(false)}
-        open={editOpen}
-      >
+        <aside className="rounded-2xl border border-[var(--ms-border)] bg-white p-4 shadow-[var(--ms-card-shadow)] xl:sticky xl:top-[calc(var(--portal-header-height)+12px)] xl:max-h-[calc(100dvh-var(--portal-header-height)-24px)] xl:overflow-y-auto">
+          <h2 className="font-heading text-lg font-bold">О компании</h2>
+          <dl className="mt-4 space-y-3 text-sm">
+            {canSee("name") ? (
+              <div><dt className="text-[var(--ms-muted)]">Название</dt><dd className="mt-0.5 font-semibold [overflow-wrap:anywhere]">{company.name}</dd></div>
+            ) : null}
+            {canSee("type") ? (
+              <div><dt className="text-[var(--ms-muted)]">Тип</dt><dd className="mt-1"><Badge>{company.type}</Badge></dd></div>
+            ) : null}
+            {canSee("status") ? (
+              <div><dt className="text-[var(--ms-muted)]">Статус</dt><dd className="mt-1"><Badge tone={company.status === "Активна" ? "green" : "amber"}>{company.status}</Badge></dd></div>
+            ) : null}
+            {canSee("statusUntil") ? (
+              <div><dt className="text-[var(--ms-muted)]">Действует до</dt><dd className="mt-0.5 font-semibold">{company.statusUntil ? formatDate(company.statusUntil) : "Не указано"}</dd></div>
+            ) : null}
+          </dl>
+          {canSee("bitrix") && company.bitrixUrl ? (
+            <button className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--ms-primary)] hover:underline" type="button" onClick={() => onNotice("В рабочей версии откроется карточка компании в Битрикс24.")}>
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              Карточка в Битрикс24
+            </button>
+          ) : null}
+          {detailFields.length ? (
+            <Button className="mt-4 w-full" onClick={() => setDetailsOpen(true)} tone="secondary">
+              Реквизиты и контакты
+            </Button>
+          ) : null}
+        </aside>
+      </div>
+      <ResponsiveOverlay desktop="modal" label="Реквизиты и контакты" onClose={() => setDetailsOpen(false)} open={detailsOpen}>
+        <dl className="grid gap-4 sm:grid-cols-2">
+          {detailFields.map((field) => {
+            const value = company[field.id as keyof CompanyRecord];
+            const display = Array.isArray(value) ? value.join(", ") : String(value ?? "");
+            return (
+              <div className="min-w-0" key={field.id}>
+                <dt className="text-sm text-[var(--ms-muted)]">{field.label}</dt>
+                <dd className="mt-1 break-words text-sm font-semibold [overflow-wrap:anywhere]">
+                  {field.id === "contractDate" && display ? formatDate(display) : display || "Не указано"}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+      </ResponsiveOverlay>
+      <ResponsiveOverlay desktop="modal" label="Добавить пользователя" onClose={() => setInviteOpen(false)} open={inviteOpen}>
+        <InviteUserForm
+          company={company.name}
+          onCancel={() => setInviteOpen(false)}
+          onSubmit={(form) => {
+            inviteCompanyUser(form, role, company.name);
+            updateUsers(company.name);
+            setInviteOpen(false);
+            onNotice("Приглашение отправлено на корпоративную почту.");
+          }}
+          role={role}
+        />
+      </ResponsiveOverlay>
+      <ResponsiveOverlay desktop="modal" label="Редактирование компании" onClose={() => setEditOpen(false)} open={editOpen}>
         <CompanyForm
           company={company}
           onCancel={() => setEditOpen(false)}
           onSave={(record) => {
             setCompany(record);
+            updateUsers(record.name);
             setEditOpen(false);
             onNotice("Изменения компании сохранены.");
           }}

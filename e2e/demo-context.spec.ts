@@ -72,9 +72,10 @@ test("видеостатья использует масштаб и выход �
     "./?page=video&role=client-employee&resource=cad-integration",
   );
   await closeReadingTools(page);
-  await page
-    .getByRole("button", { name: "Развернуть содержание статьи" })
-    .click();
+  if (info.project.name.includes("mobile"))
+    await page
+      .getByRole("button", { name: "Развернуть содержание статьи" })
+      .click();
   const initial = await page
     .locator("article h1")
     .evaluate((n) => parseFloat(getComputedStyle(n).fontSize));
@@ -102,10 +103,12 @@ test("видеостатья использует масштаб и выход �
     });
   }
   await closeReadingTools(page);
-  await page
-    .getByRole("button", { name: "Развернуть содержание статьи" })
-    .click();
-  await page.getByRole("button", { name: "Закрыть содержание" }).click();
+  if (info.project.name.includes("mobile")) {
+    await page
+      .getByRole("button", { name: "Развернуть содержание статьи" })
+      .click();
+    await page.getByRole("button", { name: "Закрыть содержание" }).click();
+  }
   await openReadingTools(page);
   await page
     .getByRole("button", { name: "Выйти из полноэкранного режима" })

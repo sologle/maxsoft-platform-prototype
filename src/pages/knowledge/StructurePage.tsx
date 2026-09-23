@@ -23,6 +23,7 @@ import { useState } from "react";
 import { ActionMenu } from "../../components/ActionMenu";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
 import { Button, Field, PageHeading, SelectField } from "../../components/ui";
+import { moveSection, type DropPosition } from "./move-section";
 
 const replaceNode = (
   nodes: TreeNode[],
@@ -41,22 +42,6 @@ const removeNode = (nodes: TreeNode[], id: string): TreeNode[] =>
   nodes
     .filter((node) => node.id !== id)
     .map((node) => (node.children ? { ...node, children: removeNode(node.children, id) } : node));
-
-const reorderSiblings = (nodes: TreeNode[], draggedId: string, targetId: string): TreeNode[] => {
-  const draggedIndex = nodes.findIndex(({ id }) => id === draggedId);
-  const targetIndex = nodes.findIndex(({ id }) => id === targetId);
-  if (draggedIndex >= 0 && targetIndex >= 0) {
-    const next = [...nodes];
-    const [dragged] = next.splice(draggedIndex, 1);
-    next.splice(targetIndex, 0, dragged);
-    return next;
-  }
-  return nodes.map((node) =>
-    node.children
-      ? { ...node, children: reorderSiblings(node.children, draggedId, targetId) }
-      : node,
-  );
-};
 
 export const StructurePage = ({
   onNotice,
@@ -81,6 +66,30 @@ export const StructurePage = ({
   const [name, setName] = useState("");
   const [parent, setParent] = useState("products");
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [editingHierarchy, setEditingHierarchy] = useState(false);
+  const [dropTarget, setDropTarget] = useState<{ id: string; position: DropPosition } | null>(null);
+
+  const drop = (targetId: string | "root", position: DropPosition = "inside", sourceId = draggedId) => {
+    if (!sourceId) return;
+    const next = moveSection(tree, sourceId, targetId, position);
+    setDraggedId(null);
+    setDropTarget(null);
+    if (next === tree) return;
+    try {
+      saveKnowledgeTree(next);
+      updateTree(next);
+      if (position === "inside" && targetId !== "root")
+        setExpanded((current) => new Set([...current, targetId]));
+      onNotice("Структура разделов изменена.");
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("KB_SECTION_PATH_CONFLICT")) {
+        onNotice("Раздел с таким названием уже есть в выбранном месте. Выберите другое место или переименуйте раздел. Код: KB_SECTION_PATH_CONFLICT.");
+      } else {
+        console.error("KB_STRUCTURE_SAVE_FAILED", { cause: error });
+        onNotice("Не удалось сохранить структуру. Повторите действие. Код: KB_STRUCTURE_SAVE_FAILED.");
+      }
+    }
+  };
 
   const openDialog = (mode: "add" | "rename" | "move", node?: TreeNode) => {
     setSelected(node ?? null);
@@ -163,23 +172,41 @@ export const StructurePage = ({
         return (
           <div
             className={`structure-node transition duration-200 ${draggedId === node.id ? "scale-[.99] opacity-45" : ""}`}
-            draggable
             key={node.id}
-            onDragEnd={() => setDraggedId(null)}
-            onDragOver={(event) => event.preventDefault()}
-            onDragStart={() => setDraggedId(node.id)}
-            onDrop={() => {
-              if (!draggedId || draggedId === node.id) return;
-              setTree((current) => reorderSiblings(current, draggedId, node.id));
-              setDraggedId(null);
-              onNotice("Порядок разделов изменён.");
-            }}
           >
-            <div className="group flex min-w-0 items-center gap-2 rounded-xl border border-transparent bg-white px-2 py-2 transition hover:border-[var(--ms-border)] hover:shadow-sm sm:px-3">
-              <GripVertical
-                className="h-5 w-5 shrink-0 cursor-grab text-slate-300 transition group-hover:text-slate-500"
-                aria-hidden="true"
-              />
+            <div
+              className={`group flex min-w-0 items-center gap-2 rounded-xl border bg-white px-2 py-2 transition hover:shadow-sm sm:px-3 ${dropTarget?.id === node.id ? "border-[var(--ms-primary)] bg-[var(--ms-primary-soft)]" : "border-transparent hover:border-[var(--ms-border)]"}`}
+              onDragOver={editingHierarchy ? (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const ratio = (event.clientY - event.currentTarget.getBoundingClientRect().top) / event.currentTarget.getBoundingClientRect().height;
+                const position = ratio < 0.25 ? "before" : ratio > 0.75 ? "after" : "inside";
+                setDropTarget({ id: node.id, position });
+              } : undefined}
+              onDrop={editingHierarchy ? (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const ratio = (event.clientY - event.currentTarget.getBoundingClientRect().top) / event.currentTarget.getBoundingClientRect().height;
+                drop(node.id, ratio < 0.25 ? "before" : ratio > 0.75 ? "after" : "inside", event.dataTransfer.getData("text/plain") || draggedId);
+              } : undefined}
+            >
+              {editingHierarchy ? (
+                <button
+                  aria-label={`Перетащить раздел ${node.name}`}
+                  className="grid h-8 w-6 shrink-0 cursor-grab place-items-center rounded text-slate-500 hover:bg-slate-100"
+                  draggable
+                  onDragEnd={() => { setDraggedId(null); setDropTarget(null); }}
+                  onDragStart={(event) => {
+                    event.stopPropagation();
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", node.id);
+                    setDraggedId(node.id);
+                  }}
+                  type="button"
+                >
+                  <GripVertical className="h-5 w-5" aria-hidden="true" />
+                </button>
+              ) : null}
               {hasChildren ? (
                 <button
                   aria-expanded={open}
@@ -211,6 +238,11 @@ export const StructurePage = ({
               <span className="min-w-0 flex-1 truncate text-sm font-semibold sm:text-base">
                 {node.name}
               </span>
+              {editingHierarchy && dropTarget?.id === node.id ? (
+                <span className="shrink-0 text-xs font-semibold text-[var(--ms-primary)]">
+                  {dropTarget.position === "before" ? "Перед разделом" : dropTarget.position === "after" ? "После раздела" : "Внутрь раздела"}
+                </span>
+              ) : null}
               <span className="hidden text-xs text-[var(--ms-muted)] sm:block">
                 {sectionArticleIds(tree, node.id).length} статей
               </span>
@@ -279,12 +311,16 @@ export const StructurePage = ({
       <PageHeading
         onBack={() => goBack(onNavigate, "administration")}
         actions={
-          <Button
-            icon={<Plus className="h-4 w-4" aria-hidden="true" />}
-            onClick={() => openDialog("add")}
-          >
-            Добавить раздел
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button tone="secondary" onClick={() => {
+              setEditingHierarchy((current) => !current);
+              setDraggedId(null);
+              setDropTarget(null);
+            }}>
+              {editingHierarchy ? "Завершить редактирование" : "Редактировать иерархию"}
+            </Button>
+            <Button icon={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => openDialog("add")}>Добавить раздел</Button>
+          </div>
         }
         eyebrow="Администрирование БЗ"
         subtitle="Раскрывайте ветки, меняйте названия и управляйте вложенностью разделов."
@@ -292,10 +328,20 @@ export const StructurePage = ({
       />
       <div className="rounded-2xl border border-[var(--ms-border)] bg-slate-50 p-3 shadow-[var(--ms-card-shadow)] sm:p-5 lg:p-6">
         <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-900">
-          Перетащите строку за маркер, чтобы изменить порядок. На сенсорном экране используйте меню
-          раздела.
+          {editingHierarchy
+            ? "Перетащите раздел за маркер: к верхнему или нижнему краю строки для порядка, в центр для вложенности. В конец корня — в область под деревом. Для клавиатуры и сенсорного экрана используйте меню раздела."
+            : "Чтобы изменить порядок и вложенность перетаскиванием, включите «Редактировать иерархию». Для клавиатуры и сенсорного экрана используйте меню раздела."}
         </div>
         {renderNodes(tree)}
+        {editingHierarchy ? (
+          <div
+            className="mt-3 rounded-xl border border-dashed border-[var(--ms-border-strong)] p-3 text-center text-sm text-[var(--ms-muted)]"
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => { event.preventDefault(); drop("root", "inside", event.dataTransfer.getData("text/plain") || draggedId); }}
+          >
+            Перетащите сюда, чтобы поместить в конец корня
+          </div>
+        ) : null}
       </div>
 
       <ResponsiveOverlay

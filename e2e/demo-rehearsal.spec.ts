@@ -83,17 +83,19 @@ test("репетиция короткого маршрута по пяти ро�
   await openReadingTools(page);
   for (let i = 0; i < 4; i++) await button("Увеличить размер текста").click();
   await closeReadingTools(page);
-  await button("Развернуть содержание статьи").click();
+  if (info.project.name.includes("mobile")) await button("Развернуть содержание статьи").click();
   await page
-    .locator(".reading-toc-panel")
+    .locator(info.project.name.includes("mobile") ? ".reading-toc-panel" : ".reading-service-rail")
     .getByRole("link", { name: "Перед началом работы", exact: true })
     .click();
   await openReadingTools(page);
   await button("Сбросить размер текста до 100%").click();
   await button("На весь экран").click();
   await closeReadingTools(page);
-  await button("Развернуть содержание статьи").click();
-  await button("Закрыть содержание").click();
+  if (info.project.name.includes("mobile")) {
+    await button("Развернуть содержание статьи").click();
+    await button("Закрыть содержание").click();
+  }
   await openReadingTools(page);
   await button("Выйти из полноэкранного режима").click();
   await attachments();

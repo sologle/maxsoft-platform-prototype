@@ -227,7 +227,7 @@ export const SelectField = ({
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={`Открыть варианты. Выбрано: ${selectedLabel}`}
-        className={`flex h-12 w-full min-w-0 items-center gap-2 rounded-xl border px-3.5 text-left text-[15px] outline-none transition focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)] disabled:cursor-not-allowed disabled:opacity-50 ${surface}`}
+        className={`ui-field flex h-12 w-full min-w-0 items-center gap-2 rounded-xl border px-3.5 text-left text-[15px] outline-none transition focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)] disabled:cursor-not-allowed disabled:opacity-50 ${surface}`}
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
         type="button"

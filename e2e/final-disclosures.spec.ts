@@ -13,7 +13,8 @@ test("POL-14: доступ редактора закрывается с fade и 
     const surface = document.querySelector('[aria-label="Типы компаний с доступом"]');
     const checkbox = surface?.querySelector<HTMLInputElement>("input");
     checkbox?.focus();
-    return { inert: surface?.hasAttribute("inert"), focused: document.activeElement === checkbox };
+    // A delayed frame may run after the exit animation has already unmounted it.
+    return { inert: !surface || surface.hasAttribute("inert"), focused: document.activeElement === checkbox };
   });
   expect(exit).toEqual({ inert: true, focused: false });
   await dialog.getByRole("radio", { name: "Только выбранные типы" }).check();

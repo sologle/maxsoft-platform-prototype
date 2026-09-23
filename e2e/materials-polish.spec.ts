@@ -62,10 +62,11 @@ for (const width of [320, 390, 768, 1024, 1440])
       await row.getByRole("button", { name: /^Открыть материал:/ }).click();
       const tools = await openReadingTools(page);
       await expect(
-        tools.getByRole("heading", {
-          name: "Статьи раздела «Подготовка и проверка материалов»",
-        }),
+        tools.locator('.knowledge-tree-article[aria-current="page"]').first(),
       ).toBeVisible();
+      await expect(tools.locator('.knowledge-tree-article[aria-current="page"]').first()).toContainText(
+        "Проверка материала перед передачей коллегам",
+      );
       await expect(
         tools
           .locator(".knowledge-tree-item")
@@ -99,10 +100,16 @@ for (const width of [320, 390, 768, 1024, 1440])
       expect(geometry).toBe(true);
       await section.click();
       await expect(
-        tools.getByRole("heading", {
-          name: `Статьи раздела «${pilotSection}»`,
-        }),
-      ).toBeVisible();
+        tools.getByRole("button", { name: `Развернуть раздел ${pilotSection}` }),
+      ).toHaveAttribute("aria-expanded", "false");
+      await section.click();
+      const articleLeaves = section.locator("xpath=../following-sibling::*").locator(".knowledge-tree-article");
+      await expect(articleLeaves).toHaveCount(3);
+      await expect(articleLeaves).toContainText([
+        "План пилотного проекта",
+        "Договорённости команды перед началом работы",
+        "Проверка материала перед передачей коллегам: содержание, источники и доступность",
+      ]);
       await noOverflow(page);
     });
   }
@@ -229,15 +236,16 @@ test("пополнение старого профиля сохраняет ве
   await expect(
     tools.getByRole("button", { name: "Развернуть раздел Практика работы" }),
   ).toHaveAttribute("aria-expanded", "false");
-  await expect(
-    tools.getByRole("heading", { name: `Статьи раздела «${pilotSection}»` }),
-  ).toBeVisible();
+  for (const name of ["Практика работы", "Начало работы", "Команда проекта", pilotSection])
+    await tools.getByRole("button", { name: `Развернуть раздел ${name}` }).click();
+  await expect(tools.locator('.knowledge-tree-article[aria-current="page"]')).toContainText("План пилотного проекта");
   await expect(
     tools.getByRole("button", {
       name: "Договорённости команды перед началом работы",
       exact: true,
     }),
   ).toHaveCount(0);
+  await tools.getByRole("button", { name: "Свернуть раздел Практика работы" }).click();
   expect(
     await page.evaluate(
       () =>

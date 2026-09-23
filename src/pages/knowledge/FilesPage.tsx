@@ -69,13 +69,24 @@ export const FilesPage = ({
   const [selected, setSelected] = useState<(typeof files)[number] | null>(null);
   const [menu, setMenu] = useState<string | null>(null);
   const visible = useMemo(
-    () =>
-      files.filter(
-        (file) =>
-          (type === "all" || file.type === type) &&
-          file.name.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [query, type],
+    () => {
+      const words = query.trim().toLocaleLowerCase("ru").split(/\s+/).filter(Boolean);
+      return files.filter((file) => {
+        if (type !== "all" && file.type !== type) return false;
+        const linked = related(file);
+        const searchable = [
+          file.name,
+          file.type,
+          file.size,
+          file.updated,
+          sectionsFor(file),
+          usesLabel(linked.length),
+          ...linked.map((article) => article.title),
+        ].join(" ").toLocaleLowerCase("ru");
+        return words.every((word) => searchable.includes(word));
+      });
+    },
+    [query, type, role, companyType],
   );
 
   const download = (file: (typeof files)[number]) => {
@@ -138,7 +149,7 @@ export const FilesPage = ({
           <input
             className="h-11 w-full min-w-0 rounded-xl border border-[var(--ms-border-strong)] pl-10 pr-3 text-sm outline-none focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)]"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Название файла"
+            placeholder="Файл, тип, размер, раздел или статья"
             value={query}
           />
         </label>
@@ -170,7 +181,7 @@ export const FilesPage = ({
               Сбросить фильтры
             </Button>
           }
-          text="Измените название или тип файла."
+          text="Измените поисковый запрос или тип файла."
           title="Файлы не найдены"
         />
       ) : view === "table" ? (

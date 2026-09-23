@@ -8,13 +8,15 @@ import type { UserRecord } from "../../data/platform-data";
 
 export const UserRows = ({
   clientOnly = false,
+  companyView = false,
   onAction,
   onOpenAudit,
   records,
   role,
 }: {
   clientOnly?: boolean;
-  onAction: (user: UserRecord, action: "role" | "delete" | "block") => void;
+  companyView?: boolean;
+  onAction?: (user: UserRecord, action: "role" | "delete" | "block") => void;
   onOpenAudit?: (user: UserRecord) => void;
   records: UserRecord[];
   role: UserRole;
@@ -23,15 +25,15 @@ export const UserRows = ({
   const canAdministerRoles = role === "portal-admin";
   const canManageAccess = role === "portal-admin" || clientOnly;
   const hasActions = (user: UserRecord) =>
-    (user.status !== "Доступ отозван" &&
+    Boolean(onAction) && ((user.status !== "Доступ отозван" &&
       (canAdministerRoles || canManageAccess)) ||
-    (canAdministerRoles && !clientOnly && Boolean(onOpenAudit));
+    (canAdministerRoles && !clientOnly && Boolean(onOpenAudit)));
   const chooseAction = (
     user: UserRecord,
     action: "role" | "delete" | "block",
   ) => {
     setMenu(null);
-    onAction(user, action);
+    onAction?.(user, action);
   };
   const menuItems = (user: UserRecord) => (
     <>
@@ -95,15 +97,17 @@ export const UserRows = ({
           <thead>
             <tr className="border-b border-[var(--ms-border)] text-xs uppercase tracking-[.08em] text-[var(--ms-muted)]">
               <th className="px-5 py-4">Пользователь</th>
-              <th className="px-5 py-4">
-                {clientOnly ? "Должность" : "Компания"}
+              <th className="px-4 py-3">
+                {clientOnly || companyView ? "Должность" : "Компания"}
               </th>
               <th className="px-5 py-4">Роль</th>
               <th className="px-5 py-4">Статус</th>
               <th className="px-5 py-4">Последний вход</th>
-              <th className="w-16 px-3">
-                <span className="sr-only">Действия</span>
-              </th>
+              {onAction ? (
+                <th className="w-16 px-3">
+                  <span className="sr-only">Действия</span>
+                </th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -120,8 +124,8 @@ export const UserRows = ({
                     {user.email}
                   </p>
                 </td>
-                <td className="px-5 py-4 text-[var(--ms-muted)]">
-                  {clientOnly ? user.position : user.company}
+                <td className="px-4 py-3 text-[var(--ms-muted)]">
+                  {clientOnly || companyView ? user.position : user.company}
                 </td>
                 <td className="px-5 py-4">
                   {clientOnly ? clientRoleLabel(user.role) : user.role}
@@ -144,8 +148,9 @@ export const UserRows = ({
                 <td className="px-5 py-4 text-[var(--ms-muted)]">
                   {user.lastLogin}
                 </td>
-                <td className="px-3">
-                  {hasActions(user) ? (
+                {onAction ? (
+                  <td className="px-3">
+                    {hasActions(user) ? (
                     <ActionMenu
                       label={`Действия: ${user.name}`}
                       onOpenChange={(open) =>
@@ -156,12 +161,13 @@ export const UserRows = ({
                     >
                       {menuItems(user)}
                     </ActionMenu>
-                  ) : (
-                    <span className="text-xs text-[var(--ms-muted)]">
-                      Просмотр
-                    </span>
-                  )}
-                </td>
+                    ) : (
+                      <span className="text-xs text-[var(--ms-muted)]">
+                        Просмотр
+                      </span>
+                    )}
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>
@@ -215,7 +221,7 @@ export const UserRows = ({
             </div>
             <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs leading-5 text-[var(--ms-muted)]">
               <p>{clientOnly ? clientRoleLabel(user.role) : user.role}</p>
-              <p>{clientOnly ? user.position : user.company}</p>
+              <p>{clientOnly || companyView ? user.position : user.company}</p>
               <p>Последний вход: {user.lastLogin}</p>
             </div>
           </article>
