@@ -78,12 +78,12 @@ test("поиск выделяет совпадение и открывает м�
 
 test("статья меняет размер текста и включает полноэкранный режим чтения", async ({
   page,
-}) => {
+}, info) => {
   await page.goto("./?page=article&role=portal-admin");
   const article = page.locator(".reading-layout");
-  await page
-    .getByRole("button", { name: "Развернуть содержание статьи" })
-    .click();
+  const mobile = info.project.name.includes("mobile");
+  if (mobile)
+    await page.getByRole("button", { name: "Развернуть содержание статьи" }).click();
   const before = await article
     .locator(".article-content")
     .evaluate((node) => getComputedStyle(node).fontSize);
@@ -99,23 +99,22 @@ test("статья меняет размер текста и включает п
   await page.getByRole("button", { name: "На весь экран" }).click();
   await expect(article).toHaveAttribute("data-reading-mode", "fullscreen");
   await closeReadingTools(page);
-  await page
-    .getByRole("button", { name: "Развернуть содержание статьи" })
-    .click();
+  if (mobile)
+    await page.getByRole("button", { name: "Развернуть содержание статьи" }).click();
   await expect(
-    article.getByRole("navigation", { name: "Содержание статьи", exact: true }),
+    article.locator(mobile ? ".reading-toc-panel" : ".reading-service-rail nav"),
   ).toBeVisible();
   await expect(
     article
-      .locator(".reading-toc-panel")
+      .locator(mobile ? ".reading-toc-panel" : ".reading-service-rail")
       .getByRole("link", { name: "Перед началом работы" }),
   ).toBeVisible();
-  await article.getByRole("button", { name: "Закрыть содержание" }).click();
-  await expect(
-    article
-      .locator(".reading-toc-panel")
-      .getByRole("link", { name: "Перед началом работы" }),
-  ).toBeHidden();
+  if (mobile) {
+    await article.getByRole("button", { name: "Закрыть содержание" }).click();
+    await expect(
+      article.locator(".reading-toc-panel").getByRole("link", { name: "Перед началом работы" }),
+    ).toBeHidden();
+  }
   await openReadingTools(page);
   await page
     .getByRole("button", { name: "Выйти из полноэкранного режима" })
@@ -125,9 +124,6 @@ test("статья меняет размер текста и включает п
 
 test("размер текста статьи уменьшается до 70 процентов", async ({ page }) => {
   await page.goto("./?page=article&role=portal-admin");
-  await page
-    .getByRole("button", { name: "Развернуть содержание статьи" })
-    .click();
   await openReadingTools(page);
   const decrease = page.getByRole("button", {
     name: "Уменьшить размер текста",
@@ -151,18 +147,18 @@ test("гостевая главная показывает вход без пр�
   await expect(page.getByTestId("portal-auth-backdrop")).toBeVisible();
 });
 
-test("содержание обычной статьи остаётся кликабельным под шапкой при прокрутке", async ({
+test("правая панель статьи остаётся кликабельной под шапкой при прокрутке", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 800 });
   await page.goto("./?page=article&role=portal-admin");
   await page.evaluate(() => window.scrollTo({ top: 600, behavior: "instant" }));
-  const toggle = page.getByRole("button", {
-    name: "Развернуть содержание статьи",
+  const link = page.locator(".reading-service-rail").getByRole("link", {
+    name: "Перед началом работы", exact: true,
   });
   await expect
     .poll(() =>
-      toggle.evaluate((element) => {
+      link.evaluate((element) => {
         const rect = element.getBoundingClientRect();
         return element.contains(
           document.elementFromPoint(
@@ -173,10 +169,6 @@ test("содержание обычной статьи остаётся клик
       }),
     )
     .toBe(true);
-  await toggle.click();
-  await expect(
-    page
-      .locator(".reading-toc-panel")
-      .getByRole("link", { name: "Перед началом работы", exact: true }),
-  ).toBeVisible();
+  await link.click();
+  await expect(link).toHaveAttribute("aria-current", "location");
 });

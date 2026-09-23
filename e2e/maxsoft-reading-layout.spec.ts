@@ -47,11 +47,11 @@ for (const width of [320, 390, 768, 1024, 1440])
                 .click();
           await closeReadingTools(page);
           const trigger = page.locator(".reading-toc-trigger");
-          await trigger.click();
-          const toc = page.getByRole("navigation", {
-            name: "Содержание статьи",
-            exact: true,
-          });
+          const desktop = width >= 1024;
+          if (!desktop) await trigger.click();
+          const toc = desktop
+            ? page.locator(".reading-service-rail").getByRole("navigation", { name: "Содержание статьи" })
+            : page.locator(".reading-toc-panel");
           await expect(toc).toBeVisible();
           await toc
             .getByRole("link", { name: "Виды лицензий", exact: true })
@@ -59,7 +59,7 @@ for (const width of [320, 390, 768, 1024, 1440])
           const headingY = await page
             .getByRole("heading", { name: "Виды лицензий", exact: true })
             .evaluate((n) => n.getBoundingClientRect().top);
-          expect(headingY).toBeGreaterThanOrEqual(mode === "standard" ? 72 : 0);
+          expect(headingY).toBeGreaterThanOrEqual(mode === "standard" ? 55 : 0);
           await expect(
             page.getByRole("tab", { name: "По сетевитости" }),
           ).toBeInViewport();
@@ -72,12 +72,14 @@ for (const width of [320, 390, 768, 1024, 1440])
           await expect(
             page.getByRole("heading", { name: "Вложения", exact: true }),
           ).toBeInViewport();
-          await expect(page.locator(".toc-bar-active")).toHaveCount(1);
-          await trigger.focus();
-          await expect(toc).toBeVisible();
-          await trigger.press("Escape");
-          await expect(toc).toHaveCount(0);
-          await expect(trigger).toBeFocused();
+          if (!desktop) {
+            await expect(page.locator(".toc-bar-active")).toHaveCount(1);
+            await trigger.focus();
+            await expect(toc).toBeVisible();
+            await trigger.press("Escape");
+            await expect(toc).toHaveCount(0);
+            await expect(trigger).toBeFocused();
+          }
           await expect(page.locator(".reading-layout")).toHaveAttribute(
             "data-reading-mode",
             mode,
@@ -106,26 +108,22 @@ test("оглавление следует ручной прокрутке и н�
   const material = page.locator(".reading-material");
   const before = await material.boundingBox();
   const trigger = page.locator(".reading-toc-trigger");
-  if (info.project.name.includes("mobile")) await trigger.tap();
-  else await trigger.hover();
-  await expect(
-    page.getByRole("navigation", { name: "Содержание статьи", exact: true }),
-  ).toBeVisible();
+  const mobile = info.project.name.includes("mobile");
+  if (mobile) await trigger.tap();
+  const toc = mobile
+    ? page.locator(".reading-toc-panel")
+    : page.locator(".reading-service-rail").getByRole("navigation", { name: "Содержание статьи" });
+  await expect(toc).toBeVisible();
   expect((await material.boundingBox())!.width).toBe(before!.width);
-  await page
-    .locator(".reading-toc-panel")
-    .getByRole("link", { name: "Привязка к оборудованию", exact: true })
-    .click();
-  await trigger.focus();
+  await toc.getByRole("link", { name: "Привязка к оборудованию", exact: true }).click();
+  if (mobile) await trigger.focus();
   await expect(
-    page.locator('.reading-toc-panel a[aria-current="location"]'),
+    toc.locator('a[aria-current="location"]'),
   ).toHaveText("Привязка к оборудованию");
-  await trigger.press("Escape");
+  if (mobile) await trigger.press("Escape");
   await page.evaluate(() => window.scrollTo(0, 0));
-  await trigger.press("Enter");
-  await expect(
-    page.locator('.reading-toc-panel a[aria-current="location"]'),
-  ).toHaveText("Вложения · 1");
+  if (mobile) await trigger.press("Enter");
+  await expect(toc.locator('a[aria-current="location"]')).toHaveText(mobile ? "Вложения · 1" : "Описание");
 });
 
 test("выход из полноэкранного чтения сохраняет исходную позицию статьи", async ({

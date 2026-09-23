@@ -1,37 +1,24 @@
 import { test, expect } from "@playwright/test";
 import { openReadingTools, closeReadingTools } from "./reading-helpers";
 const url = "./?page=article&role=client-employee&resource=licensing-system";
-test("оглавление: hover-переход к списку и Escape без предварительного фокуса", async ({
+test("содержание доступно в правой панели на ПК", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(url);
-  const trigger = page.locator(".reading-toc-trigger");
-  if (await page.evaluate(() => matchMedia("(hover: hover)").matches)) {
-    await trigger.hover();
-    const toc = page.getByRole("navigation", {
-      name: "Содержание статьи",
-      exact: true,
-    });
-    await expect(toc).toBeVisible();
-    await toc.getByRole("link", { name: "Виды лицензий", exact: true }).hover();
-    await expect(toc).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(toc).toBeHidden();
-    await expect(trigger).toBeFocused();
-  } else {
-    await trigger.tap();
-    await page.getByRole("button", { name: "Закрыть содержание" }).tap();
-    await expect(trigger).toBeFocused();
-  }
+  const toc = page.locator(".reading-service-rail").getByRole("navigation", { name: "Содержание статьи" });
+  await expect(toc).toBeVisible();
+  await toc.getByRole("link", { name: "Виды лицензий", exact: true }).click();
+  await expect(toc.getByRole("link", { name: "Виды лицензий", exact: true })).toHaveAttribute("aria-current", "location");
 });
 test("масштаб и повторное открытие инструментов сохраняют место чтения", async ({
   page,
-}) => {
+}, info) => {
   await page.goto(url);
-  await page.locator(".reading-toc-trigger").click();
+  const mobile = info.project.name.includes("mobile");
+  if (mobile) await page.locator(".reading-toc-trigger").click();
   await page
-    .locator(".reading-toc-panel")
+    .locator(mobile ? ".reading-toc-panel" : ".reading-service-rail")
     .getByRole("link", { name: "Привязка к оборудованию", exact: true })
     .click();
   const heading = page.getByRole("heading", {

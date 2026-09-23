@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { fixtureTest } from "./fixtures/vite-fixture";
+import { jumpToAttachments } from "./reading-helpers";
 const url = "./?page=article&role=client-employee&resource=licensing-system";
 test("панель ПК сохраняет выбор, мобильное меню его не меняет", async ({
   page,
@@ -9,8 +10,8 @@ test("панель ПК сохраняет выбор, мобильное мен
   const nav = page.getByRole("region", { name: "Инструменты чтения" });
   await expect(nav).toBeVisible();
   await expect(
-    nav.getByRole("heading", {
-      name: "Статьи раздела «Обзор и серийные номера»",
+    nav.getByRole("button", {
+      name: /Технические данные о системе лицензирования/,
     }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Свернуть панель чтения" }).click();
@@ -28,21 +29,23 @@ test("панель ПК сохраняет выбор, мобильное мен
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(nav).toBeHidden();
 });
-test("начальное содержание и файлы, реальные крошки и один титульник", async ({
+test("содержание и файлы, реальные крошки и один титульник", async ({
   page,
-}) => {
+}, info) => {
   await page.goto(url);
   await expect(page.locator("article h1")).toHaveCount(1);
-  const summary = page.getByText("Содержание и вложения", { exact: true });
-  await expect(summary).toBeVisible();
-  if ((await page.locator(".reading-intro").getAttribute("open")) === null)
-    await summary.click();
+  const mobile = info.project.use.hasTouch;
+  if (mobile) await jumpToAttachments(page, 1);
+  const rail = page.locator(mobile ? ".reading-intro" : ".reading-service-rail");
+  await expect(rail).toBeVisible();
   await expect(
     page.getByRole("button", {
       name: "Открыть файл: лицензирование-продуктов.pdf",
     }),
   ).toHaveCount(1);
-  await expect(page.locator(".reading-intro")).toContainText("Виды лицензий");
+  await expect(rail).toContainText("Виды лицензий");
+  await expect(rail).toContainText("Вложения");
+  if (!mobile) await expect(rail).toContainText("Теги");
   const crumbs = page.getByRole("navigation", { name: "Хлебные крошки" });
   const expanded = crumbs.getByText("Путь к разделу", { exact: true });
   if (await expanded.isVisible()) await expanded.click();
@@ -62,15 +65,15 @@ test("ветви, выбранный раздел и переход между �
   await page.goto(url);
   const tools = page.getByRole("region", { name: "Инструменты чтения" });
   await tools
-    .getByRole("button", { name: "Свернуть раздел Лицензирование nanoCAD" })
-    .click();
-  await tools
     .getByRole("button", { name: "Серийный номер и его состав", exact: true })
     .click();
   await expect(page.locator("article h1")).toHaveText(
     "Серийный номер и его состав",
   );
   await expect(page.locator("article h1")).toBeInViewport();
+  await tools
+    .getByRole("button", { name: "Свернуть раздел Лицензирование nanoCAD" })
+    .click();
   await expect(
     tools.getByRole("button", {
       name: "Развернуть раздел Лицензирование nanoCAD",
@@ -82,12 +85,6 @@ test("ветви, выбранный раздел и переход между �
       name: "Развернуть раздел Лицензирование nanoCAD",
     }),
   ).toHaveAttribute("aria-expanded", "false");
-  await tools
-    .getByRole("button", { name: "Вся база знаний", exact: true })
-    .click();
-  await expect(
-    tools.getByRole("heading", { name: "Статьи всей базы знаний" }),
-  ).toBeVisible();
   await expect(
     tools.getByRole("button", {
       name: "Шаблон проекта Model Studio CS",
@@ -138,9 +135,7 @@ test("длинная глубокая ветвь не выталкивает с�
       rect!.x + rect!.width + 1,
     );
   }
-  await expect(
-    page.getByRole("region", { name: "Материалы раздела" }),
-  ).toContainText("Технические данные");
+  await expect(page.locator(".knowledge-tree-article")).toContainText("Технические данные");
   await page.reload();
   expect(
     await page.evaluate(
@@ -162,6 +157,7 @@ fixtureTest("пустые вложения не создают файл или �
       body: `${await response.text()}\nfiles.splice(0, files.length);`,
     });
   });
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(new URL(url, fixtureUrl).href);
   await expect(page.locator(".reading-intro")).toContainText("Файлов: 0");
   await expect(page.locator("#attachments-title")).toHaveCount(0);

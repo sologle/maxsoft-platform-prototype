@@ -20,6 +20,11 @@ export const closeReadingTools = async (page: Page) => {
 };
 export const jumpToAttachments = async (page: Page, count: number) => {
   await closeReadingTools(page);
+  const rail = page.locator(".reading-service-rail");
+  if (await rail.isVisible()) {
+    await rail.getByRole("heading", { name: "Вложения", exact: true }).scrollIntoViewIfNeeded();
+    return;
+  }
   await page
     .getByRole("button", { name: "Развернуть содержание статьи" })
     .click();

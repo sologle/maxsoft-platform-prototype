@@ -1,0 +1,74 @@
+/* Reduce the space used by controls without shrinking text or browser zoom.
+   Tailwind's spacing token also keeps utility-sized icons/offsets proportional. */
+@media (min-width: 1024px) and (pointer: fine) {
+  :root {
+    --spacing: 0.1875rem;
+    --text-base: 0.875rem;
+    --text-lg: 1rem;
+    --text-xl: 1.125rem;
+    --text-2xl: 1.25rem;
+    --text-3xl: 1.375rem;
+  }
+
+  .portal-shell { font-size: 14px; }
+  .portal-shell .icon-button { width: 30px; height: 30px; border-radius: 8px; }
+  .portal-shell .reading-sidebar .icon-button,
+  .portal-shell .reading-size > button { min-height: 32px; }
+  .portal-shell .menu-action { min-height: 30px; padding: 6px 9px; }
+  .portal-shell .tab-button { min-height: 32px; padding: 6px 12px; }
+  .portal-shell .option-row { min-height: 34px; padding: 7px 10px; }
+  .portal-shell .tree-item { padding: 7px 9px; }
+  .portal-shell .ms-table-scroll td { padding-block: 8px; }
+  .portal-shell .ms-table-scroll th { padding-block: 10px; }
+  .portal-header-controls .brand-logo { width: 108px; }
+  .ui-field { font-size: 14px; }
+}
+
+.setting-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 24px;
+  border: 2px solid var(--ms-muted);
+  border-radius: 999px;
+  background: var(--ms-surface);
+  transition: background-color 160ms, border-color 160ms;
+}
+.setting-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ms-muted);
+  color: var(--ms-surface);
+  transition: transform 160ms;
+}
+.setting-switch[aria-checked="true"] {
+  border-color: var(--ms-primary);
+  background: var(--ms-primary);
+}
+.setting-switch[aria-checked="true"] .setting-switch-thumb {
+  transform: translateX(16px);
+  background: var(--ms-surface);
+  color: var(--ms-primary);
+}
+.setting-switch:not(:disabled):hover { box-shadow: 0 0 0 3px var(--ms-primary-ring); }
+.setting-switch:focus-visible { outline: 2px solid var(--ms-primary); outline-offset: 3px; }
+.setting-switch:disabled {
+  border-color: var(--ms-border-strong);
+  border-style: dashed;
+  background: repeating-linear-gradient(135deg, var(--ms-surface-subtle) 0 3px, var(--ms-border) 3px 5px);
+}
+.setting-switch:disabled .setting-switch-thumb {
+  background: var(--ms-surface);
+  color: var(--ms-muted);
+}
+@media (pointer: coarse), (max-width: 767px) {
+  .ui-button, .ui-field, .icon-button { min-height: 44px; }
+  .setting-switch { margin-block: 10px; }
+  .setting-switch::after { content: ""; position: absolute; inset: -12px -4px; }
+}

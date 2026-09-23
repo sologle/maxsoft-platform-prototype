@@ -9,18 +9,12 @@ import {
   Maximize2,
   Minimize2,
 } from "lucide-react";
-import { useRef, useState, useEffect, type RefObject } from "react";
+import { useRef, useEffect, type RefObject } from "react";
 import type { Navigate, UserRole } from "../../app/types";
 import { goBack } from "../../components/BackButton";
 import { MotionRegion } from "../../components/MotionRegion";
 import { articles, canRoleAccessArticle } from "../../data/platform-data";
-import {
-  getKnowledgeTree,
-  flattenTree,
-  sectionArticleIds,
-} from "../../data/knowledge-tree";
 import { KnowledgeTree } from "./KnowledgeTree";
-import { articleTrail } from "./reading-navigation";
 
 export const ReadingNavigation = ({
   onNavigate,
@@ -51,21 +45,9 @@ export const ReadingNavigation = ({
   modeButton: RefObject<HTMLButtonElement | null>;
   toolbar: RefObject<HTMLDivElement | null>;
 }) => {
-  const tree = getKnowledgeTree();
-  const article = articles.find((a) => a.id === articleId)!;
-  const [selected, setSelected] = useState(
-    () => articleTrail(tree, article).at(-1)?.id ?? "",
-  );
-  const selectedNode = flattenTree(tree).find((node) => node.id === selected);
   const visible = articles.filter((a) =>
     canRoleAccessArticle(a, role, companyType),
   );
-  const ids =
-    selected === "all"
-      ? visible.map((a) => a.id)
-      : selectedNode
-        ? sectionArticleIds(tree, selected)
-        : [];
   const trigger = useRef<HTMLButtonElement>(null);
   const close = () => {
     setOpen(false);
@@ -213,41 +195,18 @@ export const ReadingNavigation = ({
           <KnowledgeTree
             persistExpansion
             currentArticleId={articleId}
-            selected={selected}
-            onSelect={setSelected}
+            selected=""
+            onSelect={() => {}}
+            onSelectArticle={(id) => {
+              if (mobile) close();
+              if (id !== articleId) {
+                const target = visible.find((item) => item.id === id);
+                if (target)
+                  onNavigate(target.kind === "video" ? "video" : "article", id);
+              }
+            }}
             articleIds={visible.map((a) => a.id)}
           />
-          <section
-            className="reading-section-list"
-            aria-label="Материалы раздела"
-          >
-            <h2>
-              {selected === "all"
-                ? "Статьи всей базы знаний"
-                : selectedNode
-                  ? `Статьи раздела «${selectedNode.name}»`
-                  : "Раздел статьи недоступен"}
-            </h2>
-            {visible
-              .filter((a) => ids.includes(a.id))
-              .map((a) => (
-                <button
-                  type="button"
-                  key={a.id}
-                  aria-current={a.id === articleId ? "page" : undefined}
-                  onClick={() => {
-                    if (mobile) close();
-                    if (a.id !== articleId)
-                      onNavigate(
-                        a.kind === "video" ? "video" : "article",
-                        a.id,
-                      );
-                  }}
-                >
-                  {a.title}
-                </button>
-              ))}
-          </section>
         </div>
       </MotionRegion>
     </div>

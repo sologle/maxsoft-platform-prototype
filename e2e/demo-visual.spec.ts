@@ -11,7 +11,7 @@ test("PL-02–04: масштаб, якоря и панель в обоих ре�
     const button = page.getByRole("button", {
       name: "Развернуть содержание статьи",
     });
-    if (await button.count()) await button.click();
+    if (mobile && await button.count()) await button.click();
   };
   await open();
   const baseline = await page
@@ -46,7 +46,7 @@ test("PL-02–04: масштаб, якоря и панель в обоих ре�
       for (const title of ["Перед началом работы", "Диагностика"]) {
         await open();
         await page
-          .locator(".reading-toc-panel")
+          .locator(mobile ? ".reading-toc-panel" : ".reading-service-rail")
           .getByRole("link", { name: title, exact: true })
           .click();
         // The anchor scroll runs on the next animation frame after collapsing the panel.

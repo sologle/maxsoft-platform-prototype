@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Check,
   ChevronRight,
+  LockKeyhole,
   SearchX,
 } from "lucide-react";
 import {
@@ -38,7 +39,7 @@ export const Button = ({
   ...props
 }: ButtonProps) => (
   <button
-    className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)] disabled:cursor-not-allowed disabled:opacity-50 ${buttonTone[tone]} ${className}`}
+    className={`ui-button inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ms-primary)] disabled:cursor-not-allowed disabled:opacity-50 ${buttonTone[tone]} ${className}`}
     type="button"
     {...props}
   >
@@ -72,7 +73,7 @@ export const Field = ({
           aria-label={label}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${fieldId}-error` : undefined}
-          className={`h-12 w-full min-w-0 max-w-full rounded-xl border border-[var(--ms-border-strong)] bg-white px-3.5 text-[15px] outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)] ${inputAction ? "pr-14" : ""}`}
+          className={`ui-field h-12 w-full min-w-0 max-w-full rounded-xl border border-[var(--ms-border-strong)] bg-white px-3.5 text-[15px] outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-[var(--ms-primary)] focus:ring-4 focus:ring-[var(--ms-primary-ring)] ${inputAction ? "pr-14" : ""}`}
           id={fieldId}
           {...props}
         />
@@ -133,7 +134,7 @@ export const PageHeading = ({
   subtitle: string;
   title: string;
 }) => (
-  <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-start sm:justify-between">
+  <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between">
     <div className="min-w-0">
       {eyebrow ? (
         <p className="mb-2 text-xs font-bold uppercase tracking-[.14em] text-[var(--ms-primary)]">
@@ -151,11 +152,11 @@ export const PageHeading = ({
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </button>
         ) : null}
-        <h1 className="min-w-0 [overflow-wrap:anywhere] font-heading text-[clamp(1.75rem,4vw,2.4rem)] font-bold leading-tight tracking-[-.025em] text-[var(--ms-text)]">
+        <h1 className="min-w-0 [overflow-wrap:anywhere] font-heading text-xl font-bold leading-tight tracking-[-.025em] text-[var(--ms-text)]">
           {title}
         </h1>
       </div>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ms-muted)] sm:text-base">
+      <p className="mt-2 max-w-3xl text-sm leading-5 text-[var(--ms-muted)]">
         {subtitle}
       </p>
     </div>
@@ -200,21 +201,15 @@ export const Switch = ({
   <button
     aria-checked={checked}
     aria-label={label}
-    className={`relative h-7 w-12 shrink-0 rounded-full transition duration-200 disabled:opacity-45 ${checked ? "bg-[var(--ms-primary)]" : "bg-slate-300"}`}
+    className="setting-switch"
+    title={disabled ? "Недоступно для изменения" : checked ? "Включено — нажмите, чтобы выключить" : "Выключено — нажмите, чтобы включить"}
     disabled={disabled}
     onClick={onChange}
     role="switch"
     type="button"
   >
-    <span
-      className={`absolute top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow transition duration-200 ${checked ? "left-6" : "left-1"}`}
-    >
-      {checked ? (
-        <Check
-          className="h-3 w-3 text-[var(--ms-primary)]"
-          aria-hidden="true"
-        />
-      ) : null}
+    <span className="setting-switch-thumb">
+      {disabled ? <LockKeyhole size={11} aria-hidden="true" /> : checked ? <Check size={12} aria-hidden="true" /> : null}
     </span>
   </button>
 );

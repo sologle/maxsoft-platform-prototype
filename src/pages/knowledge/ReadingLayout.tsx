@@ -7,13 +7,15 @@ import {
   type ReactNode,
 } from "react";
 import type { Navigate, UserRole } from "../../app/types";
-import { files } from "../../data/platform-data";
+import { articles, files } from "../../data/platform-data";
+import { getArticleTags } from "../../data/prototype-entities";
 import {
   readPrototypeValue,
   writePrototypeValue,
 } from "../../data/prototype-store";
 import { ReadingNavigation } from "./ReadingNavigation";
 import { ReadingIntro } from "./ReadingIntro";
+import { ArticleAttachments } from "./ArticleAttachments";
 import { ReadingToc, type ReadingSection } from "./ReadingToc";
 import { visibleViewport } from "../../hooks/viewport";
 import "./reading.css";
@@ -54,7 +56,9 @@ export const ReadingLayout = ({
   const attachmentCount = files.filter((f) =>
     f.relatedArticleIds.includes(articleId),
   ).length;
-  const tocSections = attachmentCount
+  const article = articles.find((item) => item.id === articleId);
+  const tags = article ? getArticleTags(article) : [];
+  const tocSections = mobile && attachmentCount
     ? [
         { id: "attachments-title", title: `Вложения · ${attachmentCount}` },
         ...sections,
@@ -273,6 +277,34 @@ export const ReadingLayout = ({
           />
           {children}
         </article>
+        <aside className="reading-service-rail" aria-label="Сведения о статье">
+          <nav aria-label="Содержание статьи">
+            <h2>Содержание</h2>
+            {sections.map((section) => (
+              <a
+                href={`#${section.id}`}
+                key={section.id}
+                aria-current={active === section.id ? "location" : undefined}
+                style={{ paddingInlineStart: 8 + Math.max(0, (section.level ?? 2) - 2) * 12 }}
+              >
+                {section.title}
+              </a>
+            ))}
+          </nav>
+          {attachmentCount > 0 && (
+            <ArticleAttachments
+              articleId={articleId}
+              onNavigate={onNavigate}
+              headingId="reading-rail-attachments"
+            />
+          )}
+          {tags.length > 0 && (
+            <section className="reading-rail-tags" aria-label="Теги статьи">
+              <h2>Теги</h2>
+              <div>{tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+            </section>
+          )}
+        </aside>
       </div>
     </div>
   );

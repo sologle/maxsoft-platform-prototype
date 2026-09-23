@@ -1,12 +1,11 @@
 import { UserRows } from "./UserRows";
-import { Ban, Plus, Search, Trash2, UserRoundCheck } from "lucide-react";
+import { ArrowLeft, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { UserRole } from "../../app/types";
+import type { Navigate, UserRole } from "../../app/types";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
 import {
   Button,
   EmptyState,
-  Field,
   PageHeading,
   SelectField,
 } from "../../components/ui";
@@ -22,9 +21,10 @@ import {
   appendPrototypeValue,
   prototypeStorageKeys,
 } from "../../data/prototype-store";
+import { InviteUserForm, inviteCompanyUser } from "./InviteUserForm";
 
 interface UsersPageProps {
-  onNavigate?: (page: "audit") => void;
+  onNavigate: Navigate;
   onNotice: (message: string) => void;
   role: UserRole;
 }
@@ -58,49 +58,10 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
       ),
     [company, query, records, roleFilter, status],
   );
-  const invite = (formElement: HTMLFormElement) => {
-    const form = new FormData(formElement);
-    const firstName = form.get("firstName");
-    const lastName = form.get("lastName");
-    const email = form.get("email");
-    const selectedCompany = form.get("company");
-    const selectedRole = form.get("role");
-    if (
-      typeof firstName !== "string" ||
-      typeof lastName !== "string" ||
-      typeof email !== "string" ||
-      typeof selectedCompany !== "string"
-    )
-      throw new Error(
-        "ACC_USER_INVITE_FIELDS_MISSING: обязательные поля приглашения отсутствуют",
-      );
-    const invitedUser: UserRecord = {
-      id: `user-${Date.now()}`,
-      name: `${firstName.trim()} ${lastName.trim()}`,
-      email: email.trim(),
-      company: selectedCompany,
-      role:
-        role === "portal-admin" && typeof selectedRole === "string"
-          ? selectedRole
-          : "Ожидает назначения",
-      position: "Не указана",
-      status: "Приглашён",
-      lastLogin: "Ещё не входил",
-    };
-    const nextRecords = [...records, invitedUser];
-    setRecords(nextRecords);
-    writePrototypeUsers(nextRecords);
-    changeCompanyUserCount(invitedUser.company, 1);
+  const invite = (form: FormData) => {
+    inviteCompanyUser(form, role);
+    setRecords(getPrototypeUsers());
     setInviteOpen(false);
-    appendPrototypeValue<AuditEvent>(prototypeStorageKeys.audit, {
-      action: "Пригласил пользователя",
-      category: "user",
-      date: "Только что",
-      object: invitedUser.name,
-      page: "users",
-      result: "Успешно",
-      user: "Сотрудник MaxSoft",
-    });
     onNotice("Приглашение отправлено на корпоративную почту.");
   };
   const completeAction = () => {
@@ -151,6 +112,13 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
   };
   return (
     <>
+      {role === "portal-admin" ? (
+        <div className="mb-3">
+          <Button icon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />} onClick={() => onNavigate("administration")} tone="secondary">
+            В администрирование
+          </Button>
+        </div>
+      ) : null}
       <PageHeading
         actions={
           <Button
@@ -248,7 +216,7 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
               setNextCompany(user.company);
             }
           }}
-          onOpenAudit={() => onNavigate?.("audit")}
+          onOpenAudit={() => onNavigate("audit")}
           records={visible}
           role={role}
         />
@@ -276,58 +244,11 @@ export const UsersPage = ({ onNavigate, onNotice, role }: UsersPageProps) => {
         onClose={() => setInviteOpen(false)}
         open={inviteOpen}
       >
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            invite(event.currentTarget);
-          }}
-        >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Имя" name="firstName" required />
-            <Field label="Фамилия" name="lastName" required />
-            <Field
-              className="sm:col-span-2"
-              label="Корпоративная почта"
-              name="email"
-              required
-              type="email"
-            />
-            <SelectField
-              className="sm:col-span-2"
-              label="Компания"
-              name="company"
-              required
-            >
-              {availableCompanies.map((company) => (
-                <option key={company.id}>{company.name}</option>
-              ))}
-            </SelectField>
-            {role === "portal-admin" ? (
-              <SelectField
-                className="sm:col-span-2"
-                label="Роль"
-                name="role"
-                required
-              >
-                <option>Сотрудник клиента</option>
-                <option>Администратор клиента</option>
-                <option>Менеджер</option>
-                <option>Инженер ТП / автор</option>
-              </SelectField>
-            ) : null}
-          </div>
-          <p className="mt-4 text-sm leading-6 text-[var(--ms-muted)]">
-            {role === "portal-admin"
-              ? "Пользователь получит письмо со ссылкой для установки пароля."
-              : "Приглашение будет ждать назначения роли администратором портала; до этого вход недоступен."}
-          </p>
-          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button onClick={() => setInviteOpen(false)} tone="ghost">
-              Отмена
-            </Button>
-            <Button type="submit">Отправить приглашение</Button>
-          </div>
-        </form>
+        <InviteUserForm
+          onCancel={() => setInviteOpen(false)}
+          onSubmit={invite}
+          role={role}
+        />
       </ResponsiveOverlay>
       <ResponsiveOverlay
         desktop="modal"

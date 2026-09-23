@@ -1,7 +1,7 @@
 import { MotionMessage } from "../../components/MotionMessage";
 import type { Navigate } from "../../app/types";
 import { goBack } from "../../components/BackButton";
-import { ChevronDown, ChevronRight, Pencil, Plus, Tag, Tags, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Plus, Search, Tag, Tags, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ActionMenu } from "../../components/ActionMenu";
 import { ResponsiveOverlay } from "../../components/ResponsiveOverlay";
@@ -76,6 +76,18 @@ export const TagsPage = ({
   const [description, setDescription] = useState("");
   const [groupId, setGroupId] = useState(initialGroups[0].id);
   const [formError, setFormError] = useState("");
+  const [query, setQuery] = useState("");
+  const search = query.trim().toLocaleLowerCase("ru");
+  const visibleGroups = search
+    ? groups.map((group) => ({
+        ...group,
+        tags: group.name.toLocaleLowerCase("ru").includes(search)
+          ? group.tags
+          : group.tags.filter((tag) =>
+              `${tag.name} ${tag.description}`.toLocaleLowerCase("ru").includes(search),
+            ),
+      })).filter((group) => group.tags.length || group.name.toLocaleLowerCase("ru").includes(search))
+    : groups;
 
   useEffect(() => {
     writePrototypeValue(prototypeStorageKeys.tags, groups);
@@ -261,9 +273,15 @@ export const TagsPage = ({
         subtitle="Объединяйте теги в группы и используйте их для классификации, навигации и поиска. Теги не управляют доступом."
         title="Теги и группы"
       />
+      <label className="mb-4 flex max-w-xl items-center gap-3 rounded-xl border border-[var(--ms-border-strong)] bg-white px-3 focus-within:border-[var(--ms-primary)] focus-within:ring-4 focus-within:ring-[var(--ms-primary-ring)]">
+        <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+        <span className="sr-only">Поиск по тегам и группам</span>
+        <input className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none" onChange={(event) => setQuery(event.target.value)} placeholder="Название или описание тега, группа" value={query} />
+      </label>
+      {search && !visibleGroups.length ? <p className="mb-4 text-sm text-[var(--ms-muted)]">По запросу ничего не найдено.</p> : null}
       <div className="grid min-w-0 gap-4">
-        {groups.map((group) => {
-          const open = expanded.has(group.id);
+        {visibleGroups.map((group) => {
+          const open = Boolean(search) || expanded.has(group.id);
           return (
             <section
               className="min-w-0 self-start overflow-visible rounded-2xl border border-[var(--ms-border)] bg-white shadow-[var(--ms-card-shadow)]"

@@ -8,9 +8,11 @@ import { licensingFileName } from "../../data/licensing/catalog";
 export const ArticleAttachments = ({
   articleId,
   onNavigate,
+  headingId = "attachments-title",
 }: {
   articleId: string;
   onNavigate: Navigate;
+  headingId?: string;
 }) => {
   const attachments = files.filter((file) =>
     file.relatedArticleIds.includes(articleId),
@@ -19,9 +21,9 @@ export const ArticleAttachments = ({
   return (
     <section
       className="reading-attachments"
-      aria-labelledby="attachments-title"
+      aria-labelledby={headingId}
     >
-      <h2 id="attachments-title" tabIndex={-1}>
+      <h2 id={headingId} tabIndex={-1}>
         Вложения
       </h2>
       <div className="mt-3 space-y-2">

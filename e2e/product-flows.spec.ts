@@ -569,11 +569,9 @@ test("переименование компании сохраняет связ�
   const editor = page.getByRole("dialog", { name: "Редактирование компании" });
   await editor.getByLabel("Полное наименование").fill("ООО «СеверПромБИМ 2026»");
   await editor.getByRole("button", { name: "Сохранить компанию" }).click();
-  await page.getByRole("tab", { name: /Пользователи/ }).click();
-  await expect(page.getByText("Анна Смирнова", { exact: true })).toBeVisible();
+  await expect(page.getByText("Анна Смирнова", { exact: true }).filter({ visible: true })).toBeVisible();
   await page.reload();
-  await page.getByRole("tab", { name: /Пользователи/ }).click();
-  await expect(page.getByText("Анна Смирнова", { exact: true })).toBeVisible();
+  await expect(page.getByText("Анна Смирнова", { exact: true }).filter({ visible: true })).toBeVisible();
 });
 
 test("названия типов компаний остаются уникальными", async ({ page }) => {
