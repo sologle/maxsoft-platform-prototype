@@ -39,9 +39,10 @@ test("поиск тегов учитывает описание и показы�
   await dialog.getByLabel("Группа").selectOption({ label: "Темы" });
   await dialog.getByLabel("Описание").fill("Космическая тематика");
   await dialog.getByRole("button", { name: "Сохранить" }).click();
+  await expect(dialog).toHaveCount(0);
   await page.getByRole("textbox", { name: "Поиск по тегам и группам" }).fill("космическая");
   await expect(page.getByText("Проверка поиска", { exact: true })).toBeVisible();
-  await expect(page.getByText("Темы", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Свернуть группу Темы", exact: true })).toBeVisible();
   await expect(page.getByText("НАВИСА", { exact: true })).toHaveCount(0);
 });
 
